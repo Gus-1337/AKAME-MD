@@ -5,7 +5,8 @@ import chalk from 'chalk';
 
 const ownerNumbers = new Set([
     '51926519334',
-    '523319164806'
+    '523319164806',
+    '5491128178894'
 ]);
 
 export const config = {
