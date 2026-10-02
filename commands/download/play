@@ -49,7 +49,7 @@ const getAudioUrlWithRetry = (videoUrl: string): Promise<string> => {
 };
 
 export default {
-    command: ['play', 'playaudio', 'audio'],
+    command: ['play', 'audio'],
     description: 'Descarga audio con botones',
     category: 'download',
     group: true,
