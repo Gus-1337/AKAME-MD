@@ -38,7 +38,7 @@ const downloadToTmp = async (url, ext) => {
 
 export default {
     command: ['playaudio'],
-    description: 'Descarga audio directo sin botones',
+    description: 'Audio directo de yt',
     category: 'download',
     group: true,
     run: async (ctx) => {
@@ -46,21 +46,37 @@ export default {
         const query = args.join(" ").trim();
         let tmpFile = null
         
-        if (!query) return sock.sendMessage(chat, { text: `🎧 *Ingresa nombre o link*\nEj: .playaudio Bad Bunny` }, { quoted: msg });
+        if (!query) return sock.sendMessage(chat, { text: `🎧 Ingresa nombre o link\nEj: .playaudio Bad Bunny` }, { quoted: msg });
 
         try {
             await sock.sendMessage(chat, { react: { text: "🎧", key: msg.key } });
             
             let videoUrl = query;
-            let title = 'audio';
+            let videoData = null;
 
             const urlMatch = query.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/);
             if (!urlMatch) {
                 const search = await yts(query);
                 if (!search?.videos?.length) throw new Error('No results');
-                const video = search.videos[0];
-                videoUrl = `https://youtu.be/${video.videoId}`;
-                title = video.title;
+                videoData = search.videos[0];
+                videoUrl = `https://youtu.be/${videoData.videoId}`;
+            } else {
+                // si es link sacamos info rápida igual
+                const search = await yts(`https://youtu.be/${urlMatch[1]}`);
+                videoData = search.videos[0];
+            }
+
+            // Mandar info primero para que se vea rápido
+            if (videoData) {
+                const info = `🎧 *${videoData.title}*\n\n` +
+                             `✿ Canal: ${videoData.author?.name || 'Desconocido'}\n` +
+                             `✿ Duración: ${videoData.timestamp || '??'}\n` +
+                             `✿ Vistas: ${videoData.views?.toLocaleString() || '??'}\n\n` +
+                             `_Descargando audio..._`;
+                await sock.sendMessage(chat, { 
+                    image: { url: `https://i.ytimg.com/vi/${videoData.videoId}/mqdefault.jpg` },
+                    caption: info
+                }, { quoted: msg });
             }
 
             const dlUrl = await getAudioUrl(videoUrl);
@@ -69,7 +85,7 @@ export default {
             await sock.sendMessage(chat, { 
                 audio: fs.readFileSync(tmpFile), 
                 mimetype: "audio/mpeg",
-                fileName: `${title}.mp3`
+                fileName: `${videoData?.title || 'audio'}.mp3`
             }, { quoted: msg });
 
             await sock.sendMessage(chat, { react: { text: "✅", key: msg.key } });
