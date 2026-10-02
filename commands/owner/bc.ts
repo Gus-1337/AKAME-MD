@@ -17,7 +17,7 @@ export default {
             const channelId = '120363411107378790@newsletter';
             
             let count = 0;
-            const anuncio = `📢 *ANUNCIO OFICIAL AKAME* 📢\n\n${text}`;
+            const anuncio = `📢 *ANUNCIO OFICIAL AKAME* \n\n${text}`;
 
             // 1. Enviar a todos los grupos
             for (let id of groupIds) {
