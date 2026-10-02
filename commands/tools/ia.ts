@@ -2,7 +2,7 @@ import axios from 'axios';
 import config from '#config';
 
 export default {
-    command: ['ia', 'chat', 'bot', 'gpt'],
+    command: ['ia', 'chat', 'gpt'],
     description: 'Responde preguntas utilizando inteligencia artificial',
     category: 'tools',
     run: async ({ chat, m, sock, args }: any) => {
