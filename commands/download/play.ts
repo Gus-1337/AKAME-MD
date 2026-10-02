@@ -69,7 +69,7 @@ const downloadToTmp = async (url, ext) => {
 }
 
 export default {
-    command: ['play', 'playaudio', 'audio'],
+    command: ['play', 'audio'],
     description: 'Descarga audio con botones',
     category: 'download',
     group: true,
