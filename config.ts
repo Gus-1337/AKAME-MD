@@ -22,9 +22,9 @@ export const config = {
     owner: ownerNumbers,
     banner: 'https://u.pone.rs/djdhfkyy.jpg',
     icon: 'https://u.pone.rs/djdhfkyy.jpg',
-    coin: '¥enes',
+    coin: 'coins',
 
-    // API TAMBIEN DENTRO DEL CONFIG POR SI LA USAS ASI
+    // API TAMBIEN DENTRO DEL CONFIG 
     api: {
       url: 'https://api.stellarwa.xyz',
       key: 'proyectsV2'
