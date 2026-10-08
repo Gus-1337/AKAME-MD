@@ -1,82 +1,82 @@
+import { generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysockets/baileys';
 import fetch from 'node-fetch';
 
 export default {
     command: ['yts', 'ytsearch'],
     category: 'download',
-    description: 'Busca en YouTube con botón Siguiente',
     run: async (ctx) => {
-        const { sock, msg, chat, args, usedPrefix } = ctx;
-        const p = usedPrefix || '.';
-
-        let page = 1;
-        let qRaw = args.join(' ');
-
-        // Detecta pagina:.yts ozuna --page 2
-        if (qRaw.includes('--page')) {
-            const parts = qRaw.split('--page');
-            qRaw = parts[0].trim();
-            page = parseInt(parts[1].trim()) || 1;
-        }
-
-        const q = qRaw;
-        if (!q) return sock.sendMessage(chat, { text: `Usa: ${p}yts Ozuna` }, { quoted: msg });
+        const { sock, msg, chat, args, usedPrefix, jid } = ctx;
+        const targetJid = jid || chat;
+        const q = args.join(' ').trim();
+        if (!q) return sock.sendMessage(chat, { text: `Usa: ${usedPrefix}yts Anuel AA` }, { quoted: msg });
 
         try {
-            await sock.sendMessage(chat, { react: { text: '🔍', key: msg.key } });
-
             const apikey = 'nyx_aOtu2zWUS5jfVwzbtmiDBZAfPZ_xeMTX';
-            let url = `https://nyxdlapi.vercel.app/api/search/youtube?apikey=${apikey}&q=${encodeURIComponent(q)}`;
-            let res = await fetch(url).then(r => r.json());
-
+            let res = await fetch(`https://nyxdlapi.vercel.app/api/search/youtube?apikey=${apikey}&q=${encodeURIComponent(q)}`).then(r => r.json());
             if (!res?.result?.results?.length) {
-                url = `https://nyxdlapi.vercel.app/api/search/youtube?apikey=${apikey}&query=${encodeURIComponent(q)}`;
-                res = await fetch(url).then(r => r.json());
+                res = await fetch(`https://nyxdlapi.vercel.app/api/search/youtube?apikey=${apikey}&query=${encodeURIComponent(q)}`).then(r => r.json());
             }
 
-            if (!res?.status ||!res.result?.results?.length) {
-                return sock.sendMessage(chat, { text: `❌ No encontré nada para: ${q}` }, { quoted: msg });
-            }
+            const results = res.result.results.slice(0, 5);
+            if (!results.length) return sock.sendMessage(chat, { text: `❌ No hay resultados` }, { quoted: msg });
 
-            const all = res.result.results;
-            const perPage = 3;
-            const start = (page - 1) * perPage;
-            const results = all.slice(start, start + perPage);
-
-            if (!results.length) {
-                return sock.sendMessage(chat, { text: `❌ No hay más resultados para: ${q}` }, { quoted: msg });
-            }
-
-            let txt = `🔍 *${res.result.query}* - Pag ${page}\n────────────────\n\n`;
-            results.forEach((v,i)=>{
-                const num = start + i + 1;
-                txt += `*${num}. ${v.title}*\n`;
-                txt += `✧ ${v.channel} | ${v.duration}\n`;
-                txt += `✧ ${v.url}\n\n`;
+            // SIN LINKS - solo info
+            let txt = `🔍 *${res.result.query || q}* - ${results.length} resultados\n────────────────\n\n`;
+            results.forEach((v, i) => {
+                txt += `*${i + 1}. ${v.title}*\n`;
+                txt += `✧ ${v.channel} | ${v.duration}\n\n`;
             });
 
-            const hasNext = all.length > start + perPage;
+            const media = await prepareWAMessageMedia({ image: { url: results[0].thumbnail } }, { upload: sock.waUploadToServer });
 
-            const buttons = hasNext? [
-                {
-                    name: 'quick_reply',
-                    buttonParamsJson: JSON.stringify({
-                        display_text: 'Siguiente ▶️',
-                        id: `${p}yts ${q} --page ${page + 1}`
-                    })
+            const rows_mp3 = [];
+            const rows_mp4 = [];
+
+            results.forEach((v, i) => {
+                rows_mp3.push({
+                    title: `${i+1}. ${v.title.slice(0, 36)}`,
+                    description: `${v.channel} | ${v.duration}`,
+                    id: `${usedPrefix}ytmp3 ${v.url}`
+                });
+                rows_mp4.push({
+                    title: `${i+1}. ${v.title.slice(0, 36)}`,
+                    description: `${v.channel} | ${v.duration}`,
+                    id: `${usedPrefix}ytmp4 ${v.url}`
+                });
+            });
+
+            const list = generateWAMessageFromContent(targetJid, {
+                viewOnceMessage: {
+                    message: {
+                        messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
+                        interactiveMessage: {
+                            body: { text: txt },
+                            footer: { text: 'AKAME - Selecciona formato' },
+                            header: { hasMediaAttachment: true, imageMessage: media.imageMessage },
+                            nativeFlowMessage: {
+                                buttons: [
+                                    {
+                                        name: 'single_select',
+                                        buttonParamsJson: JSON.stringify({
+                                            title: '📥 Seleccionar formato',
+                                            sections: [
+                                                { title: '🎵 AUDIO MP3', highlight_label: 'MP3', rows: rows_mp3 },
+                                                { title: '🎬 VIDEO MP4', highlight_label: 'MP4', rows: rows_mp4 }
+                                            ]
+                                        })
+                                    }
+                                ]
+                            }
+                        }
+                    }
                 }
-            ] : [];
-
-            await sock.sendMessage(chat, {
-                image: { url: results[0].thumbnail },
-                caption: txt,
-                title: 'YTS RESULT',
-                subtitle: `${q} - Pag ${page}`,
-                footer: hasNext? 'Pulsa Siguiente' : 'Fin de resultados',
-                interactiveButtons: buttons.length? buttons : undefined
             }, { quoted: msg });
 
+            await sock.relayMessage(targetJid, list.message, { messageId: list.key.id });
+
         } catch (e) {
-            await sock.sendMessage(chat, { text: `Error: ${e.message}` }, { quoted: msg });
+            console.log(e);
+            await sock.sendMessage(chat, { text: `❌ Error: ${e.message}` }, { quoted: msg });
         }
     }
 };
