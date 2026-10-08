@@ -229,7 +229,7 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
             if (typeof plug.before === 'function') {
                 try {
                     const beforeCtx = {
-                 ...msg, sock, m: msg, msg, chat,
+               ...msg, sock, m: msg, msg, chat,
                         sender: msg.sender || realJidResult,
                         text: textForBefore, body: textForBefore,
                         db: (global as any).db,
@@ -249,7 +249,6 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
         }
     } catch {}
 
-    // --- AKAME-MD PREFIX LIMPIO (sin Stellar) ---
     const rawGlobal = (global as any).db?.data?.settings?.globalPrefix?? (config as any)?.prefix?? '.';
     const prefijoArray: string[] = Array.isArray(rawGlobal)? rawGlobal.map(String) : [String(rawGlobal)];
     const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -260,7 +259,6 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
     const matchedPrefix = match[0];
     const isCommand =!!matchedPrefix;
     const prefix = prefijoArray[0] || '.';
-    // --- FIN PREFIX ---
 
     if (isGroup && chat && currentChatDb.antilinks &&!isCommand && msg.body) {
         const detectedLinks = linkify.find(msg.body);
@@ -281,22 +279,15 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
     if (!rawCommand) return;
     syncCommandMapIfNeeded();
     const cmd = commandMap.get(rawCommand.toLowerCase()) || commandMap.get(normalizeString(rawCommand));
+
+    // --- MENSAJE PERSONALIZADO CON REACT ---
     if (!cmd) {
-        const txt = `♡ AKAME-MD ♡\n\nLo siento bb *${rawCommand}* no está en mi base\n\n> Escribe *${matchedPrefix}menu* para ver mis comandos ♡`;
-        await sock.sendMessage(chat, {
-            text: txt,
-            contextInfo: {
-                forwardingScore: 999, isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363411107378790@newsletter',
-                    newsletterName: '♡ AKAME-MD ♡',
-                    serverMessageId: -1
-                }
-            }
-        }, { quoted: rawMsg }).catch(()=>null);
-        await sock.sendMessage(chat, { react: { text: '♡', key: rawMsg.key } }).catch(()=>null);
+        await sock.sendMessage(chat, { react: { text: '🥺', key: rawMsg.key } }).catch(()=>null);
+        const txt = `₍ᐢ..ᐢ₎ El comando *${rawCommand}* no existe, para ver los comandos usa:\n> *${matchedPrefix}menu*`;
+        await sock.sendMessage(chat, { text: txt }, { quoted: rawMsg }).catch(()=>null);
         return;
     }
+
     if (cmd.owner &&!isOwner) {
         queueMicrotask(() => { broadcast('security_event', { type: 'unauthorized_access', command: rawCommand, sender: normalizedSender, chat }); });
         return msg.reply('ׅ ׄ ✿ Este comando solo puede ser utilizado por el dueño del bot.');
@@ -345,7 +336,6 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
         }
         queueMicrotask(() => { broadcast('command_executing', { command: rawCommand, chat, sender: cleanSender }); });
         try {
-            // SIN composing y SIN delay = respuesta instantánea
             const result = await cmd._exec(ctx);
             queueMicrotask(() => { broadcast('command_executed', { command: rawCommand, chat, sender: cleanSender, executionTimeMs: Date.now() - startTime }); });
             return result;
