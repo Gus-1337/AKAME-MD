@@ -20,8 +20,8 @@ export const config = {
     devName: 'LORD GUS',
     prefix: '.',
     owner: ownerNumbers,
-    banner: 'https://u.pone.rs/djdhfkyy.jpg',
-    icon: 'https://u.pone.rs/djdhfkyy.jpg',
+    banner: 'https://cdn.dix.lat/me/q2se_20261008-r2x1-0f9o-f489.jpg',
+    icon: 'https://cdn.dix.lat/me/q2se_20261008-r2x1-0f9o-f489.jpg',
     coin: 'coins',
 
     // API TAMBIEN DENTRO DEL CONFIG 
@@ -46,8 +46,8 @@ export const config = {
         gacha: 'https://u.pone.rs/djdhfkyy.jpg',
         anime: 'https://u.pone.rs/djdhfkyy.jpg',
         nsfw: 'https://u.pone.rs/djdhfkyy.jpg',
-        otros: 'https://u.pone.rs/djdhfkyy.jpg',
-        logo: 'https://u.pone.rs/djdhfkyy.jpg'
+        otros: 'https://cdn.dix.lat/me/q2se_20261008-r2x1-0f9o-f489.jpg',
+        logo: 'https://cdn.dix.lat/me/q2se_20261008-r2x1-0f9o-f489.jpg'
     }
 };
 
