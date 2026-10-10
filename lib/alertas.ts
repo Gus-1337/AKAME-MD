@@ -4,7 +4,7 @@ import config from '#config';
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const getRandomIcon = (): string => {
-    const icons = ['ꕤ', '✰'];
+    const icons = ['ꕤ', '✰', '❀'];
     return icons[Math.floor(Math.random() * icons.length)];
 };
 
@@ -17,11 +17,11 @@ const parseJidString = (p: any): string => {
 };
 
 const buildLocationQuoted = (groupName: string) => ({
-    key: { 
-        participant: '0@s.whatsapp.net', 
-        remoteJid: 'status@broadcast', 
-        fromMe: false, 
-        id: 'Halo' 
+    key: {
+        participant: '0@s.whatsapp.net',
+        remoteJid: 'status@broadcast',
+        fromMe: false,
+        id: 'Halo'
     },
     message: {
         locationMessage: {
@@ -49,18 +49,18 @@ export const handleGroupAlerts = async (sock: any, updates: any[]) => {
         if (!chat.alerts) continue;
 
         const rawAuthor = parseJidString(group.author);
-        const cleanSenderJid = rawAuthor ? UserJid(sock, chatJid, rawAuthor) : '';
-        const phone = cleanSenderJid ? cleanSenderJid.split('@')[0] : '';
+        const cleanSenderJid = rawAuthor? UserJid(sock, chatJid, rawAuthor) : '';
+        const phone = cleanSenderJid? cleanSenderJid.split('@')[0] : '';
 
         let texto = '';
         const icon = getRandomIcon();
 
         if (group.subject) {
             texto = `${icon} @${phone} cambió el nombre del grupo a *${group.subject}*`;
-        } else if (group.announce !== undefined) {
-            texto = `${icon} @${phone} cambió los ajustes del grupo para permitir que ${group.announce ? 'solo los administradores puedan enviar mensajes.' : 'todos los miembros puedan enviar mensajes.'}`;
-        } else if (group.restrict !== undefined) {
-            texto = `${icon} @${phone} cambió los ajustes del grupo para permitir que ${group.restrict ? 'solo admins' : 'todos'} puedan configurar el grupo.`;
+        } else if (group.announce!== undefined) {
+            texto = `${icon} @${phone} cambió los ajustes del grupo para permitir que ${group.announce? 'solo los administradores puedan enviar mensajes.' : 'todos los miembros puedan enviar mensajes.'}`;
+        } else if (group.restrict!== undefined) {
+            texto = `${icon} @${phone} cambió los ajustes del grupo para permitir que ${group.restrict? 'solo admins' : 'todos'} puedan configurar el grupo.`;
         } else if (group.revoke) {
             texto = `${icon} @${phone} restableció el enlace del grupo.`;
         } else if (group.icon) {
@@ -70,7 +70,7 @@ export const handleGroupAlerts = async (sock: any, updates: any[]) => {
         if (texto) {
             const groupMetadata = await sock.groupMetadata(chatJid).catch(() => null);
             const groupName = groupMetadata?.subject || config?.botName || 'Grupo';
-            const mentions = cleanSenderJid ? [cleanSenderJid] : [];
+            const mentions = cleanSenderJid? [cleanSenderJid] : [];
             await sock.sendMessage(chatJid, { text: texto, mentions }, { quoted: buildLocationQuoted(groupName) }).catch(() => null);
         }
     }
@@ -81,8 +81,8 @@ export const handleGroupParticipants = async (sock: any, part: any) => {
         imageTimeout: 2000,
         maxMentions: 50,
         defaultMessages: {
-            welcome: 'Disfruta tu estadía en el grupo!\n\n> ✰ Personaliza este mensaje usando: *.setwelcome*',
-            goodbye: 'A chingar su madre alv.'
+            welcome: 'Bienvenido al mejor grupo 🥳\n> ✰ Configura con: *.setwelcome*',
+            goodbye: 'Se fue uno, ni modo 😿'
         }
     };
 
@@ -100,7 +100,7 @@ export const handleGroupParticipants = async (sock: any, part: any) => {
     if (chat.alerts && ['promote', 'demote'].includes(action)) {
         const firstParticipant = parseJidString(part.participants[0]);
         const rawSender = rawAuthor || firstParticipant;
-        const cleanSenderJid = rawSender ? UserJid(sock, chatJid, rawSender) : '';
+        const cleanSenderJid = rawSender? UserJid(sock, chatJid, rawSender) : '';
 
         const groupMetadata = await sock.groupMetadata(chatJid).catch(() => null);
         const groupName = groupMetadata?.subject || config?.botName || 'Grupo';
@@ -124,11 +124,7 @@ export const handleGroupParticipants = async (sock: any, part: any) => {
 
             if (texto) {
                 const mentions = Array.from(new Set([...groupMembers, cleanTargetJid, cleanSenderJid])).filter(Boolean);
-
-                await sock.sendMessage(chatJid, {
-                    text: texto,
-                    mentions: mentions
-                }, { quoted: buildLocationQuoted(groupName) }).catch(() => null);
+                await sock.sendMessage(chatJid, { text: texto, mentions: mentions }, { quoted: buildLocationQuoted(groupName) }).catch(() => null);
             }
         }
     }
@@ -137,16 +133,16 @@ export const handleGroupParticipants = async (sock: any, part: any) => {
 
     try {
         await delay(Math.floor(Math.random() * (3000 - 1500 + 1) + 1500));
-        chat.welcome ??= false;
-        chat.bye ??= false;
+        chat.welcome??= false;
+        chat.bye??= false;
 
-        if (action === 'add' && !chat.welcome) return;
-        if (action === 'remove' && !chat.bye) return;
+        if (action === 'add' &&!chat.welcome) return;
+        if (action === 'remove' &&!chat.bye) return;
 
         const rawMentions = part.participants
-            .map((p: any) => parseJidString(p))
-            .filter(Boolean)
-            .slice(0, groupEventConfig.maxMentions);
+           .map((p: any) => parseJidString(p))
+           .filter(Boolean)
+           .slice(0, groupEventConfig.maxMentions);
 
         if (rawMentions.length === 0) return;
 
@@ -158,7 +154,7 @@ export const handleGroupParticipants = async (sock: any, part: any) => {
                 try {
                     return await Promise.race([
                         sock.profilePictureUrl(jid, 'image'),
-                        new Promise<string>((_, reject) => 
+                        new Promise<string>((_, reject) =>
                             setTimeout(() => reject(new Error('timeout')), groupEventConfig.imageTimeout)
                         )
                     ]);
@@ -172,49 +168,60 @@ export const handleGroupParticipants = async (sock: any, part: any) => {
         if (!metadata) return;
 
         const groupName = metadata.subject || 'Grupo';
-        const desc = metadata.desc ? metadata.desc.toString() : 'Sin descripción';
-        
-        let sWelcome = (chat.sWelcome && chat.sWelcome.trim().length > 0) ? chat.sWelcome : groupEventConfig.defaultMessages.welcome;
-        let sGoodbye = (chat.sGoodbye && chat.sGoodbye.trim().length > 0) ? chat.sGoodbye : groupEventConfig.defaultMessages.goodbye;
+        const desc = metadata.desc? metadata.desc.toString() : 'Sin descripción';
+        const totalMembers = metadata.participants?.length || 0;
+
+        let sWelcome = (chat.sWelcome && chat.sWelcome.trim().length > 0)? chat.sWelcome : groupEventConfig.defaultMessages.welcome;
+        let sGoodbye = (chat.sGoodbye && chat.sGoodbye.trim().length > 0)? chat.sGoodbye : groupEventConfig.defaultMessages.goodbye;
 
         const userTags = mentions.map((m: string) => `@${m.split('@')[0]}`).join(', ');
-        const rawText = action === 'add' ? sWelcome : sGoodbye;
+        const rawText = action === 'add'? sWelcome : sGoodbye;
 
         let finalMsg = rawText
-            .replace(/{user}|@user|#user/g, userTags)
-            .replace(/{grupo}|@grupo|#grupo/g, groupName)
-            .replace(/{desc}|@desc|#desc/g, desc);
-        
-        const headerTitle = action === 'add' ? 'WELCOME' : 'GOOD BYE';
-        const headerFruit = action === 'add' ? '🍒' : '🍓';
+           .replace(/{user}|@user|#user/g, userTags)
+           .replace(/{grupo}|@grupo|#grupo/g, groupName)
+           .replace(/{desc}|@desc|#desc/g, desc);
 
-        const message = 
-`ᅟㅤ 𓈒    |꛱ ᷼ |꛱ ᷼ |ㅤֵㅤ  ̄ 𐇽  ${headerFruit}ㅤ࣫ㅤ|꛱ ᷼ |꛱ ᷼ |ㅤ 𓈒
+        // --- DISEÑO FINAL CON CONTADOR ---
+        let message = '';
+        if (action === 'add') {
+            message =
+`◜ WELCOME ◞
 
-𖫨𖫨🪷⃨᪲  *${headerTitle}*
-𖫨𖫨🪷⃨᪲  ${userTags}
-𐴲੭  ˙ 𓂃  🍥  𓂃  ˙
+  𖤐 usuario » ${userTags}
+  𖤐 grupo » *${groupName}*
+  𖤐 miembros » *${totalMembers}*
 
 ${finalMsg}
 
-𐴲੭  ˙ 𓂃  🍥  𓂃  ˙
+> Disfruta tu estadía 🍓`.trim();
+        } else {
+            message =
+`◜ GOOD BYE ◞
 
-ᅟㅤ 𓈒    |꛱ ᷼ |꛱ ᷼ |ㅤֵㅤ  ̄ 𐇽 🍓 ㅤ࣫ㅤ|꛱ ᷼ |꛱ ᷼ |ㅤ 𓈒`.trim();
+  𖤐 usuario » ${userTags}
+  𖤐 grupo » *${groupName}*
+  𖤐 miembros » *${totalMembers}*
 
-        const userPic = profilePics.find(pic => pic !== null);
+${finalMsg}
+
+> Nunca te quisimos igual 😿`.trim();
+        }
+
+        const userPic = profilePics.find(pic => pic!== null);
         const imageUrl = userPic || groupProfilePic || global.icono;
         const fkontak = buildLocationQuoted(groupName);
 
         const messageContent = {
-            image: typeof imageUrl === 'string' ? { url: imageUrl } : imageUrl,
+            image: typeof imageUrl === 'string'? { url: imageUrl } : imageUrl,
             caption: message,
             mentions: mentions
         };
 
         await sock.sendMessage(chatJid, messageContent, { quoted: fkontak }).catch(() => {
-            return sock.sendMessage(chatJid, { 
-                text: message, 
-                mentions: mentions 
+            return sock.sendMessage(chatJid, {
+                text: message,
+                mentions: mentions
             }, { quoted: fkontak });
         });
     } catch (err) {
