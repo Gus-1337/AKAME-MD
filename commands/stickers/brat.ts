@@ -57,7 +57,7 @@ export default {
                 if (pack) hasCustomPack = true;
                 if (author) hasCustomAuthor = true;
             }
-            const botName = (config as any)?.botName || 'Raiden WaBot';
+            const botName = (config as any)?.botName || 'AKAME-MD';
             let finalPack = '', finalAuthor = '';
             if (hasCustomPack && hasCustomAuthor) {
                 finalPack = pack;
