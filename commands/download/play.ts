@@ -50,7 +50,7 @@ const getAudio = async (videoUrl: string, heavy: boolean) => {
 
 export default {
     command: ['play', 'audio'],
-    description: 'Play directo sin botones',
+    description: 'Play directo yt',
     category: 'download',
     group: true,
     run: async (ctx: any) => {
