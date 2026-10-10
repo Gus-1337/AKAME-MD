@@ -57,8 +57,8 @@ async function writeExif(media: { data: Buffer, mimetype: string }, metadata: { 
     const img = new webp.Image();
     const json = {
         'sticker-pack-id': `https://github.com/Ryuzei-Ts/Raiden-WaBot`,
-        'sticker-pack-name': metadata.packname || 'Raiden WaBot',
-        'sticker-pack-publisher': metadata.author || 'Ryuzei-Ts',
+        'sticker-pack-name': metadata.packname || 'AKAME-MD',
+        'sticker-pack-publisher': metadata.author || 'GUS',
         emojis: metadata.categories ? metadata.categories : ['🤩', '🎉']
     };
     const exifAttr = Buffer.from([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41, 0x57, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00]);
