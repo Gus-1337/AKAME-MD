@@ -42,7 +42,7 @@ export default function maker(options: LogoOptions) {
                 const text = args.join(' ').trim();
                 if (!text) {
                     return sock.sendMessage(chat, { 
-                        text: `    ׄ  ✿  Por favor, ingresa un texto para crear el logo.\n\n> *Ejemplo:* ${p}${primaryCmd} Ryuzei` 
+                        text: `    ׄ  ✿  Por favor, ingresa un texto para crear el logo.\n\n> *Ejemplo:* ${p}${primaryCmd} Mi amor` 
                     }, { quoted: m });
                 }
 
