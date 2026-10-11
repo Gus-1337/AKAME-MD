@@ -1,71 +1,53 @@
 import axios from 'axios';
-import config from '#config';
 
 export default {
-    command: ['lyrics', 'letra', 'lyric'],
-    description: 'Busca la letra de una canción',
+    command: ['letra', 'lyrics', 'lyric'],
     category: 'download',
-    group: true,
-    run: async ({ chat, m, sock, args, usedPrefix, prefix }: any) => {
-        const p = usedPrefix || prefix || config.prefix || '.';
-        const msgId = m?.id || m?.key?.id;
+    description: 'Busca la letra de una canción',
+    run: async (ctx) => {
+        const { sock, msg, chat, args } = ctx;
+        const query = args.join(' ');
+        if (!query) {
+            return sock.sendMessage(chat, {
+                text: `✿ Usa: .letra Ozuna odisea\n✿ Ejemplo: .letra Bad Bunny DTMF`
+            }, { quoted: msg });
+        }
 
         try {
-            const query = args.join(' ').trim();
-            if (!query) {
-                return sock.sendMessage(chat, { 
-                    text: `   ׄ  ✿  Por favor, ingresa el nombre de una canción.` 
-                }, { quoted: m });
+            await sock.sendMessage(chat, { react: { text: "🎧", key: msg.key } });
+
+            const api = `https://api-faa.my.id/faa/lyrics?q=${encodeURIComponent(query)}`;
+            const { data } = await axios.get(api, { timeout: 15000 });
+
+            if (!data.status || !data.result) {
+                return sock.sendMessage(chat, { text: `❌ No encontré letra para "${query}"` }, { quoted: msg });
             }
 
-            global.broadcast?.('cmd_progress', { id: msgId, step: 'search_started', query });
+            const r = data.result;
+            // limpiamos los [00:09.04]
+            const cleanLyrics = r.lyrics.replace(/\[\d+:\d+\.\d+\]/g, '').trim();
 
-            const endpoint = `https://api.delirius.online/search/lyrics?query=${encodeURIComponent(query)}`;
+            const text = `*${r.title} - ${r.artist}*\n` +
+                         `✿ Álbum: ${r.album || 'Desconocido'}\n` +
+                         `✿ Género: ${r.genre || 'Desconocido'}\n\n` +
+                         `${cleanLyrics}\n\n` +
+                         `🔗 ${r.share_url || ''}`;
 
-            const res = await axios.get(endpoint, {
-                timeout: 15000,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-                    'Accept': 'application/json'
-                }
-            });
-
-            const data = res.data?.data;
-
-            if (!res.data?.status || !data || !data.lyrics) {
-                global.broadcast?.('cmd_progress', { id: msgId, step: 'no_results', query });
-                return sock.sendMessage(chat, { 
-                    text: `   ׄ  ✿  No se encontraron letras para *${query}*.` 
-                }, { quoted: m });
+            // Mandamos con la portada
+            if (r.cover?.large) {
+                await sock.sendMessage(chat, {
+                    image: { url: r.cover.large },
+                    caption: text
+                }, { quoted: msg });
+            } else {
+                await sock.sendMessage(chat, { text: text }, { quoted: msg });
             }
 
-            const lyrics = data.lyrics || 'Sin letra disponible';
+            await sock.sendMessage(chat, { react: { text: "✅", key: msg.key } });
 
-            const caption = `﹒𝜗ৎ      ࣪  *${data.title || 'Sin título'}*\n\n\`\`\`${lyrics}\`\`\`\n\nׅ  ׄ  ✿ Made with love By *Ryuzei*`.trim();
-
-            global.broadcast?.('cmd_progress', { id: msgId, step: 'sending_lyrics' });
-
-            const result = await sock.sendMessage(chat, { 
-                text: caption
-            }, { quoted: m });
-
-            global.broadcast?.('cmd_progress', { id: msgId, step: 'completed' });
-
-            return result;
-
-        } catch (error: any) {
-            global.broadcast?.('cmd_progress', { id: msgId, step: 'error', error: error.message || String(error) });
-            
-            let errorMsg = '   ׄ  ✿  Ocurrió un error al procesar tu solicitud.';
-            if (error.message?.includes('timeout') || error.code === 'ECONNABORTED') {
-                errorMsg = '   ׄ  ✿  El servidor tardó demasiado en responder. Intenta de nuevo.';
-            } else if (error.response?.status === 429) {
-                errorMsg = '   ׄ  ✿  Demasiadas solicitudes. Espera un momento e intenta de nuevo.';
-            }
-            
-            return sock.sendMessage(chat, { 
-                text: errorMsg
-            }, { quoted: m });
+        } catch (e) {
+            console.log('[LETRA]', e.message);
+            await sock.sendMessage(chat, { text: `❌ Error buscando la letra` }, { quoted: msg });
         }
     }
 };
