@@ -4,7 +4,7 @@ import crypto from 'crypto';
 
 export default {
     command: ['pinterest', 'pin'],
-    category: 'dowload',
+    category: 'download',
     description: 'Busca y descarga imágenes de Pinterest',
     run: async (ctx) => {
         const { sock, msg, chat, args, usedPrefix, jid } = ctx;
