@@ -5,24 +5,24 @@ import crypto from 'crypto';
 export default {
     command: ['pinterest', 'pin'],
     category: 'download',
-    description: 'Busca y descarga imágenes de Pinterest',
+    description: 'descarga imagenes de pinterest',
     run: async (ctx) => {
         const { sock, msg, chat, args, usedPrefix, jid } = ctx;
         const targetJid = jid || chat;
         const q = args.join(' ').trim();
-        if (!q) return sock.sendMessage(chat, { text: `📌 *Pinterest Search*\n\nUsa: ${usedPrefix}pin <texto>\nEj: ${usedPrefix}pin animes` }, { quoted: msg });
+        if (!q) return sock.sendMessage(chat, { 
+            text: `☬ *AKAME - PINTEREST* ☬\n\n♡ *Usa:*\n> ${usedPrefix}pin <texto>\n\n♡ *Ejemplo:*\n> ${usedPrefix}pin mikasa\n> ${usedPrefix}pin gatos` 
+        }, { quoted: msg });
 
         try {
-            const apikey = 'nyx_2rmMAKqdXlIkD9YLhMf29fU25Jo8rK1C';
-            const res = await fetch(`https://nyxdlapi.vercel.app/api/search/pinterest?apikey=${apikey}&q=${encodeURIComponent(q)}`).then(r => r.json());
-
-            if (!res?.result?.results?.length) {
-                return sock.sendMessage(chat, { text: `❌ No se encontraron resultados para: ${q}` }, { quoted: msg });
+            const res = await fetch(`https://api-faa.my.id/faa/pinterest?q=${encodeURIComponent(q)}`).then(r => r.json());
+            const results = res.resultado || res.result || [];
+            if (!results.length) {
+                return sock.sendMessage(chat, { text: `☬ *AKAME-MD* ☬\n\n♡ No se encontraron resultados para: *${q}*` }, { quoted: msg });
             }
 
-            const images = res.result.results.slice(0, 10).map(v => v.download || v.image || v.descarga);
+            const images = results.slice(0, 15);
 
-            // 1. Abrir álbum
             const opener = generateWAMessageFromContent(targetJid, {
                 messageContextInfo: { messageSecret: crypto.randomBytes(32) },
                 albumMessage: { expectedImageCount: images.length, expectedVideoCount: 0 }
@@ -30,12 +30,18 @@ export default {
 
             await sock.relayMessage(targetJid, opener.message, { messageId: opener.key.id });
 
-            // 2. Enviar cada imagen como hija del álbum
-            for (let i = 0; i < images.length; i++) {
-                const url = images[i];
+            const sendPromises = images.map(async (url, i) => {
+                const caption = i === 0 ? 
+`☬ *PINTEREST* ☬
+
+♡ *Búsqueda:* ${q}
+♡ *Resultados:* ${images.length} fotos
+
+☬ *AKAME-MD* ♡` : '';
+
                 const child = await generateWAMessage(targetJid, {
                     image: { url },
-                    caption: i === 0? `📌 *Pinterest - Descarga*\n🔎 Búsqueda: ${res.result.query}\n📸 Resultados: ${images.length} fotos\n\n> Busca imágenes en Pinterest` : ''
+                    caption
                 }, { upload: sock.waUploadToServer });
 
                 child.message.messageContextInfo = {
@@ -44,11 +50,13 @@ export default {
                 };
 
                 await sock.relayMessage(targetJid, child.message, { messageId: child.key.id });
-            }
+            });
+
+            await Promise.all(sendPromises);
 
         } catch (e) {
             console.log(e);
-            await sock.sendMessage(chat, { text: `Error: ${e.message}` }, { quoted: msg });
+            await sock.sendMessage(chat, { text: `☬ *AKAME-MD* ☬\n\n♡ Error: ${e.message}` }, { quoted: msg });
         }
     }
 };
