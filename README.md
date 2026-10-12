@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="img/flower.webp" alt="🌹" width="82">
+<img src="img/flower.webp" alt="🌸" width="88">
 
 <img src="img/banner-anim.webp" alt="AKAME-MD" width="100%">
 
@@ -8,7 +8,7 @@
 
 **Un bot de WhatsApp con estilo, potencia y personalidad.**
 
-[![Node](https://img.shields.io/badge/Node-%3E%3D23-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Node](https://img.shields.io/badge/Node-%3E%3D22.6.0-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Baileys](https://img.shields.io/badge/Baileys-WhatsApp%20API-25D366?logo=whatsapp&logoColor=white)](https://github.com/WhiskeySockets/Baileys)
 [![License](https://img.shields.io/badge/licence-MIT-red)]()
@@ -69,7 +69,7 @@ pkg update && pkg upgrade
 pkg install git nodejs ffmpeg -y
 ```
 
-> ⚠️ Requerido **Node.js >= 23** — tu bot **no funciona con Node 22**. Verifica con `node -v`; si tienes otra versión, instala la última con `pkg install nodejs -y`.
+> ⚠️ Requerido **Node.js >= 22.6.0**. Con el lanzador incluido el bot **ya funciona en Node 22** (agrega los flags solo). Verifica con `node -v`; si es menor, actualiza con `pkg install nodejs -y`.
 
 3. **Clona el repositorio**
 
@@ -118,6 +118,16 @@ npm start        # modo producción
 npm run dev      # modo desarrollo (recarga automática)
 npm run build    # verificar tipos (tsc --noEmit)
 ```
+
+> 🧠 **¿Node 22 o Node 23?** El bot corre TypeScript directo, y en Node 22 eso
+> necesita flags (`--experimental-strip-types` y `--experimental-sqlite`).
+> El lanzador (`scripts/lanzar.mjs`) detecta tu versión y los agrega solo
+> cuando hacen falta, así que **`npm start` funciona igual en Node 22.6+ y en
+> Node 23/24+**. Si prefieres correrlo a mano en Node 22:
+>
+> ```bash
+> node --experimental-strip-types --experimental-sqlite index.ts
+> ```
 
 Al iniciar, escanea el **código QR** con WhatsApp y ¡listo! 🗡️
 
