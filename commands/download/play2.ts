@@ -24,7 +24,7 @@ const fetchApiUrl = (apiUrl) => {
 const getVideoUrl = (videoUrl) => {
     const encoded = encodeURIComponent(videoUrl);
     return fetchApiUrl(`https://api.delirius.online/download/ytmp4?url=${encoded}`)
-      .catch(() => fetchApiUrl(`https://api.starlights.uk/api/download/ytmp4?url=${encoded}`));
+     .catch(() => fetchApiUrl(`https://api.starlights.uk/api/download/ytmp4?url=${encoded}`));
 };
 
 const downloadToTmp = async (url, ext) => {
@@ -35,7 +35,7 @@ const downloadToTmp = async (url, ext) => {
 }
 
 export default {
-    command: ['play2', 'mp4', 'video', 'vídeo'],
+    command: ['play2', 'mp4', 'video', 'vídeo', 'playvid', 'playvideo'],
     description: 'Video directo',
     category: 'download',
     group: true,
@@ -78,18 +78,30 @@ export default {
             const dlUrl = await getVideoUrl(videoUrl);
             tmpFile = await downloadToTmp(dlUrl, 'mp4');
 
-            await sock.sendMessage(chat, {
-                video: fs.readFileSync(tmpFile),
-                mimetype: "video/mp4",
-                fileName: `${videoData?.title || 'video'}.mp4`,
-                caption: `🎬 ${videoData?.title || ''}`
-            }, { quoted: msg });
+            const stats = fs.statSync(tmpFile);
+            const sizeMB = stats.size / (1024 * 1024);
+
+            if (sizeMB > 100) {
+                await sock.sendMessage(chat, {
+                    document: fs.readFileSync(tmpFile),
+                    mimetype: "video/mp4",
+                    fileName: `${videoData?.title || 'video'}.mp4`,
+                    caption: `🎬 ${videoData?.title || ''}\n✿ ${(sizeMB).toFixed(2)} MB - enviado como documento`
+                }, { quoted: msg });
+            } else {
+                await sock.sendMessage(chat, {
+                    video: fs.readFileSync(tmpFile),
+                    mimetype: "video/mp4",
+                    fileName: `${videoData?.title || 'video'}.mp4`,
+                    caption: `🎬 ${videoData?.title || ''}`
+                }, { quoted: msg });
+            }
 
             await sock.sendMessage(chat, { react: { text: "✅", key: msg.key } });
 
         } catch (e) {
             await sock.sendMessage(chat, { react: { text: "❌", key: msg.key } });
-            return sock.sendMessage(chat, { text: `❌ No se pudo descargar el video` }, { quoted: msg });
+            return sock.sendMessage(chat, { text: `ෆ⁠╹⁠ lo siento ocurrido algo al descargar ෆ⁠╹⁠` }, { quoted: msg });
         } finally {
             if (tmpFile && fs.existsSync(tmpFile)) try { fs.unlinkSync(tmpFile) } catch {}
         }
