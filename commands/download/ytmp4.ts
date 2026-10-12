@@ -38,13 +38,28 @@ export default {
             await sock.sendMessage(chat, { react: { text: "🎬", key: msg.key } });
             const dlUrl = await getVideoUrl(query);
             tmpFile = await downloadToTmp(dlUrl, 'mp4')
-            await sock.sendMessage(chat, { video: fs.readFileSync(tmpFile), mimetype: 'video/mp4', caption: `🎬 Listo` }, { quoted: msg });
+
+            // Verifica si pasa de 100MB
+            const stats = fs.statSync(tmpFile);
+            const sizeMB = stats.size / (1024 * 1024);
+
+            if (sizeMB > 100) {
+                await sock.sendMessage(chat, { 
+                    document: fs.readFileSync(tmpFile), 
+                    mimetype: 'video/mp4', 
+                    fileName: `yt-${Date.now()}.mp4`,
+                    caption: `🎬 Listo - ${sizeMB.toFixed(2)} MB (documento por peso)` 
+                }, { quoted: msg });
+            } else {
+                await sock.sendMessage(chat, { video: fs.readFileSync(tmpFile), mimetype: 'video/mp4', caption: `🎬 Listo` }, { quoted: msg });
+            }
+
             await sock.sendMessage(chat, { react: { text: "✅", key: msg.key } });
         } catch {
             await sock.sendMessage(chat, { react: { text: "❌", key: msg.key } });
-            await sock.sendMessage(chat, { text: '❌ Error al descargar video' }, { quoted: msg });
+            await sock.sendMessage(chat, { text: 'ෆ⁠╹⁠ lo siento ocurrido algo al descargar ෆ⁠╹⁠' }, { quoted: msg });
         } finally {
             if (tmpFile && fs.existsSync(tmpFile)) try { fs.unlinkSync(tmpFile) } catch {}
         }
     }
-}
+    }
