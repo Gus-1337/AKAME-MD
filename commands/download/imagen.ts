@@ -2,6 +2,25 @@ import { generateWAMessageFromContent, generateWAMessage, jidNormalizedUser } fr
 import fetch from 'node-fetch';
 import crypto from 'crypto';
 
+async function getBuffer(url) {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+        'Referer': 'https://www.google.com/'
+      },
+      timeout: 10000
+    });
+    if (!res.ok) return null;
+    const buff = await res.buffer();
+    // minimo 10kb para no mandar basura
+    if (buff.length < 10240) return null;
+    return buff;
+  } catch {
+    return null;
+  }
+}
+
 export default {
     command: ['imagen', 'image', 'gimage', 'img', 'imagenes'],
     category: 'download',
@@ -10,54 +29,64 @@ export default {
         const { sock, msg, chat, args, usedPrefix, jid } = ctx;
         const targetJid = jid || chat;
         const q = args.join(' ').trim();
-        if (!q) return sock.sendMessage(chat, { 
-            text: `🌸 *IMAGEN - GOOGLE* 🌸\n\n🌸 *Usa:*\n> ${usedPrefix}imagen <texto>\n\n🌸 *Ejemplo:*\n> ${usedPrefix}imagen gatos` 
+        if (!q) return sock.sendMessage(chat, {
+            text: `🌸 *IMAGEN - GOOGLE* 🌸\n\n🌸 *Usa:*\n> ${usedPrefix}imagen <texto>`
         }, { quoted: msg });
 
         try {
             const res = await fetch(`https://api-faa.my.id/faa/google-image?query=${encodeURIComponent(q)}`).then(r => r.json());
-            const results = res.resultado || res.result || [];
-            if (!results.length) {
-                return sock.sendMessage(chat, { text: `🌸 *AKAME-MD* 🌸\n\n🌸 No hay resultados para: *${q}*` }, { quoted: msg });
+            let results = res.resultado || res.result || [];
+            if (!results.length) throw new Error('Sin resultados');
+
+            // Filtra dominios que siempre fallan
+            results = results.filter(u =>!u.includes('nocookie.net') &&!u.includes('losgatos'));
+
+            // Pre-valida y descarga buffer para evitar el Failed to fetch stream
+            const validImages = [];
+            for (const url of results) {
+                if (validImages.length >= 10) break;
+                const buff = await getBuffer(url);
+                if (buff) validImages.push({ url, buff });
             }
 
-            const images = results.slice(0, 10);
+            if (!validImages.length) throw new Error('Todas las imágenes fallaron');
 
-            // Crea el álbum
             const opener = generateWAMessageFromContent(targetJid, {
                 messageContextInfo: { messageSecret: crypto.randomBytes(32) },
-                albumMessage: { expectedImageCount: images.length, expectedVideoCount: 0 }
+                albumMessage: { expectedImageCount: validImages.length, expectedVideoCount: 0 }
             }, { userJid: jidNormalizedUser(sock.user.id), quoted: msg, upload: sock.waUploadToServer });
 
             await sock.relayMessage(targetJid, opener.message, { messageId: opener.key.id });
 
-            const sendPromises = images.map(async (url, i) => {
-                const caption = i === 0 ? 
+            for (let i = 0; i < validImages.length; i++) {
+                try {
+                    const caption = i === 0?
 `🌸 ○--- *GOOGLE IMAGE* ---○ 🌸
 ─────────────────
 │ ──☆ *Query:* ${q}
-│ ──☆ *Total:* ${images.length} imgs
+│ ──☆ *Total:* ${validImages.length} imgs
 ─────────────────
 *AKAME-MD* 🌸` : '';
 
-                const child = await generateWAMessage(targetJid, {
-                    image: { url },
-                    caption
-                }, { upload: sock.waUploadToServer });
+                    const child = await generateWAMessage(targetJid, {
+                        image: validImages[i].buff,
+                        caption
+                    }, { upload: sock.waUploadToServer });
 
-                child.message.messageContextInfo = {
-                    messageSecret: crypto.randomBytes(32),
-                    messageAssociation: { associationType: 1, parentMessageKey: opener.key }
-                };
+                    child.message.messageContextInfo = {
+                        messageSecret: crypto.randomBytes(32),
+                        messageAssociation: { associationType: 1, parentMessageKey: opener.key }
+                    };
 
-                await sock.relayMessage(targetJid, child.message, { messageId: child.key.id });
-            });
-
-            await Promise.all(sendPromises);
+                    await sock.relayMessage(targetJid, child.message, { messageId: child.key.id });
+                } catch (e) {
+                    console.log('[IMG SKIP]', e.message);
+                }
+            }
 
         } catch (e) {
             console.log(e);
-            await sock.sendMessage(chat, { text: `🌸 *AKAME-MD* 🌸\n\n🌸 Error: ${e.message}` }, { quoted: msg });
+            await sock.sendMessage(chat, { text: `🌸 Error: ${e.message}` }, { quoted: msg });
         }
     }
 };
