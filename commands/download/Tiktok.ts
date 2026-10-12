@@ -43,7 +43,7 @@ const getVideoStream = async (videoUrl: string): Promise<PassThrough> => {
 };
 
 export default {
-    command: ['tiktok', 'tt', 'tk'],
+    command: ['tiktok', 'tk'],
     description: 'Descarga videos de TikTok sin marca',
     category: 'download',
     group: true,
@@ -55,7 +55,7 @@ export default {
             const url = args.join(' ').trim();
             if (!url) {
                 return sock.sendMessage(chat, {
-                    text: `♡ AKAME-MD - TIKTOK ♡\n\n✿ Ingresa un link de TikTok bb\n\nEjemplo: *.tt https://vm.tiktok.com/ZMh8nTB9b/*`
+                    text: `♡ AKAME-MD - TIKTOK ♡\n\n✿ Ingresa un link de TikTok bb\n\nEjemplo: *.tiktok https://vm.tiktok.com/ZMh8nTB9b/*`
                 }, { quoted: m });
             }
 

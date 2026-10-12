@@ -3,7 +3,7 @@ import axios from 'axios';
 import crypto from 'crypto';
 
 export default {
-    command: ['ttsearch', 'tiktoksearch', 'tts'],
+    command: ['ttsearch', 'tiktoksearch', 'tts', 'tt'],
     category: 'download',
     description: 'busca videos en tiktok',
     run: async (ctx) => {
