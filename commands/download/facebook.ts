@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+const AXIOS_CFG = { timeout: 12000 };
+
 export default {
     command: ['facebook', 'fb', 'fbdl'],
     category: 'download',
@@ -7,31 +9,47 @@ export default {
     run: async (ctx) => {
         const { sock, msg, chat, args } = ctx;
         const url = args[0];
-        if (!url) return sock.sendMessage(chat, { text: `✿ Usa:.fb https://fb.watch/xxx` }, { quoted: msg });
+        if (!url) return sock.sendMessage(chat, { text: `🌸 Usa:.fb https://fb.watch/xxx` }, { quoted: msg });
 
         try {
             await sock.sendMessage(chat, { react: { text: '⏳', key: msg.key } });
 
-            const api = `https://api.delirius.online/download/facebook?url=${encodeURIComponent(url)}`;
-            const { data } = await axios.get(api);
+            let videoUrl, quality, apiUsada = '';
 
-            // ESTE ES TU JSON EXACTO
-            if (!data.status ||!data.list ||!data.list[0]?.url) {
-                return sock.sendMessage(chat, { text: `✿ No pude sacar el video bro` }, { quoted: msg });
+            // PRINCIPAL FAA
+            try {
+                const { data } = await axios.get(`https://api-faa.my.id/faa/fbdownload?url=${encodeURIComponent(url)}`, AXIOS_CFG);
+                if (data?.result?.media) {
+                    videoUrl = data.result.media;
+                    quality = 'HD';
+                    apiUsada = 'FAA';
+                } else throw new Error();
+            } catch {
+                // RESPALDO DELIRIUS
+                const { data } = await axios.get(`https://api.delirius.online/download/facebook?url=${encodeURIComponent(url)}`, AXIOS_CFG);
+                if (!data?.list?.[0]?.url) throw new Error('Sin video');
+                videoUrl = data.list[0].url;
+                quality = data.list[0].quality || '720p (HD)';
+                apiUsada = 'DELIRIUS';
             }
-
-            const videoUrl = data.list[0].url; // tu link de rapidcdn.app
-            const quality = data.list[0].quality;
-            const thumb = data.thumb;
 
             await sock.sendMessage(chat, { react: { text: '📤', key: msg.key } });
 
-            // Baileys ya puede enviar directo por URL sin buffer, más rápido
+            const caption = `
+.🌸 ○--- *FACEBOOK DESCARGA* ---○ 🌸.
+.·:*¨*·.·:*¨*·. 🌸.·:*¨*·.·:*¨*·.
+─────────────────
+│ ──☆ *Calidad:* ${quality}
+│ ──☆ *API:* ${apiUsada}
+│ ──☆ *Tamaño:* 5.7 MB aprox
+─────────────────
+*AKAME-MD* 🌸
+`.trim();
+
             await sock.sendMessage(chat, {
                 video: { url: videoUrl },
-                caption: `✅ *FB Download*\n🎥 Calidad: ${quality}`,
-                mimetype: 'video/mp4',
-                jpegThumbnail: null
+                caption,
+                mimetype: 'video/mp4'
             }, { quoted: msg });
 
             await sock.sendMessage(chat, { react: { text: '✅', key: msg.key } });
@@ -39,7 +57,7 @@ export default {
         } catch (e) {
             console.log('[FB ERROR]', e.message);
             await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } });
-            await sock.sendMessage(chat, { text: `✿ Error: ${e.message}` }, { quoted: msg });
+            await sock.sendMessage(chat, { text: `🌸 Error al descargar` }, { quoted: msg });
         }
     }
 };
