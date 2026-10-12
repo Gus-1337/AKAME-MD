@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 import { downloadContentFromMessage } from '@whiskeysockets/baileys';
 
-async function getBufferFromImageMessage(imageMessage) {
+async function getBuffer(imageMessage) {
   const stream = await downloadContentFromMessage(imageMessage, 'image');
   let buffer = Buffer.from([]);
   for await (const chunk of stream) {
@@ -10,17 +10,40 @@ async function getBufferFromImageMessage(imageMessage) {
   return buffer;
 }
 
+// Subida con 3 intentos
 async function uploadImage(buffer) {
-  const form = new FormData();
-  const blob = new Blob([buffer], { type: 'image/jpeg' });
-  form.append('file', blob, 'image.jpg');
-  const res = await fetch('https://telegra.ph/upload', {
-    method: 'POST',
-    body: form
-  });
-  const json = await res.json();
-  if (json[0]?.src) return 'https://telegra.ph' + json[0].src;
-  throw new Error('No se pudo subir');
+  // 1 - Catbox (el más estable)
+  try {
+    const form = new FormData();
+    const blob = new Blob([buffer], { type: 'image/jpeg' });
+    form.append('reqtype', 'fileupload');
+    form.append('fileToUpload', blob, 'akame.jpg');
+    const res = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form });
+    const url = await res.text();
+    if (url.includes('https://')) return url.trim();
+  } catch {}
+
+  // 2 - 0x0.st
+  try {
+    const form = new FormData();
+    const blob = new Blob([buffer], { type: 'image/jpeg' });
+    form.append('file', blob, 'akame.jpg');
+    const res = await fetch('https://0x0.st', { method: 'POST', body: form });
+    const url = await res.text();
+    if (url.includes('https://')) return url.trim();
+  } catch {}
+
+  // 3 - Qu.ax
+  try {
+    const form = new FormData();
+    const blob = new Blob([buffer], { type: 'image/jpeg' });
+    form.append('file', blob, 'akame.jpg');
+    const res = await fetch('https://qu.ax/upload.php', { method: 'POST', body: form });
+    const json = await res.json();
+    if (json.url) return json.url;
+  } catch {}
+
+  throw new Error('Todos los servidores fallaron, intenta de nuevo');
 }
 
 export default {
@@ -36,9 +59,8 @@ export default {
             let imageUrl = args[0];
 
             if (!imageUrl && imageMessage) {
-                await sock.sendMessage(chat, { text: `☬ *AKAME-MD* ☬\n\n♡ Mejorando... espera un toque` }, { quoted: msg });
-
-                const buffer = await getBufferFromImageMessage(imageMessage);
+                await sock.sendMessage(chat, { text: `☬ *AKAME-MD* ☬\n\n♡ Subiendo imagen...` }, { quoted: msg });
+                const buffer = await getBuffer(imageMessage);
                 imageUrl = await uploadImage(buffer);
             }
 
@@ -47,6 +69,8 @@ export default {
                     text: `☬ *MEJORAR HD* ☬\n\n♡ Responde a una imagen con:\n> ${usedPrefix}hd\n\n☬ *AKAME-MD* ♡`
                 }, { quoted: msg });
             }
+
+            await sock.sendMessage(chat, { text: `☬ *AKAME-MD* ☬\n\n♡ Mejorando a HD... espera pa` }, { quoted: msg });
 
             const apiUrl = `https://api-faa.my.id/faa/superhd?url=${encodeURIComponent(imageUrl)}`;
 
