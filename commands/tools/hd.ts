@@ -1,48 +1,50 @@
 import fetch from 'node-fetch';
+import { downloadContentFromMessage } from '@whiskeysockets/baileys';
+
+async function getBufferFromImageMessage(imageMessage) {
+  const stream = await downloadContentFromMessage(imageMessage, 'image');
+  let buffer = Buffer.from([]);
+  for await (const chunk of stream) {
+    buffer = Buffer.concat([buffer, chunk]);
+  }
+  return buffer;
+}
 
 async function uploadImage(buffer) {
   const form = new FormData();
   const blob = new Blob([buffer], { type: 'image/jpeg' });
   form.append('file', blob, 'image.jpg');
-  // api free para subir
   const res = await fetch('https://telegra.ph/upload', {
     method: 'POST',
     body: form
   });
   const json = await res.json();
   if (json[0]?.src) return 'https://telegra.ph' + json[0].src;
-  throw new Error('No se pudo subir la imagen');
+  throw new Error('No se pudo subir');
 }
 
 export default {
-    command: ['hd', 'superhd', 'mejorar', 'enhance', 'remini'],
+    command: ['hd', 'superhd', 'mejorar', 'remini'],
     category: 'tools',
-    description: 'Mejora imagen a HD 4K',
+    description: 'Mejora imagen a HD',
     run: async (ctx) => {
         const { sock, msg, chat, args, usedPrefix } = ctx;
         const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-
-        const hasImage = msg.message?.imageMessage || quoted?.imageMessage || quoted?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage;
+        const imageMessage = msg.message?.imageMessage || quoted?.imageMessage;
 
         try {
             let imageUrl = args[0];
 
-            if (!imageUrl && hasImage) {
+            if (!imageUrl && imageMessage) {
                 await sock.sendMessage(chat, { text: `☬ *AKAME-MD* ☬\n\n♡ Mejorando... espera un toque` }, { quoted: msg });
 
-                // descargar imagen citada o actual
-                let messageToDownload = msg;
-                if (quoted?.imageMessage) {
-                    messageToDownload = { message: { imageMessage: quoted.imageMessage } };
-                }
-
-                const buffer = await sock.downloadMediaMessage(messageToDownload);
+                const buffer = await getBufferFromImageMessage(imageMessage);
                 imageUrl = await uploadImage(buffer);
             }
 
             if (!imageUrl) {
                 return sock.sendMessage(chat, {
-                    text: `☬ *MEJORAR HD* ☬\n\n♡ Responde a una imagen con:\n> ${usedPrefix}hd\n\n♡ O usa link:\n> ${usedPrefix}hd https://...\n\n☬ *AKAME-MD* ♡`
+                    text: `☬ *MEJORAR HD* ☬\n\n♡ Responde a una imagen con:\n> ${usedPrefix}hd\n\n☬ *AKAME-MD* ♡`
                 }, { quoted: msg });
             }
 
