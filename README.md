@@ -19,7 +19,8 @@
 
 - [✨ Características](#-características)
 - [📂 Categorías de comandos](#-categorías-de-comandos)
-- [🚀 Instalación](#-instalación)
+- [📱 Instalación en Termux](#-instalación-en-termux)
+- [💻 Instalación en PC](#-instalación-en-pc)
 - [⚙️ Configuración](#-configuración)
 - [▶️ Ejecutar](#-ejecutar)
 - [👤 Autor](#-autor)
@@ -52,7 +53,44 @@
 | 🖼️ `stickers` | Creación y gestión de stickers |
 | 🛠️ `tools` | IA, toimg, tomp3, ship, medidores, chistes, inspect y más |
 
-## 🚀 Instalación
+## 📱 Instalación en Termux
+
+1. **Actualiza los paquetes de Termux**
+
+```bash
+pkg update && pkg upgrade
+```
+
+2. **Instala las dependencias necesarias**
+
+```bash
+pkg install git nodejs ffmpeg -y
+```
+
+> ⚠️ Requerido **Node.js >= 22.5.0**. Verifica con `node -v`; si es menor, instala la última versión con `pkg install nodejs -y`.
+
+3. **Clona el repositorio**
+
+```bash
+git clone https://github.com/Gus-1337/AKAME-MD.git
+cd AKAME-MD
+```
+
+4. **Instala las dependencias del bot**
+
+```bash
+npm install
+```
+
+5. **Ejecuta el bot** *(escanea el código QR con WhatsApp)*
+
+```bash
+npm start
+```
+
+> 💡 Para mantenerlo corriendo en segundo plano puedes usar `termux-wake-lock` o ejecutarlo dentro de una sesión de `tmux`/`screen`.
+
+## 💻 Instalación en PC
 
 1. **Clona el repositorio**
 
@@ -87,6 +125,6 @@ Al iniciar, escanea el **código QR** con WhatsApp y ¡listo! 🗡️
 
 **AKAME-MD** — hecho con ❤️ y pétalos rojos 🌹
 
-👤 Autor: *Ryuzei-Ts*
+👤 Autor: **Gus** — [@Gus-1337](https://github.com/Gus-1337)
 
 </div>
