@@ -1,12 +1,14 @@
 <div align="center">
 
-<img src="img/akame-banner.png" alt="AKAME-MD" width="100%">
+<img src="img/flower.webp" alt="🌹" width="82">
+
+<img src="img/banner-anim.webp" alt="AKAME-MD" width="100%">
 
 # ⚔️ AKAME-MD
 
 **Un bot de WhatsApp con estilo, potencia y personalidad.**
 
-[![Node](https://img.shields.io/badge/Node-%3E%3D22.5.0-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Node](https://img.shields.io/badge/Node-%3E%3D23-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Baileys](https://img.shields.io/badge/Baileys-WhatsApp%20API-25D366?logo=whatsapp&logoColor=white)](https://github.com/WhiskeySockets/Baileys)
 [![License](https://img.shields.io/badge/licence-MIT-red)]()
@@ -67,7 +69,7 @@ pkg update && pkg upgrade
 pkg install git nodejs ffmpeg -y
 ```
 
-> ⚠️ Requerido **Node.js >= 22.5.0**. Verifica con `node -v`; si es menor, instala la última versión con `pkg install nodejs -y`.
+> ⚠️ Requerido **Node.js >= 23** — tu bot **no funciona con Node 22**. Verifica con `node -v`; si tienes otra versión, instala la última con `pkg install nodejs -y`.
 
 3. **Clona el repositorio**
 
@@ -99,7 +101,7 @@ git clone https://github.com/Gus-1337/AKAME-MD.git
 cd AKAME-MD
 ```
 
-2. **Instala las dependencias** *(requiere Node.js >= 22.5.0)*
+2. **Instala las dependencias** *(requiere Node.js >= 23, no funciona con Node 22)*
 
 ```bash
 npm install
