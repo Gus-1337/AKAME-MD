@@ -1,43 +1,48 @@
 import fetch from 'node-fetch';
-import { FormData, Blob } from 'formdata-node';
 
-async function uploadToCatbox(buffer) {
+async function uploadImage(buffer) {
   const form = new FormData();
-  form.append('reqtype', 'fileupload');
-  form.append('fileToUpload', new Blob([buffer]), 'image.jpg');
-  const res = await fetch('https://catbox.moe/user/api.php', {
+  const blob = new Blob([buffer], { type: 'image/jpeg' });
+  form.append('file', blob, 'image.jpg');
+  // api free para subir
+  const res = await fetch('https://telegra.ph/upload', {
     method: 'POST',
     body: form
   });
-  return await res.text();
+  const json = await res.json();
+  if (json[0]?.src) return 'https://telegra.ph' + json[0].src;
+  throw new Error('No se pudo subir la imagen');
 }
 
 export default {
-    command: ['hd', 'superhd', 'mejorar', 'enhance'],
+    command: ['hd', 'superhd', 'mejorar', 'enhance', 'remini'],
     category: 'tools',
     description: 'Mejora imagen a HD 4K',
     run: async (ctx) => {
-        const { sock, msg, chat, args } = ctx;
+        const { sock, msg, chat, args, usedPrefix } = ctx;
         const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-        const hasImage = msg.message?.imageMessage || quoted?.imageMessage;
+
+        const hasImage = msg.message?.imageMessage || quoted?.imageMessage || quoted?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage;
 
         try {
             let imageUrl = args[0];
 
-            // Si responde a una imagen
             if (!imageUrl && hasImage) {
-                await sock.sendMessage(chat, { text: `☬ *AKAME-MD* ☬\n\n♡ Mejorando imagen a HD... espera pa` }, { quoted: msg });
+                await sock.sendMessage(chat, { text: `☬ *AKAME-MD* ☬\n\n♡ Mejorando... espera un toque` }, { quoted: msg });
 
-                const buffer = await sock.downloadMediaMessage(
-                    msg.message?.imageMessage? msg : { message: { imageMessage: quoted.imageMessage } }
-                );
+                // descargar imagen citada o actual
+                let messageToDownload = msg;
+                if (quoted?.imageMessage) {
+                    messageToDownload = { message: { imageMessage: quoted.imageMessage } };
+                }
 
-                imageUrl = await uploadToCatbox(buffer);
+                const buffer = await sock.downloadMediaMessage(messageToDownload);
+                imageUrl = await uploadImage(buffer);
             }
 
             if (!imageUrl) {
                 return sock.sendMessage(chat, {
-                    text: `☬ *MEJORAR IMAGEN HD* ☬\n\n♡ *Usa:*\n> Responde a una imagen con.hd\n> O.hd <link de imagen>\n\n☬ *AKAME-MD* ♡`
+                    text: `☬ *MEJORAR HD* ☬\n\n♡ Responde a una imagen con:\n> ${usedPrefix}hd\n\n♡ O usa link:\n> ${usedPrefix}hd https://...\n\n☬ *AKAME-MD* ♡`
                 }, { quoted: msg });
             }
 
@@ -45,12 +50,12 @@ export default {
 
             await sock.sendMessage(chat, {
                 image: { url: apiUrl },
-                caption: `☬ *IMAGEN MEJORADA* ☬\n\n♡ *Calidad:* HD 4K\n♡ *Estado:* Mejorada con éxito\n\n☬ *AKAME-MD* ♡`
+                caption: `☬ *HD MEJORADO* ☬\n\n♡ *Calidad:* Super HD 4K\n\n☬ *AKAME-MD* ♡`
             }, { quoted: msg });
 
         } catch (e) {
-            console.log('[HD ERROR]', e);
-            await sock.sendMessage(chat, { text: `☬ *AKAME-MD* ☬\n\n♡ Error al mejorar: ${e.message}` }, { quoted: msg });
+            console.log(e);
+            await sock.sendMessage(chat, { text: `♡ Error: ${e.message}` }, { quoted: msg });
         }
     }
 };
