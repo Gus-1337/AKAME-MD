@@ -308,6 +308,16 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
         return msg.reply('ׅ ׄ ✿ Necesitas ser administrador del grupo para usar este comando.');
     }
     if (cmd.botAdmin &&!isBotAdmins) return msg.reply('ׅ ׄ ✿ El bot necesita ser administrador del grupo para ejecutar este comando.');
+    if (cmd.nsfw) {
+        const nsfwOn = currentChatDb?.nsfw === true;
+        if (isGroup &&!nsfwOn &&!isOwner) {
+            queueMicrotask(() => { broadcast('security_event', { type: 'nsfw_blocked', command: rawCommand, sender: normalizedSender, chat }); });
+            return msg.reply(
+                'ׅ ׄ ✿ La categoría *NSFW 💋* está desactivada en este grupo.\n' +
+                '> Un administrador puede activarla con *' + (matchedPrefix?? prefix) + 'nsfwon on*'
+            );
+        }
+    }
     const cleanSender = normalizedSender + '@s.whatsapp.net';
     const rawArgs = spaceIndex === -1? [] : bodyWithoutPrefix.slice(spaceIndex + 1).trim().split(/ +/);
     const args = rawArgs.map(arg => arg.replace(/[&;|$`]/g, ''));
