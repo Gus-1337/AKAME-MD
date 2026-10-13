@@ -1,35 +1,66 @@
 import yts from 'yt-search';
 import axios from 'axios';
 
-const formatViews = (v) =>
-    v >= 1e9? (v / 1e9).toFixed(1) + 'B' :
-    v >= 1e6? (v / 1e6).toFixed(1) + 'M' :
-    v >= 1e3? (v / 1e3).toFixed(1) + 'K' : String(v);
+const MAX_BYTES = 50 * 1024 * 1024; // 50 MB
+const MIN_BYTES = 20 * 1024;        // menos de 20 KB = respuesta basura
 
-const extractUrl = (d) => {
-    return d?.resultado?.download_url || d?.result?.download_url || d?.data?.download || d?.result?.download || d?.url || '';
+const formatViews = (v) =>
+    v >= 1e9 ? (v / 1e9).toFixed(1) + 'B' :
+    v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' :
+    v >= 1e3 ? (v / 1e3).toFixed(1) + 'K' : String(v ?? 0);
+
+const limpiarNombre = (t) => (String(t || 'audio')).replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 80) || 'audio';
+
+/** Saca el enlace de descarga de la respuesta de cualquier API. */
+const extraerLink = (d) => {
+    const c = d?.result?.download_url || d?.resultado?.download_url || d?.data?.download ||
+        d?.result?.download || d?.download || d?.url || '';
+    return typeof c === 'string' && c.startsWith('http') ? c : '';
 };
 
-const tryFetch = (url) => axios.get(url, { timeout: 15000, headers: { 'User-Agent': 'Mozilla/5.0' } }).then(r => {
-    const dl = extractUrl(r.data);
-    if (!dl) throw new Error();
-    return dl;
-});
+/** Descarga el audio completo a memoria y valida que sea un MP3 real. */
+const descargar = async (url) => {
+    const res = await axios.get(url, {
+        responseType: 'arraybuffer',
+        timeout: 60000,
+        maxContentLength: MAX_BYTES,
+        maxBodyLength: MAX_BYTES,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const buf = Buffer.from(res.data);
+    if (buf.length < MIN_BYTES) throw new Error('archivo muy pequeño');
+    const tipo = String(res.headers['content-type'] || '');
+    if (tipo.includes('text/html') || tipo.includes('application/json')) throw new Error('no es audio');
+    return buf;
+};
 
+/** Pide el enlace a una API y descarga el audio. */
+const pedirAudio = async (api) => {
+    const { data } = await axios.get(api, { timeout: 12000, headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const link = extraerLink(data);
+    if (!link) throw new Error('sin enlace');
+    return descargar(link);
+};
+
+/** Todas las APIs en paralelo: gana la primera que entregue el audio completo. */
 const getAudio = async (videoUrl) => {
     const enc = encodeURIComponent(videoUrl);
-
     const apis = [
-        `https://api-gohan-v1.onrender.com/download/ytaudio?url=${enc}`,
+        `https://api.delirius.online/download/ytmp3?url=${enc}`,
         `https://api-gohan-v1.onrender.com/download/ytaudio?url=${enc}&download=true`,
         `https://api.ryuzei.xyz/download/ytmp3/v4?url=${enc}&quality=64`,
-        `https://api.delirius.online/download/ytmp3?url=${enc}`
+        `https://api.starlights.uk/api/download/ytmp3?url=${enc}`,
+        `https://api-gohan-v1.onrender.com/download/ytaudio?url=${enc}`
     ];
 
-    for (const api of apis) {
-        try { return await tryFetch(api); } catch {}
+    for (let intento = 1; intento <= 2; intento++) {
+        try {
+            return await Promise.any(apis.map(pedirAudio));
+        } catch {
+            // segunda ronda si todas fallaron
+        }
     }
-    throw new Error('fail');
+    throw new Error('todas las APIs fallaron');
 };
 
 export default {
@@ -39,35 +70,43 @@ export default {
     group: true,
     run: async (ctx) => {
         const { sock, msg, chat, args } = ctx;
-        const query = args.join(" ").trim();
+        const query = args.join(' ').trim();
         if (!query) return sock.sendMessage(chat, { text: `ꕤ Ingresa nombre o link` }, { quoted: msg });
 
         try {
-            await sock.sendMessage(chat, { react: { text: "🎧", key: msg.key } });
+            await sock.sendMessage(chat, { react: { text: '🎧', key: msg.key } });
 
             const search = await yts(query);
-            const video = search.videos[0];
+            const video = search.videos?.[0];
+            if (!video) {
+                await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } });
+                return sock.sendMessage(chat, { text: `❌ No encontré resultados para *${query}*` }, { quoted: msg });
+            }
             const videoUrl = `https://youtu.be/${video.videoId}`;
+            const titulo = limpiarNombre(video.title);
 
-            await sock.sendMessage(chat, {
+            // La tarjeta sale ya, mientras se descarga el audio
+            const tarjeta = sock.sendMessage(chat, {
                 image: { url: video.thumbnail },
-                caption: `*${video.title}*\n\n✿ Canal » ${video.author.name}\n✿ Vistas » ${formatViews(video.views)}\n✿ Duración » ${video.timestamp}\n✿ Link » ${videoUrl}\n\n_Enviando audio..._`
-            }, { quoted: msg });
+                caption: `*${video.title}*\n\n✿ Canal » ${video.author?.name || 'Desconocido'}\n✿ Vistas » ${formatViews(video.views)}\n✿ Duración » ${video.timestamp || '?'}\n✿ Link » ${videoUrl}\n\n_Enviando audio..._`
+            }, { quoted: msg }).catch(() => null);
 
-            const dlUrl = await getAudio(videoUrl);
+            const audio = await getAudio(videoUrl);
+            await tarjeta;
 
             await sock.sendMessage(chat, {
-                audio: { url: dlUrl },
-                mimetype: "audio/mpeg",
-                fileName: `${video.title}.mp3`,
+                audio,
+                mimetype: 'audio/mpeg',
+                fileName: `${titulo}.mp3`,
                 ptt: false
             }, { quoted: msg });
 
-            await sock.sendMessage(chat, { react: { text: "✅", key: msg.key } });
+            await sock.sendMessage(chat, { react: { text: '✅', key: msg.key } });
 
         } catch (e) {
-            await sock.sendMessage(chat, { react: { text: "❌", key: msg.key } });
-            await sock.sendMessage(chat, { text: `❌ Error al descargar` }, { quoted: msg });
+            console.log('[PLAY ERROR]', e?.message);
+            await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } });
+            await sock.sendMessage(chat, { text: `❌ Error al descargar, intenta de nuevo` }, { quoted: msg });
         }
     }
 };
