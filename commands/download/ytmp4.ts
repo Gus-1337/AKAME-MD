@@ -7,7 +7,8 @@ const MIN_BYTES = 50 * 1024;         // menos de 50 KB = respuesta basura
 
 const YT_REGEX = /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/;
 
-const yosoyyo = () => (global as any).APIs?.yosoyyo || { url: 'https://api-yosoyyo-api-ofc.onrender.com', key: null };
+const YOSOYYO_URL = 'https://api-yosoyyo-api-ofc.onrender.com';
+const YOSOYYO_KEY = process.env.YOSOYYO_KEY || 'Akame-proyet';
 
 /** Saca el primer enlace http que encuentre en la respuesta de una API. */
 const extraerLink = (d: any): string => {
@@ -33,31 +34,48 @@ const descargar = async (url: string): Promise<Buffer> => {
     });
     const buf = Buffer.from(res.data);
     if (buf.length < MIN_BYTES) throw new Error('archivo muy pequeño');
-    const tipo = String(res.headers['content-type'] || '');
-    if (tipo.includes('text/html') || tipo.includes('application/json')) throw new Error('no es video');
+    // Un MP4 real trae la firma 'ftyp' en los primeros bytes (descarta HTML/JSON/páginas de anuncios)
+    if (buf.subarray(0, 32).indexOf('ftyp') === -1) throw new Error('no es video mp4');
     return buf;
 };
 
 const sources = (videoUrl: string) => {
     const e = encodeURIComponent(videoUrl);
-    const key = yosoyyo().key;
     return {
         principales: [
             `https://api.delirius.online/download/ytmp4?url=${e}`,
             `https://api.starlights.uk/api/download/ytmp4?url=${e}`
         ],
-        respaldo: key
-            ? `${yosoyyo().url}/api/youtube/v2?url=${e}&format=mp4&apiKey=${encodeURIComponent(key)}`
-            : null
+        respaldo: `${YOSOYYO_URL}/api/youtube/v2?url=${e}&format=mp4&apiKey=${encodeURIComponent(YOSOYYO_KEY)}`
     };
+};
+
+/** yosoyyo: candidatos mp4 de video, de mejor a peor (hasta 720p primero, luego el resto). */
+const candidatosYosoyyo = (d: any): string[] => {
+    const lista = (d?.result?.results || []).filter((r: any) =>
+        r?.type === 'video' && r?.extension === 'mp4' && typeof r?.download === 'string' && r.download.startsWith('http'));
+    const altura = (r: any) => parseInt(String(r.quality || '').replace(/\D/g, '')) || 0;
+    const hasta720 = lista.filter((r: any) => altura(r) <= 720).sort((a: any, b: any) => altura(b) - altura(a));
+    const resto = lista.filter((r: any) => altura(r) > 720).sort((a: any, b: any) => altura(a) - altura(b));
+    return [...hasta720, ...resto].map((r: any) => r.download).slice(0, 4);
 };
 
 /** Pide el enlace a una API y descarga el video. */
 const intentar = async (api: string): Promise<Buffer> => {
-    const { data } = await axios.get(api, { timeout: 20000, headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const { data } = await axios.get(api, { timeout: 45000, headers: { 'User-Agent': 'Mozilla/5.0' } });
     const link = extraerLink(data);
     if (!link) throw new Error('sin enlace');
     return descargar(link);
+};
+
+/** yosoyyo devuelve varios enlaces: prueba cada uno hasta que uno sea un video real. */
+const intentarYosoyyo = async (api: string): Promise<Buffer> => {
+    const { data } = await axios.get(api, { timeout: 45000, headers: { 'User-Agent': 'Mozilla/5.0' } });
+    let ultimo: any = new Error('sin enlaces');
+    for (const link of candidatosYosoyyo(data)) {
+        try { return await descargar(link); } catch (e) { ultimo = e; }
+    }
+    throw ultimo;
 };
 
 /** Principales en paralelo; si fallan, respaldo yosoyyo. Dos rondas. */
@@ -66,11 +84,11 @@ const getVideo = async (videoUrl: string): Promise<Buffer> => {
     let ultimo: any = null;
     for (let ronda = 1; ronda <= 2; ronda++) {
         try {
-            return await Promise.any(principales.map(intentar));
+            return await Promise.any(principales.map((api) => intentar(api)));
         } catch (e) { ultimo = e; }
         if (respaldo) {
             try {
-                return await intentar(respaldo);
+                return await intentarYosoyyo(respaldo);
             } catch (e) { ultimo = e; }
         }
     }
