@@ -67,18 +67,34 @@ const intentar = async (f: typeof FUENTES[number], e: string) => {
     return { buffer, datos: f.datos(data), segundos: f.segundos(f.datos(data)), fuente: f.nombre };
 };
 
-/** Todas las fuentes en paralelo; gana la primera que entregue un video válido. Dos rondas. */
+/**
+ * Orden de prueba:
+ * 1) Delirius sola (es la más rápida). Si da 500, reintenta una vez.
+ * 2) Si Delirius falla, Starlights y Stellar en paralelo.
+ * 3) Una segunda vuelta completa si todo falló.
+ */
 const obtenerVideo = async (url: string) => {
     const e = encodeURIComponent(url);
+    const delirius = FUENTES[0];
+    const respaldos = FUENTES.slice(1);
     let ultimo: any = null;
+
     for (let ronda = 1; ronda <= 2; ronda++) {
+        for (let intento = 1; intento <= 2; intento++) {
+            try {
+                return await intentar(delirius, e);
+            } catch (err: any) {
+                ultimo = err;
+            }
+        }
         try {
-            return await Promise.any(FUENTES.map((f) => intentar(f, e)));
+            return await Promise.any(respaldos.map((f) => intentar(f, e)));
         } catch (err: any) {
             ultimo = err;
         }
     }
-    throw new Error(`todas las fuentes fallaron${ultimo?.errors?.[0]?.message ? ': ' + ultimo.errors[0].message : ''}`);
+    const primer = ultimo?.errors?.[0]?.message || ultimo?.message;
+    throw new Error(`todas las fuentes fallaron${primer ? ': ' + primer : ''}`);
 };
 
 const formatNumber = (num: number) => {
