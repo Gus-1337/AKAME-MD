@@ -1,11 +1,27 @@
 # NSFW 🔞
 
-Categoría NSFW de **AKAME-MD**, usando la API de Delirius: `https://api.delirius.online/nsfw/*`
+Categoría NSFW de **AKAME-MD**, usando la API de Delirius:
+`https://api.delirius.online/nsfw/*` y `https://api.delirius.online/reactions/*`
 
-> La API entrega el **binario directo** (no un JSON con la URL), así que `lib/nsfw.ts`
-> lo descarga y lo manda como adjunto. El tipo real se decide por *magic bytes* porque
-> la API manda `Content-Type` incorrecto en algunos endpoints (`/nsfw/boobs` y
-> `/nsfw/corean` responden `image/png` con datos JPEG).
+La API tiene **dos formas distintas** de entregar el contenido y `lib/nsfw.ts` maneja
+las dos:
+
+| Familia | Qué responde | Función |
+|---|---|---|
+| `/nsfw/*` | El **binario directo** | `fetchNsfwMedia` / `sendNsfwMedia` |
+| `/reactions/*` | **JSON** con el enlace (`data.url`) y el archivo en `cdn.delirius.online` | `fetchReactionMedia` / `sendReactionMedia` |
+
+En los dos casos el tipo real se decide por *magic bytes*, porque la API manda
+`Content-Type` incorrecto en algunos endpoints (`/nsfw/boobs` y `/nsfw/corean` responden
+`image/png` con datos JPEG).
+
+**Dos trampas de `/reactions/*`, ya resueltas en la librería:**
+
+1. El enlace viene en `http://` y el CDN responde **301 con una página HTML** para eso,
+   así que se reescribe a `https://` antes de descargar.
+2. La ruta del enlace dice si el contenido es apto para todo público o no:
+   `.../reaction/sfw/...` es SFW y `.../reaction/nsfw/...` es 18+.
+   La librería lo expone en `media.rating`.
 
 ## Activar / desactivar la categoría
 
@@ -32,7 +48,11 @@ Mientras esté apagado, `handler.ts` bloquea **todos** los comandos marcados con
 | `.girls` | `.chicas`, `.nsfwgirls` | Imagen | `/nsfw/girls` |
 | `.boobs` | `.tetas`, `.nsfwboobs` | Imagen | `/nsfw/boobs` |
 | `.corean` | `.coreanas`, `.nsfwcorean` | Imagen | `/nsfw/corean` |
-| `.nsfwrandom` | `.horny` | Random de los 4 | cualquiera |
+| `.poke` | `.poking`, `.codear` | Video (reacción anime) | `/reactions/poke` |
+| `.nsfwrandom` | `.horny` | Random de los 4 de `/nsfw/*` | cualquiera |
+
+> `.poke` trae contenido **SFW** (el enlace del CDN dice `/reaction/sfw/poke/`), pero vive
+> en esta categoría a pedido, así que la puerta de `.nsfw on` también lo cubre.
 
 > Nota: el nombre `.nsfw` a secas es el interruptor de admin, por eso el de contenido
 > aleatorio es `.nsfwrandom`.
@@ -40,6 +60,8 @@ Mientras esté apagado, `handler.ts` bloquea **todos** los comandos marcados con
 ## Agregar un comando nuevo
 
 Si Delirius agrega otro endpoint, basta con crear un archivo acá:
+
+De `/nsfw/*` (binario directo):
 
 ```ts
 import { sendNsfwMedia } from '#nsfw';
@@ -55,8 +77,25 @@ export default {
 };
 ```
 
-Y agrega el nombre del endpoint a `NSFW_ENDPOINTS` en `lib/nsfw.ts` si quieres que
-entre en el random de `.nsfwrandom`.
+De `/reactions/*` (JSON con enlace), igual pero con la otra función:
+
+```ts
+import { sendReactionMedia } from '#nsfw';
+
+export default {
+    command: ['nuevareaccion'],
+    description: 'Descripción para el menú',
+    category: 'nsfw',
+    nsfw: true,
+    group: false,
+
+    run: async (ctx: any) => sendReactionMedia(ctx, 'NOMBRE_DE_LA_REACTION', 'Etiqueta')
+};
+```
+
+Y agrega el nombre a `NSFW_ENDPOINTS` si quieres que entre en el random de `.nsfwrandom`,
+o a `REACTION_ENDPOINTS` si es una reaction (ese catálogo tiene 30, solo `.poke` tiene
+comando propio por ahora).
 
 **Ojo con los nombres de archivo:** `index.ts` registra los plugins con
 `path.basename(fullPath)`, sin la carpeta. Dos archivos con el mismo nombre en carpetas
