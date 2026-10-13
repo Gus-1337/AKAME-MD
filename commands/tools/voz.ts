@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const NYX_KEY = process.env.NYX_KEY || 'nyx_2rmMAKqdXlIkD9YLhMf29fU25Jo8rK1C';
+const TOOLS_KEY = process.env.TOOLS_KEY || 'nyx_2rmMAKqdXlIkD9YLhMf29fU25Jo8rK1C';
 
 export default {
     command: ['voz', 'hablar'],
@@ -20,7 +20,7 @@ export default {
         try {
             await sock.sendMessage(chat, { react: { text: '🔊', key: m.key } });
             const { data } = await axios.get('https://nyxdlapi.vercel.app/api/tools/tts', {
-                params: { text: texto, lang, apikey: NYX_KEY },
+                params: { text: texto, lang, apikey: TOOLS_KEY },
                 timeout: 30000
             });
             const audioUrl = data?.result?.audio;

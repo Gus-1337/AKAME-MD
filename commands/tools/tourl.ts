@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const NYX_KEY = process.env.NYX_KEY || 'nyx_2rmMAKqdXlIkD9YLhMf29fU25Jo8rK1C';
+const TOOLS_KEY = process.env.TOOLS_KEY || 'nyx_2rmMAKqdXlIkD9YLhMf29fU25Jo8rK1C';
 
 export default {
     command: ['tourl', 'urlimg'],
@@ -14,7 +14,7 @@ export default {
         try {
             await sock.sendMessage(chat, { react: { text: '⏳', key: m.key } });
             const { data } = await axios.get('https://nyxdlapi.vercel.app/api/tools/tourl', {
-                params: { url, apikey: NYX_KEY },
+                params: { url, apikey: TOOLS_KEY },
                 timeout: 60000
             });
             const nuevo = data?.result?.url || data?.url;
