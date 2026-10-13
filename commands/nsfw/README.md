@@ -7,7 +7,24 @@ Categoría NSFW de **AKAME-MD**, usando la API de Delirius: `https://api.deliriu
 > la API manda `Content-Type` incorrecto en algunos endpoints (`/nsfw/boobs` y
 > `/nsfw/corean` responden `image/png` con datos JPEG).
 
-## Comandos
+## Activar / desactivar la categoría
+
+La categoría viene **apagada por defecto**. El interruptor es un comando de **admin**
+(`commands/admin/nsfw.ts`), así que solo lo puede usar un administrador y con el bot de admin:
+
+```
+.nsfw on     → activa todos los comandos NSFW del grupo
+.nsfw off    → los desactiva
+.nsfw        → muestra el estado y la lista
+```
+
+También responden `.nsfwon on` / `.nsfwoff off` como alias.
+
+El estado se guarda en la columna `chats.nsfw` de `database/database.db` (sqlite).
+Mientras esté apagado, `handler.ts` bloquea **todos** los comandos marcados con
+`nsfw: true` dentro del grupo. El owner del bot pasa siempre y en chat privado no hay puerta.
+
+## Comandos de contenido
 
 | Comando | Aliases | Qué manda | Endpoint |
 |---|---|---|---|
@@ -15,22 +32,10 @@ Categoría NSFW de **AKAME-MD**, usando la API de Delirius: `https://api.deliriu
 | `.girls` | `.chicas`, `.nsfwgirls` | Imagen | `/nsfw/girls` |
 | `.boobs` | `.tetas`, `.nsfwboobs` | Imagen | `/nsfw/boobs` |
 | `.corean` | `.coreanas`, `.nsfwcorean` | Imagen | `/nsfw/corean` |
-| `.nsfw` | `.nsfwrandom`, `.horny` | Random de los 4 | cualquiera |
+| `.nsfwrandom` | `.horny` | Random de los 4 | cualquiera |
 
-## Activar la categoría en un grupo
-
-La categoría viene **apagada por defecto**. Un administrador (con el bot de admin) hace:
-
-```
-.nsfwon on     → activa
-.nsfwon off    → desactiva
-.nsfwon        → muestra el estado
-```
-
-El estado se guarda en la columna `chats.nsfw` de `database/database.db` (sqlite).
-
-Mientras esté apagado, `handler.ts` bloquea cualquier comando con `nsfw: true` dentro
-del grupo. El owner del bot pasa siempre, y en chat privado no hay puerta.
+> Nota: el nombre `.nsfw` a secas es el interruptor de admin, por eso el de contenido
+> aleatorio es `.nsfwrandom`.
 
 ## Agregar un comando nuevo
 
@@ -51,10 +56,15 @@ export default {
 ```
 
 Y agrega el nombre del endpoint a `NSFW_ENDPOINTS` en `lib/nsfw.ts` si quieres que
-entre en el random de `.nsfw`.
+entre en el random de `.nsfwrandom`.
+
+**Ojo con los nombres de archivo:** `index.ts` registra los plugins con
+`path.basename(fullPath)`, sin la carpeta. Dos archivos con el mismo nombre en carpetas
+distintas se pisan entre sí — por eso el interruptor es `commands/admin/nsfw.ts` y el de
+contenido es `commands/nsfw/nsfwrandom.ts`.
 
 ## Archivos
 
 - `lib/nsfw.ts` → descarga, reintentos, detección de tipo, guardia de 15 MB
-- `commands/admin/nsfwon.ts` → toggle de administrador
+- `commands/admin/nsfw.ts` → interruptor `.nsfw on` / `.nsfw off`
 - `handler.ts` → puerta que bloquea la categoría en grupos con NSFW apagado

@@ -314,7 +314,7 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
             queueMicrotask(() => { broadcast('security_event', { type: 'nsfw_blocked', command: rawCommand, sender: normalizedSender, chat }); });
             return msg.reply(
                 'ׅ ׄ ✿ La categoría *NSFW 💋* está desactivada en este grupo.\n' +
-                '> Un administrador puede activarla con *' + (matchedPrefix?? prefix) + 'nsfwon on*'
+                '> Un administrador puede activarla con *' + (matchedPrefix?? prefix) + 'nsfw on*'
             );
         }
     }

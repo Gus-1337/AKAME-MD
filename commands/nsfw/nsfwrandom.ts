@@ -1,7 +1,7 @@
 import { randomNsfwEndpoint, sendNsfwMedia } from '#nsfw';
 
 export default {
-    command: ['nsfw', 'nsfwrandom', 'horny'],
+    command: ['nsfwrandom', 'horny'],
     description: 'Contenido NSFW al azar de toda la categoría',
     category: 'nsfw',
     nsfw: true,

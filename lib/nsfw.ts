@@ -149,7 +149,7 @@ export const sendNsfwMedia = async (ctx: any, endpoint: NsfwEndpoint, label?: st
             `♡ AKAME-MD - NSFW ♡\n\n` +
             `✿ *Categoría:* ${label || endpoint}\n` +
             `✿ *Peso:* ${formatBytes(media.bytes)}\n\n` +
-            `✿ Pedir otro » *${p}${endpoint === 'tiktok' ? 'nsfwtiktok' : endpoint}* o *${p}nsfw* al azar\n` +
+            `✿ Pedir otro » *${p}${endpoint === 'tiktok' ? 'nsfwtiktok' : endpoint}* o *${p}nsfwrandom* al azar\n` +
             `✿ Made by *${(config as any).devName || 'AKAME-MD'}* ♡`;
 
         const payload: any = media.kind === 'video'
