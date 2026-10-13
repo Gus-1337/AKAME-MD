@@ -34,7 +34,7 @@ global.APIs = {
   apifaa: { url: "https://api-faa.my.id", key: null },
   xyro: { url: "https://api.xyro.site", key: null },
   yupra: { url: "https://api.yupra.my.id", key: null },
-  yosoyyo: { url: "https://api-yosoyyo-api-ofc.onrender.com", key: null }
+  yosoyyo: { url: "https://api-yosoyyo-api-ofc.onrender.com", key: process.env.YOSOYYO_KEY || null }
 }
 
 export const config = {
