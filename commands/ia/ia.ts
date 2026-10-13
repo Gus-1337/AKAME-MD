@@ -4,7 +4,7 @@ import config from '#config';
 export default {
     command: ['ia', 'chat', 'gpt'],
     description: 'Responde preguntas utilizando inteligencia artificial',
-    category: 'tools',
+    category: 'ia',
     run: async ({ chat, m, sock, args }: any) => {
         const msgId = m?.id || m?.key?.id;
 
