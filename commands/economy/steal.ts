@@ -1,4 +1,5 @@
 import { UserJid } from '#simple';
+import { buffRemaining, formatDuration, hasRobShield, luckBoost, softenPenalty } from '#shop';
 import { saveDB } from '#db';
 import config from '#config';
 
@@ -124,13 +125,20 @@ export default {
             const targetCoins = targetInChat.coins || 0;
             const targetName = dbData.users?.[targetKey]?.name || targetKey.split('@')[0];
 
+            if (hasRobShield(targetInChat)) {
+                const resto = formatDuration(buffRemaining(targetInChat, 'robprotect'));
+                return await sock.sendMessage(chat, {
+                    text: `🛡️ *${targetName}* tiene un *escudo antirrobo* activo por *${resto}* más.\n> Vuelve cuando se le acabe.`
+                }, { quoted: m });
+            }
+
             if (targetCoins < 100) {
                 return await sock.sendMessage(chat, {
                     text: `「 ꕤ 」 *${targetName}* no tiene suficientes *Coins* fuera del banco como para que valga la pena intentar robar.`
                 }, { quoted: m });
             }
 
-            const exitoso = Math.random() < 0.5;
+            const exitoso = Math.random() < luckBoost(userInChat, 0.5);
 
             if (exitoso) {
                 const porcentaje = Math.random() * 0.3 + 0.1;
@@ -148,7 +156,7 @@ export default {
                 }, { quoted: m });
             }
 
-            const perdida = Math.min(coins, Math.floor(Math.random() * 5000) + 1000);
+            const perdida = softenPenalty(userInChat, Math.min(coins, Math.floor(Math.random() * 5000) + 1000));
 
             userInChat.coins = coins - perdida;
             userInChat.lastRob = now;

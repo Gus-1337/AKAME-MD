@@ -1,4 +1,5 @@
 import { UserJid } from '#simple';
+import { activeEffectsLine, coinMultiplier, effectiveCooldown, softenPenalty } from '#shop';
 import { saveDB } from '#db';
 import config from '#config';
 
@@ -42,7 +43,7 @@ export default {
             const coins = userInChat.coins || 0;
 
             const now = Date.now();
-            const cooldown = 60 * 1000;
+            const cooldown = effectiveCooldown(userInChat, 60 * 1000);
             const last = userInChat.lastWork || 0;
             const diff = now - last;
 
@@ -83,7 +84,7 @@ export default {
 
             if (perder) {
                 const cantidad = Math.floor(Math.random() * 5000) + 1000;
-                const perdida = Math.min(coins, cantidad);
+                const perdida = softenPenalty(userInChat, Math.min(coins, cantidad));
                 const frase = random(perdioFrases);
 
                 userInChat.coins = coins - perdida;
@@ -91,10 +92,10 @@ export default {
 
                 saveDB(chat, realSender);
 
-                return reply(`✿ ${frase} *${perdida.toLocaleString()} ${coinName}*.`);
+                return reply(`✿ ${frase} *${perdida.toLocaleString()} ${coinName}*.${activeEffectsLine(userInChat)}`);
             }
 
-            const ganancia = Math.floor(Math.random() * 10000) + 1;
+            const ganancia = (Math.floor(Math.random() * 10000) + 1) * coinMultiplier(userInChat);
             const frase = random(ganoFrases);
 
             userInChat.coins = coins + ganancia;
@@ -102,7 +103,7 @@ export default {
 
             saveDB(chat, realSender);
 
-            return reply(`✿ ${frase} *${ganancia.toLocaleString()} ${coinName}*.`);
+            return reply(`✿ ${frase} *${ganancia.toLocaleString()} ${coinName}*.${activeEffectsLine(userInChat)}`);
 
         } catch (e) {
             console.error('Error en work:', e);

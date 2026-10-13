@@ -1,4 +1,5 @@
 import { UserJid } from '#simple';
+import { activeEffectsLine, coinMultiplier, effectiveCooldown, softenPenalty } from '#shop';
 import config from '#config';
 import { saveDB } from '#db';
 
@@ -25,18 +26,18 @@ export default {
         if (!user) user = chatUsers[realSender] = { coins: 0, bank: 0 };
 
         const coinName = (config as any)?.coin || '¥enes';
-        const COOLDOWN = 2 * 60 * 1000;
+        const COOLDOWN = effectiveCooldown(user, 2 * 60 * 1000);
 
         if (user.lastMine && Date.now() - user.lastMine < COOLDOWN) {
             const r = Math.ceil((COOLDOWN - (Date.now() - user.lastMine)) / 1000);
             return sock.sendMessage(chat, { text: `「✿」 Debes esperar *${r}s* para volver a minar` }, { quoted: m });
         }
 
-        const reward = Math.floor(Math.random() * 2000) + 500;
+        const reward = (Math.floor(Math.random() * 2000) + 500) * coinMultiplier(user);
         user.coins = (user.coins || 0) + reward;
         user.lastMine = Date.now();
         saveDB(chat, realSender);
 
-        await sock.sendMessage(chat, { text: `「✿」 Minaste y conseguiste *${reward.toLocaleString()} ${coinName}*\n> Balance » *${user.coins.toLocaleString()} ${coinName}*` }, { quoted: m });
+        await sock.sendMessage(chat, { text: `「✿」 Minaste y conseguiste *${reward.toLocaleString()} ${coinName}*\n> Balance » *${user.coins.toLocaleString()} ${coinName}*${activeEffectsLine(user)}` }, { quoted: m });
     }
 };

@@ -1,4 +1,5 @@
 import { UserJid } from '#simple';
+import { activeEffectsLine, luckBoost, softenPenalty } from '#shop';
 import config from '#config';
 import { saveDB } from '#db';
 
@@ -34,18 +35,19 @@ export default {
             return sock.sendMessage(chat, { text: `「✿」 La mazmorra está en descanso\n> Vuelve en *${mins}m ${secs}s*` }, { quoted: m });
         }
 
+        const boost = luckBoost(user, 0);
         const random = Math.random();
         let amount = 0;
         let msg = '';
 
-        if (random < 0.5) {
+        if (random < 0.5 + boost) {
             amount = Math.floor(Math.random() * 7000) + 3000;
             msg = `「✿」 Entraste a la mazmorra y conseguiste *${amount.toLocaleString()} ${coinName}*`;
-        } else if (random < 0.75) {
+        } else if (random < 0.75 + boost) {
             amount = Math.floor(Math.random() * 12000) + 8000;
             msg = `「✿」 Encontraste un cofre con *${amount.toLocaleString()} ${coinName}*\n> Cofre legendario`;
-        } else if (random < 0.9) {
-            amount = -Math.floor(Math.random() * 3000) - 1000;
+        } else if (random < 0.9 + boost * 0.5) {
+            amount = -softenPenalty(user, Math.floor(Math.random() * 3000) + 1000);
             msg = `「✿」 Un monstruo te atacó y perdiste *${Math.abs(amount).toLocaleString()} ${coinName}*`;
         } else {
             msg = `「✿」 No encontraste nada en la mazmorra`;
@@ -55,6 +57,6 @@ export default {
         user.lastMazmorra = Date.now();
         saveDB(chat, realSender);
 
-        await sock.sendMessage(chat, { text: `${msg}\n> Balance » *${user.coins.toLocaleString()} ${coinName}*` }, { quoted: m });
+        await sock.sendMessage(chat, { text: `${msg}\n> Balance » *${user.coins.toLocaleString()} ${coinName}*${activeEffectsLine(user)}` }, { quoted: m });
     }
 };

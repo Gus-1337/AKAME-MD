@@ -1,4 +1,5 @@
 import { UserJid } from '#simple';
+import { activeEffectsLine, coinMultiplier, effectiveCooldown, luckBoost, softenPenalty } from '#shop';
 import { saveDB } from '#db';
 import config from '#config';
 
@@ -43,7 +44,7 @@ export default {
             const coins = userInChat.coins || 0;
 
             const now = Date.now();
-            const cooldown = 5 * 60 * 1000;
+            const cooldown = effectiveCooldown(userInChat, 5 * 60 * 1000);
             const last = userInChat.lastCrime || 0;
             const diff = now - last;
 
@@ -87,11 +88,11 @@ export default {
 
             const random = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
-            const perder = Math.random() < 0.25;
+            const perder = Math.random() < 0.25 * (1 - luckBoost(userInChat, 0));
 
             if (perder) {
                 const rango = Math.floor(Math.random() * 15000) + 3000;
-                const perdida = Math.min(coins, rango);
+                const perdida = softenPenalty(userInChat, Math.min(coins, rango));
                 const frase = random(perdioFrases);
 
                 userInChat.coins = coins - perdida;
@@ -100,11 +101,11 @@ export default {
                 saveDB(chat, realSender);
 
                 return await sock.sendMessage(chat, {
-                    text: `✿ ${frase} *-${perdida.toLocaleString()} ${coinName}*.`
+                    text: `✿ ${frase} *-${perdida.toLocaleString()} ${coinName}*.${activeEffectsLine(userInChat)}`
                 }, { quoted: m });
             }
 
-            const ganancia = Math.floor(Math.random() * 15000) + 3000;
+            const ganancia = (Math.floor(Math.random() * 15000) + 3000) * coinMultiplier(userInChat);
             const frase = random(ganoFrases);
 
             userInChat.coins = coins + ganancia;
@@ -113,7 +114,7 @@ export default {
             saveDB(chat, realSender);
 
             return await sock.sendMessage(chat, {
-                text: `✿ ${frase} *${ganancia.toLocaleString()} ${coinName}*.`
+                text: `✿ ${frase} *${ganancia.toLocaleString()} ${coinName}*.${activeEffectsLine(userInChat)}`
             }, { quoted: m });
 
         } catch (e) {

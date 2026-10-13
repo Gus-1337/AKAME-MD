@@ -16,6 +16,7 @@
     "#db": "./lib/database.ts",
     "#anime": "./lib/anime.ts",
     "#nsfw": "./lib/nsfw.ts",
+    "#shop": "./lib/shop.ts",
     "#logomaker": "./lib/logomaker.ts",
     "#handler": "./handler.ts",
     "#index": "./index.ts",

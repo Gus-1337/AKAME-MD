@@ -1,4 +1,5 @@
 import { UserJid } from '#simple';
+import { coinMultiplier } from '#shop';
 import { saveDB } from '#db';
 import config from '#config';
 
@@ -65,7 +66,7 @@ export default {
             streak += 1;
 
             const baseReward = 30000;
-            const reward = baseReward + ((streak - 1) * 5000);
+            const reward = (baseReward + ((streak - 1) * 5000)) * coinMultiplier(userInChat);
             const nextStreak = streak + 1;
             const nextReward = baseReward + ((nextStreak - 1) * 5000);
 

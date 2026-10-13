@@ -1,4 +1,5 @@
 import { UserJid } from '#simple';
+import { activeEffectsLine, isBuffActive, softenPenalty } from '#shop';
 import config from '#config';
 import { saveDB } from '#db';
 const normalizeNumber = (x) => { let c = String(x).split('@')[0].split(':').pop() || ''; return c.replace(/[^\d]/g, ''); };
@@ -16,11 +17,13 @@ export default {
         if ((user.coins || 0) < bet) return sock.sendMessage(chat, { text: `「✿」 No tienes suficientes ${coinName}` }, { quoted: m });
         const card = () => Math.floor(Math.random()*11)+1;
         let p = card()+card(); let d = card()+card();
-        let res = ''; if (p > 21) { res = `Te pasaste con ${p} 💥 Perdiste ${bet}`; user.coins -= bet; }
+        let reintentada = false;
+        if (p > 21 && isBuffActive(user, 'luck')) { p = card()+card(); d = card()+card(); reintentada = true; }
+        let res = ''; if (p > 21) { const perdida = softenPenalty(user, bet); res = `Te pasaste con ${p} 💥 Perdiste ${perdida.toLocaleString()}`; user.coins -= perdida; }
         else if (d > 21 || p > d) { res = `Ganaste! Tu: ${p} | Bot: ${d} +${bet}`; user.coins += bet; }
-        else if (p < d) { res = `Perdiste! Tu: ${p} | Bot: ${d} -${bet}`; user.coins -= bet; }
+        else if (p < d) { const perdida = softenPenalty(user, bet); res = `Perdiste! Tu: ${p} | Bot: ${d} -${perdida.toLocaleString()}`; user.coins -= perdida; }
         else { res = `Empate! Tu: ${p} | Bot: ${d}`; }
         saveDB(chat, realSender);
-        await sock.sendMessage(chat, { text: `「🃏」 *BLACKJACK*\n\n${res}\nBalance: ${user.coins.toLocaleString()}` }, { quoted: m });
+        await sock.sendMessage(chat, { text: `「🃏」 *BLACKJACK*\n\n${res}${reintentada? `\n> 🍀 El trébol te salvó y repartió de nuevo` : ''}\nBalance: ${user.coins.toLocaleString()}${activeEffectsLine(user)}` }, { quoted: m });
     }
 };

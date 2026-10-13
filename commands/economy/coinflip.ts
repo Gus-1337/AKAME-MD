@@ -1,4 +1,5 @@
 import { UserJid } from '#simple';
+import { activeEffectsLine, isBuffActive } from '#shop';
 import { saveDB } from '#db';
 import config from '#config';
 
@@ -74,7 +75,8 @@ export default {
 
             const eleccionUsuario = 'Cara';
             const resultado = Math.random() < 0.5 ? 'Cara' : 'Cruz';
-            const gano = eleccionUsuario === resultado;
+            const salvado = resultado !== eleccionUsuario && isBuffActive(userInChat, 'luck');
+            const gano = eleccionUsuario === resultado || salvado;
 
             if (gano) {
                 userInChat.coins = coins + apuesta;
@@ -82,7 +84,7 @@ export default {
                 return await sock.sendMessage(chat, {
                     text:
 `「✿」¡La moneda ha caído en *${resultado}* y has ganado *${apuesta.toLocaleString()} ${coinName}*!
-> Tu elección fue *${eleccionUsuario}*`
+> Tu elección fue *${eleccionUsuario}*${salvado? `\n> 🍀 El trébol inclinó la moneda a tu favor` : ''}${activeEffectsLine(userInChat)}`
                 }, { quoted: m });
             }
 
@@ -91,7 +93,7 @@ export default {
             return await sock.sendMessage(chat, {
                 text:
 `「✿」¡La moneda ha caído en *${resultado}* y has perdido *${apuesta.toLocaleString()} ${coinName}*!
-> Tu elección fue *${eleccionUsuario}*`
+> Tu elección fue *${eleccionUsuario}*${activeEffectsLine(userInChat)}`
             }, { quoted: m });
 
         } catch (e) {

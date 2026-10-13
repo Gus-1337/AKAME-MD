@@ -1,4 +1,5 @@
 import { UserJid } from '#simple';
+import { activeEffectsLine, coinMultiplier, effectiveCooldown, softenPenalty } from '#shop';
 import config from '#config';
 import { saveDB } from '#db';
 
@@ -25,7 +26,7 @@ export default {
         if (!user) user = chatUsers[realSender] = { coins: 0, bank: 0 };
 
         const coinName = config?.coin || '¥enes';
-        const COOLDOWN = 3 * 60 * 1000;
+        const COOLDOWN = effectiveCooldown(user, 3 * 60 * 1000);
 
         if (user.lastCazar && Date.now() - user.lastCazar < COOLDOWN) {
             const r = Math.ceil((COOLDOWN - (Date.now() - user.lastCazar)) / 1000);
@@ -41,12 +42,12 @@ export default {
             { name: 'Dragón 🐉', coins: 5000 },
         ];
         const animal = animales[Math.floor(Math.random() * animales.length)];
-        const reward = animal.coins + Math.floor(Math.random() * 300);
+        const reward = (animal.coins + Math.floor(Math.random() * 300)) * coinMultiplier(user);
 
         user.coins = (user.coins || 0) + reward;
         user.lastCazar = Date.now();
         saveDB(chat, realSender);
 
-        await sock.sendMessage(chat, { text: `「🏹」 Cazaste un *${animal.name}* y ganaste *${reward.toLocaleString()} ${coinName}*\n> Balance » *${user.coins.toLocaleString()} ${coinName}*` }, { quoted: m });
+        await sock.sendMessage(chat, { text: `「🏹」 Cazaste un *${animal.name}* y ganaste *${reward.toLocaleString()} ${coinName}*\n> Balance » *${user.coins.toLocaleString()} ${coinName}*${activeEffectsLine(user)}` }, { quoted: m });
     }
 };
