@@ -1,5 +1,6 @@
 export default {
     command: ['menulista', 'listaprueba', 'menutest2'],
+    category: 'tools',
     run: async ({ chat, m, sock }: any) => {
         await sock.sendMessage(chat, {
             text: "Selecciona un comando",

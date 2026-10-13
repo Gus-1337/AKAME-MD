@@ -1,7 +1,7 @@
 export default {
     command: ['lesbiana', 'pansexual', 'hetero', 'trans', 'bi', 'bisexual'],
     description: 'Medidores LGBT',
-    category: 'tools',
+    category: 'fun',
     run: async ({ chat, m, sock, args }) => {
         const msgId = m?.id || m?.key?.id;
         try {

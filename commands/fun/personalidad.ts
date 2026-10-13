@@ -1,7 +1,7 @@
 export default {
     command: ['personalidad', 'personal'],
     description: 'Analiza tu personalidad',
-    category: 'tools',
+    category: 'fun',
     run: async ({ chat, m, sock, args }) => {
         const target = m.mentionedJid?.[0]? `@${m.mentionedJid[0].split('@')[0]}` : (args.join(' ') || m.pushName);
         const mention = m.mentionedJid?.[0]? [m.mentionedJid[0]] : [];

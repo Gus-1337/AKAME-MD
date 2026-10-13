@@ -1,5 +1,6 @@
 export default {
     command: ['menudios', 'menucanal'],
+    category: 'tools',
     run: async ({ chat, m, sock }: any) => {
         await sock.sendMessage(chat, {
             text: "乂 *AKAME-MD | MENU DIOS* 乂\n\nEl menu más pro que verás\nPowered by Maycol",

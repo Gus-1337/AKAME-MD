@@ -1,7 +1,7 @@
 export default {
     command: ['ship', 'shippear', 'pareja'],
     description: 'Ship bacano',
-    category: 'tools',
+    category: 'fun',
     run: async ({ chat, m, sock }) => {
         // ESTA FUNCION SI LEE EL @
         const getMentions = () => {

@@ -2,6 +2,7 @@ import { db } from '#db';
 
 export default {
     command: ['e', 'evaldb'],
+    category: 'owner',
     owner: true,
     run: async (ctx: any) => {
         const { msg, args, reply, chat, sender, prefix, usedPrefix } = ctx;

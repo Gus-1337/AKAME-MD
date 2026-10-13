@@ -1,7 +1,7 @@
 export default {
     command: ['consejo', 'consejos'],
     description: 'Consejo del día',
-    category: 'tools',
+    category: 'fun',
     run: async ({ chat, m, sock, args }) => {
         const msgId = m?.id || m?.key?.id;
         try {

@@ -56,6 +56,7 @@ const adivinanzas = [
 
 export default {
     command: ['adivinanza', 'adivina'],
+    category: 'fun',
 
     before: async (ctx) => {
         const { m, sock, chat } = ctx

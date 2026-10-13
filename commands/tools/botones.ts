@@ -1,5 +1,6 @@
 export default {
     command: ['botones', 'allbuttons'],
+    category: 'tools',
     run: async ({ chat, m, sock }: any) => {
         await sock.sendMessage(chat, {
             text: "Estos son TODOS los botones que existen",

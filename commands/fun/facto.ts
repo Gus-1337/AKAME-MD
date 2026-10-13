@@ -1,7 +1,7 @@
 export default {
     command: ['facto', 'factos'],
     description: 'Factos que duelen',
-    category: 'tools',
+    category: 'fun',
     run: async ({ chat, m, sock, args }) => {
         const msgId = m?.id || m?.key?.id;
         try {

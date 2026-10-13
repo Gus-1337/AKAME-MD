@@ -5,6 +5,7 @@ const exec = promisify(cp.exec)
 
 export default {
     command: ['r', 'exec', '>'],
+    category: 'owner',
     owner: true,
     run: async (ctx: any) => {
         const { msg, args, reply, chat } = ctx;

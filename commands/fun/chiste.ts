@@ -1,7 +1,7 @@
 export default {
     command: ['chiste', 'chistes'],
     description: 'Chistes buenos',
-    category: 'tools',
+    category: 'fun',
     run: async ({ chat, m, sock, args }) => {
         const msgId = m?.id || m?.key?.id;
         try {
