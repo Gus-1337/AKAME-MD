@@ -4,7 +4,6 @@ import config from '#config';
 import chalk from 'chalk';
 import { broadcast } from '#index';
 import { LRUCache } from 'lru-cache';
-import * as linkify from 'linkifyjs';
 
 const handlerConfig = (config as any)?.handler || {};
 const metaTtlMs = handlerConfig.metaTtl || 300000;
@@ -18,17 +17,44 @@ const groupMetaCache = new LRUCache<string, { metadata: any; ts: number }>({
     max: maxGroupCache,
     ttl: metaTtlMs,
 });
+/**
+ * El Set de admins de cada grupo, cacheado.
+ * getAdminSet recorre todos los participantes y normaliza 3 campos por admin, y eso
+ * corría en CADA mensaje; en un grupo de 250 personas es trabajo repetido por gusto
+ * porque la metadata ya está cacheada 5 minutos. Se recalcula cuando cambia la
+ * referencia de la lista de participantes o cuando se invalida la metadata.
+ */
+const groupAdminSetCache = new LRUCache<string, { parts: any[]; set: Set<string> }>({
+    max: maxGroupCache,
+    ttl: metaTtlMs,
+});
+
+function getAdminSetCached(chat: string, participants: any[]): Set<string> {
+    const hit = groupAdminSetCache.get(chat);
+    if (hit && hit.parts === participants) return hit.set;
+    const set = getAdminSet(participants);
+    groupAdminSetCache.set(chat, { parts: participants, set });
+    return set;
+}
 const processedMsgIds = new LRUCache<string, boolean>({
     max: maxProcessedMsgs,
     ttl: msgTtlMs,
 });
 const userRateLimits = new Map<string, { count: number; resetTime: number }>();
 const commandMap = new Map<string, any>();
+/**
+ * Solo los plugins que tienen hook `before`. Antes se recorrían los ~200 plugins
+ * completos en cada mensaje para descubrir que apenas 6 tienen el hook.
+ */
+let beforePlugins: any[] = [];
 const adminOnlyWarned = new Map<string, Set<string>>();
 let lastPluginsRef: any = null;
 
 export function invalidateGroupCache(chatId: string): void {
-    if (chatId) groupMetaCache.delete(chatId);
+    if (chatId) {
+        groupMetaCache.delete(chatId);
+        groupAdminSetCache.delete(chatId);
+    }
 }
 
 setInterval(() => {
@@ -74,10 +100,12 @@ function syncCommandMapIfNeeded(): void {
     if (currentPlugins === lastPluginsRef) return;
     lastPluginsRef = currentPlugins;
     commandMap.clear();
+    beforePlugins = [];
     if (currentPlugins && typeof currentPlugins === 'object') {
         const entries = Object.values(currentPlugins);
         for (let i = 0; i < entries.length; i++) {
             const plugin: any = entries[i];
+            if (typeof plugin?.before === 'function') beforePlugins.push(plugin);
             if (!plugin?.command) continue;
             if (plugin.eval || plugin.exec || plugin.require || plugin.fs) continue;
             const execFn = plugin.run || plugin.default || (typeof plugin === 'function'? plugin : null);
@@ -169,7 +197,12 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
     try { realJidResult = UserJid(sock, chat, realJidResult) || realJidResult; } catch {}
     const normalizedSender = normalizeNumber(realJidResult);
     const normalizedMsgSender = normalizeNumber(msgSender);
-    if (checkRateLimit(normalizedSender)) return;
+    // Los mensajes del propio bot no se procesan.
+    if (rawMsg?.key?.fromMe) return;
+    // El límite de comandos se aplica más abajo, solo cuando el mensaje ES un comando.
+    // Estaba acá y contaba TODOS los mensajes: en un grupo con conversación el 6º
+    // mensaje en 3 s se descartaba en silencio y no llegaba ni a los hooks `before`
+    // (los filtros antilink/antispam) ni a nada.
     const altSender = normalizedSender.startsWith('521')? normalizedSender.replace(/^521/, '52') : (normalizedSender.startsWith('52')? normalizedSender.replace(/^52/, '521') : normalizedSender);
     const baseSender = stripMexOne(normalizedSender);
     const ownerConfig = (config as any)?.owner;
@@ -188,7 +221,7 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
     let isAdmins = false;
     let isBotAdmins = false;
     if (isGroup && groupMetadata?.participants) {
-        const adminSet = getAdminSet(groupMetadata.participants);
+        const adminSet = getAdminSetCached(chat, groupMetadata.participants);
         isAdmins = adminSet.has(normalizedSender) || adminSet.has(normalizedMsgSender) || adminSet.has(altSender) || adminSet.has(baseSender) || adminSet.has(rawParticipant) || adminSet.has(msgSender);
         const rawBotJid = sock.user?.id || sock.user?.jid || '';
         const botBase = normalizeNumber(rawBotJid);
@@ -223,10 +256,9 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
 
     try {
         syncCommandMapIfNeeded();
-        const allPlugins = Object.values((global as any).plugins || {}) as any[];
         const textForBefore = msg.body || msg.text || '';
-        for (const plug of allPlugins) {
-            if (typeof plug.before === 'function') {
+        for (const plug of beforePlugins) {
+            {
                 try {
                     const beforeCtx = {
                ...msg, sock, m: msg, msg, chat,
@@ -260,18 +292,14 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
     const isCommand =!!matchedPrefix;
     const prefix = prefijoArray[0] || '.';
 
-    if (isGroup && chat && currentChatDb.antilinks &&!isCommand && msg.body) {
-        const detectedLinks = linkify.find(msg.body);
-        if (detectedLinks && detectedLinks.length > 0) {
-            if (!isOwner &&!isAdmins && isBotAdmins) {
-                sock.sendMessage(chat, { delete: rawMsg.key }).catch(() => null);
-                sock.groupParticipantsUpdate(chat, [msg.sender], 'remove').catch(() => null);
-                sock.sendMessage(chat, { text: `✰ @${normalizedSender} fue eliminado por enviar un link.`, mentions: [msg.sender] }).catch(() => null);
-                return;
-            }
-        }
-    }
+    // Acá iba un chequeo inline de antilinks. Era código muerto: estaba DESPUÉS del
+    // `if (!match) return;` de arriba, así que solo se alcanzaba con mensajes que ya
+    // traían prefijo, y su condición pedía `!isCommand` (o sea, sin prefijo). No se
+    // ejecutó nunca y duplicaba el linkify.find de cada mensaje. El antilink real es
+    // el hook `before` de commands/admin/antilink.ts.
     if (!isCommand ||!msg.body) return;
+    // Límite anti-abuso: solo aplica a comandos (5 por ventana de 3 s).
+    if (checkRateLimit(normalizedSender)) return;
     const bodyWithoutPrefix = msg.body.slice(matchedPrefix.length).trim();
     if (!bodyWithoutPrefix) return;
     const spaceIndex = bodyWithoutPrefix.indexOf(' ');

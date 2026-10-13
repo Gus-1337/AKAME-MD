@@ -45,7 +45,12 @@ export default {
     },
 
     // DETECTOR TODO EN UNO
-    before: async function(m, { sock, isGroup, isAdmin, isBotAdmin }) {
+    // OJO con la firma: el handler llama `plug.before(beforeCtx)` con UN solo
+    // argumento. Esto tenía dos parámetros, así que el segundo llegaba undefined,
+    // el destructure tiraba TypeError y el `catch {}` del handler lo ocultaba:
+    // el filtro no corrió nunca.
+    before: async function(ctx: any) {
+        const { sock, m, isGroup, isAdmin, isBotAdmin, isOwner } = ctx;
         if (!isGroup) return false;
 
         const chatDb = global.db?.data?.chats?.[m.chat];
@@ -62,8 +67,8 @@ export default {
         try {
             await sock.sendMessage(m.chat, { delete: m.key });
 
-            // SI ES ADMIN -> se salva
-            if (isAdmin) {
+            // SI ES ADMIN U OWNER -> se salva
+            if (isAdmin || isOwner) {
                 await sock.sendMessage(m.chat, {
                     text: `😏 *@${m.sender.split('@')[0]} te salvaste porque eres admin*`,
                     mentions: [m.sender]

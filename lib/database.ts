@@ -52,10 +52,6 @@ export const loadDB = () => {
             economy INTEGER DEFAULT 0,
             adminonly INTEGER DEFAULT 0,
             antilinks INTEGER DEFAULT 0,
-            antiestados INTEGER DEFAULT 0,
-            antiestadostodo INTEGER DEFAULT 0,
-            antitoxic INTEGER DEFAULT 0,
-            toxicwords TEXT DEFAULT '[]',
             sWelcome TEXT DEFAULT '',
             sGoodbye TEXT DEFAULT ''
         );
@@ -83,10 +79,6 @@ export const loadDB = () => {
     try { db.exec("ALTER TABLE users ADD COLUMN sAuthor TEXT DEFAULT ''"); } catch {}
     try { db.exec("ALTER TABLE chats ADD COLUMN characters TEXT DEFAULT '{}'"); } catch {}
     try { db.exec("ALTER TABLE chats ADD COLUMN rolls TEXT DEFAULT '{}'"); } catch {}
-    try { db.exec("ALTER TABLE chats ADD COLUMN antiestados INTEGER DEFAULT 0"); } catch {}
-    try { db.exec("ALTER TABLE chats ADD COLUMN antiestadostodo INTEGER DEFAULT 0"); } catch {}
-    try { db.exec("ALTER TABLE chats ADD COLUMN antitoxic INTEGER DEFAULT 0"); } catch {}
-    try { db.exec("ALTER TABLE chats ADD COLUMN toxicwords TEXT DEFAULT '[]'"); } catch {}
     try { db.exec("ALTER TABLE chats ADD COLUMN sWelcome TEXT DEFAULT ''"); } catch {}
     try { db.exec("ALTER TABLE chats ADD COLUMN sGoodbye TEXT DEFAULT ''"); } catch {}
     try { db.exec("ALTER TABLE chat_users ADD COLUMN stats TEXT DEFAULT '{}'"); } catch {}
@@ -109,8 +101,8 @@ export const loadDB = () => {
     `);
 
     stmtSaveChat = db.prepare(`
-        INSERT INTO chats (id, muteds, isBanned, welcome, bye, nsfw, alerts, gacha, economy, adminonly, antilinks, antiestados, antiestadostodo, antitoxic, toxicwords, characters, rolls, sWelcome, sGoodbye)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO chats (id, muteds, isBanned, welcome, bye, nsfw, alerts, gacha, economy, adminonly, antilinks, characters, rolls, sWelcome, sGoodbye)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             muteds = excluded.muteds,
             isBanned = excluded.isBanned,
@@ -122,10 +114,6 @@ export const loadDB = () => {
             economy = excluded.economy,
             adminonly = excluded.adminonly,
             antilinks = excluded.antilinks,
-            antiestados = excluded.antiestados,
-            antiestadostodo = excluded.antiestadostodo,
-            antitoxic = excluded.antitoxic,
-            toxicwords = excluded.toxicwords,
             characters = excluded.characters,
             rolls = excluded.rolls,
             sWelcome = excluded.sWelcome,
@@ -168,10 +156,6 @@ export const loadDB = () => {
         chatObj.economy = Boolean(c.economy);
         chatObj.adminonly = Boolean(c.adminonly);
         chatObj.antilinks = Boolean(c.antilinks);
-        chatObj.antiestados = Boolean(c.antiestados);
-        chatObj.antiestadosTodo = Boolean(c.antiestadostodo);
-        chatObj.antitoxic = Boolean(c.antitoxic);
-        chatObj.toxicwords = JSON.parse(c.toxicwords || '[]');
         chatObj.sWelcome = c.sWelcome || '';
         chatObj.sGoodbye = c.sGoodbye || '';
         chatObj.characters = JSON.parse(c.characters || '{}');
@@ -232,10 +216,6 @@ export const saveDB = (chatId?: string, senderId?: string) => {
                 c.economy ? 1 : 0,
                 c.adminonly ? 1 : 0,
                 c.antilinks ? 1 : 0,
-                c.antiestados ? 1 : 0,
-                c.antiestadosTodo ? 1 : 0,
-                c.antitoxic ? 1 : 0,
-                JSON.stringify(c.toxicwords || []),
                 JSON.stringify(c.characters || {}),
                 JSON.stringify(c.rolls || {}),
                 c.sWelcome || '',
@@ -304,10 +284,6 @@ export const registerData = async (sock: any, m: any) => {
         chat.economy ??= false;
         chat.adminonly ??= false;
         chat.antilinks ??= false;
-        chat.antiestados ??= false;
-        chat.antiestadosTodo ??= false;
-        chat.antitoxic ??= false;
-        chat.toxicwords ??= [];
         chat.sWelcome ??= '';
         chat.sGoodbye ??= '';
 

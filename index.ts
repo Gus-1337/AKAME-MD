@@ -114,11 +114,16 @@ async function cargarPlugins(dir = './commands') {
                     const plugin = cmdModule.default?.default || cmdModule.default || cmdModule;
                     const pluginName = path.basename(fullPath);
                     newPlugins[pluginName] = plugin;
-                } catch {}
+                } catch (err: any) {
+                    // Antes este catch estaba vacío: un comando con un error de sintaxis
+                    // o un import roto desaparecía del bot sin dejar ni una línea en el log.
+                    console.error(chalk.red(`[ PLUGIN ] No se pudo cargar ${path.basename(fullPath)}:`), err?.message || err);
+                }
             })
         );
 
         globalThis.plugins = newPlugins;
+        console.log(chalk.green(`[ PLUGIN ] ${Object.keys(newPlugins).length} comandos cargados en ${Date.now() - ts} ms`));
         broadcast('plugins_loaded', { count: Object.keys(newPlugins).length });
     } catch (e) {
         console.error(chalk.red('[ ERROR ] Error al cargar plugins:'), e);
