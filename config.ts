@@ -33,7 +33,8 @@ global.APIs = {
   stellar: { url: "https://api.stellarwa.xyz", key: "api-wXCo4" },
   apifaa: { url: "https://api-faa.my.id", key: null },
   xyro: { url: "https://api.xyro.site", key: null },
-  yupra: { url: "https://api.yupra.my.id", key: null }
+  yupra: { url: "https://api.yupra.my.id", key: null },
+  yosoyyo: { url: "https://api-yosoyyo-api-ofc.onrender.com", key: null }
 }
 
 export const config = {
