@@ -35,7 +35,7 @@ const downloadToTmp = async (url, ext) => {
 }
 
 export default {
-    command: ['play2', 'mp4', 'video', 'vídeo', 'playvid', 'playvideo'],
+    command: ['play2', 'mp4', 'playvid', 'playvideo'],
     description: 'Video directo',
     category: 'download',
     group: true,

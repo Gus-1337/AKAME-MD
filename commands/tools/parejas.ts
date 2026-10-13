@@ -1,5 +1,5 @@
 export default {
-    command: ['parejas', 'pareja'],
+    command: ['parejas'],
     category: 'tools',
     run: async (ctx) => {
         const { sock, msg, chat, isGroup } = ctx;

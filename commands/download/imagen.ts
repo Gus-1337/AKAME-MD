@@ -22,7 +22,7 @@ async function getBuffer(url) {
 }
 
 export default {
-    command: ['imagen', 'image', 'gimage', 'img', 'imagenes'],
+    command: ['imagen', 'image', 'gimage', 'imagenes'],
     category: 'download',
     description: 'Google Image en álbum AKAME-MD',
     run: async (ctx) => {

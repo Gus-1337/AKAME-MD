@@ -1,5 +1,5 @@
 export default {
-    command: ['id', 'user', 'me'],
+    command: ['me', 'miid'],
     description: 'Muestra información detallada de tu ID',
     category: 'main',
     run: ({ chat, m, sock, owner, admin }: any) => {
