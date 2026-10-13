@@ -33,13 +33,13 @@ export default {
 
         if (['on','1','enable','activar'].includes(input)) {
             chatDb.antilinks = true;
-            saveDB();
+            saveDB(chat);
             return reply(`✓ *Antilink ACTIVADO*\n> Admins que manden link: te salvaste porque eres admin (solo borro)`);
         }
 
         if (['off','0','disable','desactivar'].includes(input)) {
             chatDb.antilinks = false;
-            saveDB();
+            saveDB(chat);
             return reply(`✗ *Antilink DESACTIVADO*`);
         }
     },

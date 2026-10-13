@@ -32,13 +32,13 @@ export default {
 
         if (['on','1','enable','activar'].includes(input)) {
             chatDb.antiSpam = true;
-            saveDB();
+            saveDB(chat);
             return reply(`✓ *AntiSpam ACTIVADO*`);
         }
 
         if (['off','0','disable','desactivar'].includes(input)) {
             chatDb.antiSpam = false;
-            saveDB();
+            saveDB(chat);
             return reply(`✗ *AntiSpam DESACTIVADO*`);
         }
     },
