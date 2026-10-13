@@ -2,6 +2,23 @@ import { generateWAMessageFromContent, generateWAMessage, jidNormalizedUser } fr
 import fetch from 'node-fetch';
 import crypto from 'crypto';
 
+const DELIRIUS = ((global as any).APIs?.delirius?.url || 'https://api.delirius.online').replace(/\/+$/, '');
+
+/** Busca imágenes en Pinterest: api-faa primero y Delirius de respaldo. */
+async function buscarPinterest(q: string): Promise<string[]> {
+    // 1) API principal
+    try {
+        const res: any = await fetch(`https://api-faa.my.id/faa/pinterest?q=${encodeURIComponent(q)}`, { timeout: 15000 } as any).then(r => r.json());
+        const lista = (res.resultado || res.result || []).filter((u: any) => typeof u === 'string' && u.startsWith('http'));
+        if (lista.length) return lista;
+    } catch (e) {
+        console.log('[PINTEREST] api-faa falló, usando Delirius:', e.message);
+    }
+    // 2) Respaldo: Delirius (devuelve null en algunas posiciones, se filtran)
+    const res: any = await fetch(`${DELIRIUS}/search/pinterest?text=${encodeURIComponent(q)}`, { timeout: 15000 } as any).then(r => r.json());
+    return (res.results || []).filter((u: any) => typeof u === 'string' && u.startsWith('http'));
+}
+
 export default {
     command: ['pinterest', 'pin'],
     category: 'download',
@@ -15,8 +32,7 @@ export default {
         }, { quoted: msg });
 
         try {
-            const res = await fetch(`https://api-faa.my.id/faa/pinterest?q=${encodeURIComponent(q)}`).then(r => r.json());
-            const results = res.resultado || res.result || [];
+            const results = await buscarPinterest(q);
             if (!results.length) {
                 return sock.sendMessage(chat, { text: `☬ *AKAME-MD* ☬\n\n♡ No se encontraron resultados para: *${q}*` }, { quoted: msg });
             }

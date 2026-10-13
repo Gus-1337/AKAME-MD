@@ -2,6 +2,33 @@ import { generateWAMessageFromContent, generateWAMessage, jidNormalizedUser } fr
 import fetch from 'node-fetch';
 import crypto from 'crypto';
 
+const DELIRIUS = ((global as any).APIs?.delirius?.url || 'https://api.delirius.online').replace(/\/+$/, '');
+
+const soloUrls = (lista: any[]) => (lista || []).filter((u: any) => typeof u === 'string' && u.startsWith('http'));
+
+/** Busca imágenes: api-faa (Google) -> Delirius gimage -> Delirius Pinterest. */
+async function buscarImagenes(q: string): Promise<string[]> {
+    // 1) API principal (Google Images)
+    try {
+        const res: any = await fetch(`https://api-faa.my.id/faa/google-image?query=${encodeURIComponent(q)}`, { timeout: 15000 } as any).then(r => r.json());
+        const lista = soloUrls(res.resultado || res.result || []);
+        if (lista.length) return lista;
+    } catch (e) {
+        console.log('[IMAGEN] api-faa falló, usando Delirius:', e.message);
+    }
+    // 2) Respaldo: Delirius gimage (Google Images)
+    try {
+        const res: any = await fetch(`${DELIRIUS}/search/gimage?query=${encodeURIComponent(q)}`, { timeout: 15000 } as any).then(r => r.json());
+        const lista = soloUrls(res.results || res.result || res.data || []);
+        if (lista.length) return lista;
+    } catch (e) {
+        console.log('[IMAGEN] Delirius gimage falló:', e.message);
+    }
+    // 3) Último respaldo: Delirius Pinterest
+    const res: any = await fetch(`${DELIRIUS}/search/pinterest?text=${encodeURIComponent(q)}`, { timeout: 15000 } as any).then(r => r.json());
+    return soloUrls(res.results || []);
+}
+
 async function getBuffer(url) {
   try {
     const res = await fetch(url, {
@@ -34,8 +61,7 @@ export default {
         }, { quoted: msg });
 
         try {
-            const res = await fetch(`https://api-faa.my.id/faa/google-image?query=${encodeURIComponent(q)}`).then(r => r.json());
-            let results = res.resultado || res.result || [];
+            let results = await buscarImagenes(q);
             if (!results.length) throw new Error('Sin resultados');
 
             // Filtra dominios que siempre fallan
