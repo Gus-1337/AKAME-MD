@@ -24,7 +24,7 @@ const isOwner = (jid: string) => {
 
 export default {
     command: ['addmoney', 'givemoney', 'darplata'],
-    description: 'Solo owner',
+    description: 'Regala coins a un usuario o a ti mismo',
     category: 'owner',
     group: true,
     run: async ({ chat, m, sock, args, sender }: any) => {

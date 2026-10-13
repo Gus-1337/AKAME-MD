@@ -1,6 +1,6 @@
 export default {
     command: ['shop', 'tienda'],
-    description: 'Tienda',
+    description: 'Tienda de items, compra con .buy',
     category: 'economy',
     group: true,
 

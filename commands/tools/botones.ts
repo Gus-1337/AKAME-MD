@@ -1,5 +1,6 @@
 export default {
     command: ['botones', 'allbuttons'],
+    description: 'Demo con todos los tipos de botón de WhatsApp',
     category: 'tools',
     run: async ({ chat, m, sock }: any) => {
         await sock.sendMessage(chat, {

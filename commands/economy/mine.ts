@@ -9,7 +9,7 @@ const normalizeNumber = (x: string) => {
 
 export default {
     command: ['mine', 'minar', 'mina'],
-    description: 'Minar',
+    description: 'Mina y gana coins',
     category: 'economy',
     group: true,
     run: async ({ chat, m, sock, sender }: any) => {

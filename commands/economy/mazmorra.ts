@@ -9,7 +9,7 @@ const normalizeNumber = (x: string) => {
 
 export default {
     command: ['mazmorra', 'dungeon'],
-    description: 'Mazmorra',
+    description: 'Entra a la mazmorra: puedes ganar mucho o perder',
     category: 'economy',
     group: true,
     run: async ({ chat, m, sock, sender }: any) => {

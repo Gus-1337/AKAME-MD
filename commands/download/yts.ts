@@ -3,6 +3,7 @@ import fetch from 'node-fetch';
 
 export default {
     command: ['yts', 'ytsearch'],
+    description: 'Busca videos en YouTube',
     category: 'download',
     run: async (ctx) => {
         const { sock, msg, chat, args, usedPrefix, jid } = ctx;

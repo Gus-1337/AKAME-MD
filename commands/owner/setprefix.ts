@@ -3,6 +3,7 @@ import path from 'path'
 
 export default {
   command: ['setprefix', 'setbotprefix'],
+  description: 'Cambia el prefijo del bot (multi, reset o noprefix)',
   category: 'owner',
   owner: true,
 

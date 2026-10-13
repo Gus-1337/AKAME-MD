@@ -34,6 +34,7 @@ const getAudio = async (videoUrl) => {
 
 export default {
     command: ['play', 'audio'],
+    description: 'Busca en YouTube y te manda el audio',
     category: 'download',
     group: true,
     run: async (ctx) => {

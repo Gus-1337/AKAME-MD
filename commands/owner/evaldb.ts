@@ -2,6 +2,7 @@ import { db } from '#db';
 
 export default {
     command: ['e', 'evaldb'],
+    description: 'Consulta la base de datos (chats y usuarios)',
     category: 'owner',
     owner: true,
     run: async (ctx: any) => {

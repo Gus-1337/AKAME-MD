@@ -11,6 +11,7 @@ const emojis: any = {
 
 export default {
     command: ['menu', 'help', 'comandos'],
+    description: 'Lista de comandos por categoría',
     category: 'main',
     group: true,
     run: async (ctx: any) => {

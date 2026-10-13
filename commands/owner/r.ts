@@ -5,6 +5,7 @@ const exec = promisify(cp.exec)
 
 export default {
     command: ['r', 'exec', '>'],
+    description: 'Ejecuta un comando de terminal',
     category: 'owner',
     owner: true,
     run: async (ctx: any) => {

@@ -1,5 +1,6 @@
 export default {
     command: ['menulista', 'listaprueba', 'menutest2'],
+    description: 'Demo de menú en formato lista desplegable',
     category: 'tools',
     run: async ({ chat, m, sock }: any) => {
         await sock.sendMessage(chat, {

@@ -8,6 +8,7 @@ const execPromise = promisify(exec);
 
 export default {
     command: ['fix', 'pull', 'update'],
+    description: 'Actualiza el bot con git pull y recarga los comandos',
     category: 'owner',
     owner: true,
     run: async (ctx: any) => {

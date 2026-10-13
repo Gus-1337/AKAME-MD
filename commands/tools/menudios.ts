@@ -1,5 +1,6 @@
 export default {
     command: ['menudios', 'menucanal'],
+    description: 'Demo de menú con botones y link al canal',
     category: 'tools',
     run: async ({ chat, m, sock }: any) => {
         await sock.sendMessage(chat, {
