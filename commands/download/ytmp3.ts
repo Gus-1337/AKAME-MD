@@ -1,82 +1,164 @@
 import axios from 'axios'
 import yts from 'yt-search'
 
+const MAX_BYTES = 50 * 1024 * 1024 // 50 MB
+const MIN_BYTES = 20 * 1024        // menos de 20 KB = respuesta basura
+const YOSOYYO_URL = 'https://api-yosoyyo-api-ofc.onrender.com'
+const YOSOYYO_KEY = process.env.YOSOYYO_KEY || 'Akame-proyet'
+
+const YT_REGEX = /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/|live\/))([a-zA-Z0-9_-]{11})/
+
 const getVideoId = (url: string) => {
-    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/))([a-zA-Z0-9_-]{11})/)
-    return match? match[1] : null
+    const m = url.match(YT_REGEX)
+    return m ? m[1] : null
+}
+
+/** Saca el enlace de descarga de la respuesta de cualquier API. */
+const extraerLink = (d: any): string => {
+    const candidatos = [
+        d?.data?.download, d?.download, d?.result?.download_url, d?.result?.download,
+        d?.result?.url, d?.data?.dl_url, d?.data?.url, d?.data?.download?.url,
+        d?.resultado?.download_url, d?.url, d?.link
+    ]
+    for (const c of candidatos) {
+        if (typeof c === 'string' && c.startsWith('http')) return c
+        if (typeof c?.url === 'string' && c.url.startsWith('http')) return c.url
+    }
+    return ''
+}
+
+/** Valida que los bytes sean audio real (MP3, M4A/AAC u Ogg), no HTML/JSON. */
+const esAudio = (buf: Buffer): boolean => {
+    if (buf.length < MIN_BYTES) return false
+    const head = buf.subarray(0, 32)
+    const txt = head.toString('utf8', 0, 16).trimStart()
+    if (txt.startsWith('<') || txt.startsWith('{')) return false
+    if (head.subarray(0, 3).toString() === 'ID3') return true                  // MP3 con etiqueta
+    if (head[0] === 0xff && (head[1] & 0xe0) === 0xe0) return true             // MP3 frame sync
+    if (head.indexOf('ftyp') !== -1) return true                               // M4A/MP4
+    if (head.subarray(0, 4).toString() === 'OggS') return true                 // Ogg
+    return false
+}
+
+const descargar = async (url: string): Promise<Buffer> => {
+    const res = await axios.get(url, {
+        responseType: 'arraybuffer',
+        timeout: 60000,
+        maxContentLength: MAX_BYTES,
+        maxBodyLength: MAX_BYTES,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+    })
+    const buf = Buffer.from(res.data)
+    if (!esAudio(buf)) throw new Error('no es audio')
+    return buf
+}
+
+/** Pide el enlace a una API y descarga el audio. */
+const intentar = async (api: string): Promise<Buffer> => {
+    const { data } = await axios.get(api, { timeout: 20000, headers: { 'User-Agent': 'Mozilla/5.0' } })
+    const link = extraerLink(data)
+    if (!link) throw new Error('sin enlace')
+    return descargar(link)
+}
+
+/** yosoyyo: prueba cada candidato de audio hasta que uno sea válido. */
+const intentarYosoyyo = async (videoUrl: string): Promise<Buffer> => {
+    const api = `${YOSOYYO_URL}/api/youtube/v2?url=${encodeURIComponent(videoUrl)}&format=mp3&apiKey=${encodeURIComponent(YOSOYYO_KEY)}`
+    const { data } = await axios.get(api, { timeout: 45000, headers: { 'User-Agent': 'Mozilla/5.0' } })
+    const links = (data?.result?.results || [])
+        .filter((r: any) => r?.type === 'audio' && typeof r?.download === 'string' && r.download.startsWith('http'))
+        .map((r: any) => r.download)
+        .slice(0, 3)
+    let ultimo: any = new Error('sin enlaces')
+    for (const l of links) {
+        try { return await descargar(l) } catch (e) { ultimo = e }
+    }
+    throw ultimo
+}
+
+/** Todas las fuentes en paralelo: gana la primera que entregue audio válido. Dos rondas. */
+const getAudio = async (videoUrl: string): Promise<Buffer> => {
+    const e = encodeURIComponent(videoUrl)
+    const apis = [
+        `https://api.delirius.online/download/ytmp3?url=${e}`,
+        `https://api-gohan-v1.onrender.com/download/ytaudio?url=${e}&download=true`,
+        `https://api.ryuzei.xyz/download/ytmp3/v4?url=${e}&quality=64`,
+        `https://api.starlights.uk/api/download/ytmp3?url=${e}`,
+        `https://api.starlights.uk/api/download/ytmp3v2?url=${e}`,
+        `https://api-gohan-v1.onrender.com/download/ytaudio?url=${e}`
+    ]
+    let ultimo: any = null
+    for (let ronda = 1; ronda <= 2; ronda++) {
+        const tareas = [...apis.map((api) => intentar(api)), intentarYosoyyo(videoUrl)]
+        try {
+            return await Promise.any(tareas)
+        } catch (err) { ultimo = err }
+    }
+    const primerError = ultimo?.errors?.[0]?.message
+    throw new Error(`todas las APIs fallaron${primerError ? ': ' + primerError : ''}`)
+}
+
+const limpiarNombre = (t: string) => (t || 'audio').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 80) || 'audio'
+
+const formatViews = (v: any) => {
+    const n = Number(v)
+    if (!n) return '-'
+    return n >= 1e9 ? (n / 1e9).toFixed(1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(n)
 }
 
 export default {
     command: ['ytmp3', 'ytaudio', 'ytmp3dl'],
-    description: 'Descarga audio de YouTube',
+    description: 'Descarga audio de YouTube (link o nombre)',
     category: 'download',
     run: async ({ chat, m, sock, args }) => {
-        let query = args.join(' ') || m.text.split(' ').slice(1).join(' ')
+        const query = (args.join(' ') || m.text?.split(' ').slice(1).join(' ') || '').trim()
         if (!query) return sock.sendMessage(chat, { text: '❌ Bro manda el link o nombre\n\nEjemplo: *ytmp3 https://youtu.be/p0DlTQ-bBMM* o *ytmp3 ozuna odisea*' }, { quoted: m })
 
         try {
-            await sock.sendMessage(chat, { text: '⏳ *Buscando...*' }, { quoted: m })
+            await sock.sendMessage(chat, { react: { text: '⏳', key: m.key } })
 
-            let url = query
+            // Enlace o búsqueda
             let videoId = getVideoId(query)
-
-            // Si no es link, buscamos
+            let info: any = null
             if (!videoId) {
                 const search = await yts(query)
-                if (!search.videos.length) {
+                info = search.videos?.[0]
+                if (!info) {
+                    await sock.sendMessage(chat, { react: { text: '❌', key: m.key } })
                     return sock.sendMessage(chat, { text: '❌ No encontré nada con ese nombre bro' }, { quoted: m })
                 }
-                const video = search.videos[0]
-                url = video.url
-                videoId = video.videoId
+                videoId = info.videoId
             }
+            const videoUrl = `https://youtu.be/${videoId}`
 
-            await sock.sendMessage(chat, { text: '⏳ *Descargando...*' }, { quoted: m })
+            // Info del video y descarga al mismo tiempo
+            const infoPromise = info ? Promise.resolve(info) : yts({ videoId }).catch(() => null)
+            const audioPromise = getAudio(videoUrl)
 
-            let api = `https://api.delirius.online/download/ytmp3?url=${encodeURIComponent(url)}`
-            let { data } = await axios.get(api, { timeout: 20000 })
+            const [audio, extra] = await Promise.all([audioPromise, infoPromise])
+            const title = limpiarNombre(extra?.title || 'Desconocido')
+            const channel = extra?.author?.name || 'Desconocido'
+            const duration = extra?.timestamp || '-'
+            const views = formatViews(extra?.views)
+            const ago = extra?.ago || '-'
+            const thumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
 
-            if (!data?.status ||!data?.data?.download) {
-                return sock.sendMessage(chat, { text: '❌ No se pudo descargar bro' }, { quoted: m })
-            }
+            const caption = `➩ Descargando › *${title}*\n\n> ❖ Canal › *${channel}*\n> ⴵ Duración › *${duration}*\n> ❀ Vistas › *${views}*\n> ✩ Publicado › *${ago}*\n> ❒ Enlace › *https://youtube.com/watch?v=${videoId}*`
 
-            let res = data.data
-
-            let extraInfo: any = {}
-            try {
-                if (videoId) {
-                    const info = await yts({ videoId })
-                    extraInfo = info || {}
-                    if (!extraInfo.title) {
-                        const s2 = await yts(`https://youtu.be/${videoId}`)
-                        extraInfo = s2?.videos?.[0] || {}
-                    }
-                }
-            } catch {}
-
-            const title = res.title && res.title!== '-'? res.title : extraInfo.title || 'Desconocido'
-            const channel = res.author && res.author!== '-'? res.author : extraInfo.author?.name || extraInfo.author || res.channel || 'Desconocido'
-            const duration = extraInfo.timestamp || extraInfo.duration?.timestamp || '-'
-            const views = extraInfo.views? Number(extraInfo.views).toLocaleString() : res.views? res.views.toLocaleString() : '-'
-            const ago = extraInfo.ago || '-'
-            const thumb = videoId? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : res.image
-
-            const caption = `➩ Descargando › *${title}*\n\n> ❖ Canal › *${channel}*\n> ⴵ Duración › *${duration}*\n> ❀ Vistas › *${views}*\n> ✩ Publicado › *${ago}*\n> ❒ Enlace › *https://youtube.com/watch?v=${videoId}*`.trim()
-
+            // Tarjeta con miniatura y luego el audio como archivo
+            await sock.sendMessage(chat, { image: { url: thumb }, caption }, { quoted: m }).catch(() => null)
             await sock.sendMessage(chat, {
-                image: { url: thumb },
-                caption: caption
-            }, { quoted: m })
-
-            await sock.sendMessage(chat, {
-                audio: { url: res.download },
+                audio,
                 mimetype: 'audio/mpeg',
                 fileName: `${title}.mp3`
             }, { quoted: m })
 
+            await sock.sendMessage(chat, { react: { text: '✅', key: m.key } })
+
         } catch (e: any) {
             console.log('[YTMP3 ERROR]', e?.message)
-            return sock.sendMessage(chat, { text: `❌ Error bro: ${e?.message}` }, { quoted: m })
+            await sock.sendMessage(chat, { react: { text: '❌', key: m.key } })
+            return sock.sendMessage(chat, { text: `❌ Error bro, intenta de nuevo` }, { quoted: m })
         }
     }
-      }
+}
