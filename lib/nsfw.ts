@@ -21,12 +21,31 @@ export type NsfwEndpoint = (typeof NSFW_ENDPOINTS)[number];
  * El contenido de cada reaction es lo que dice la ruta del enlace:
  * `.../reaction/sfw/...` es apto para todo público y `.../reaction/nsfw/...` es 18+.
  */
-export const REACTION_ENDPOINTS = [
-    'poke', 'hug', 'pat', 'kiss', 'cuddle', 'tickle', 'handhold', 'highfive', 'slap',
-    'bite', 'bully', 'kick', 'kill', 'bonk', 'glomp', 'nom', 'lick', 'pout', 'blush',
-    'smile', 'happy', 'cry', 'angry', 'dance', 'confy', 'cringe', 'smug', 'fluff', 'lay', 'tail'
-] as const;
-export type ReactionEndpoint = (typeof REACTION_ENDPOINTS)[number];
+export const REACTION_CATALOG = {
+    // 18+ (el enlace del CDN dice /reaction/nsfw/...)
+    anal: 'nsfw', blowjob: 'nsfw', cum: 'nsfw', fuck: 'nsfw',
+    nekonsfw: 'nsfw', pussylick: 'nsfw', solo: 'nsfw', yuri: 'nsfw',
+    // Apto para todo público (/reaction/sfw/...)
+    angry: 'sfw', bite: 'sfw', blush: 'sfw', bonk: 'sfw', bully: 'sfw', confy: 'sfw',
+    cringe: 'sfw', cry: 'sfw', cuddle: 'sfw', dance: 'sfw', eevee: 'sfw', fluff: 'sfw',
+    handhold: 'sfw', happy: 'sfw', highfive: 'sfw', hug: 'sfw', kick: 'sfw', kill: 'sfw',
+    kiss: 'sfw', lay: 'sfw', lick: 'sfw', nekosfw: 'sfw', nom: 'sfw', pat: 'sfw',
+    poke: 'sfw', pout: 'sfw', slap: 'sfw', smile: 'sfw', smug: 'sfw', tail: 'sfw',
+    tickle: 'sfw', wink: 'sfw', yeet: 'sfw'
+} as const satisfies Record<string, 'nsfw' | 'sfw'>;
+
+export type ReactionEndpoint = keyof typeof REACTION_CATALOG;
+
+/** Todas las reactions conocidas (41). */
+export const REACTION_ENDPOINTS = Object.keys(REACTION_CATALOG) as ReactionEndpoint[];
+
+/** Solo las 18+. Sirve para el random y para documentar qué tiene comando propio. */
+export const NSFW_REACTION_ENDPOINTS = REACTION_ENDPOINTS.filter(
+    (r) => REACTION_CATALOG[r] === 'nsfw'
+);
+
+/** Rating declarado de una reaction, según la ruta que devuelve su propio CDN. */
+export const reactionRating = (r: ReactionEndpoint): 'nsfw' | 'sfw' => REACTION_CATALOG[r];
 
 /** Límite de subida de WhatsApp (16 MB). Por encima de eso el envío falla. */
 export const MAX_MEDIA_BYTES = 15 * 1024 * 1024;
@@ -153,9 +172,13 @@ export const fetchNsfwMedia = async (endpoint: NsfwEndpoint, retries = 3): Promi
 export const randomNsfwEndpoint = (): NsfwEndpoint =>
     NSFW_ENDPOINTS[Math.floor(Math.random() * NSFW_ENDPOINTS.length)];
 
-/** Reaction al azar del catálogo de reactions. */
+/** Reaction al azar de todo el catálogo (41). */
 export const randomReactionEndpoint = (): ReactionEndpoint =>
     REACTION_ENDPOINTS[Math.floor(Math.random() * REACTION_ENDPOINTS.length)];
+
+/** Reaction 18+ al azar (8). */
+export const randomNsfwReaction = (): ReactionEndpoint =>
+    NSFW_REACTION_ENDPOINTS[Math.floor(Math.random() * NSFW_REACTION_ENDPOINTS.length)];
 
 /**
  * Descarga una reaction de Delirius.

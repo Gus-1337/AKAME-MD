@@ -48,11 +48,36 @@ Mientras esté apagado, `handler.ts` bloquea **todos** los comandos marcados con
 | `.girls` | `.chicas`, `.nsfwgirls` | Imagen | `/nsfw/girls` |
 | `.boobs` | `.tetas`, `.nsfwboobs` | Imagen | `/nsfw/boobs` |
 | `.corean` | `.coreanas`, `.nsfwcorean` | Imagen | `/nsfw/corean` |
-| `.poke` | `.poking`, `.codear` | Video (reacción anime) | `/reactions/poke` |
 | `.nsfwrandom` | `.horny` | Random de los 4 de `/nsfw/*` | cualquiera |
 
-> `.poke` trae contenido **SFW** (el enlace del CDN dice `/reaction/sfw/poke/`), pero vive
-> en esta categoría a pedido, así que la puerta de `.nsfw on` también lo cubre.
+### Reactions 18+ (`/reactions/*`)
+
+| Comando | Aliases | Endpoint |
+|---|---|---|
+| `.anal` | — | `/reactions/anal` |
+| `.blowjob` | `.mamelada` | `/reactions/blowjob` |
+| `.cum` | — | `/reactions/cum` |
+| `.fuck` | `.follar` | `/reactions/fuck` |
+| `.nekonsfw` | `.nekohentai` | `/reactions/nekonsfw` |
+| `.pussylick` | — | `/reactions/pussylick` |
+| `.solo` | `.solonsfw` | `/reactions/solo` |
+| `.yuri` | `.yurinsfw` | `/reactions/yuri` |
+
+Son las **8 reactions que el CDN marca como 18+** (su enlace dice
+`/reaction/nsfw/...`). El catálogo completo está en `REACTION_CATALOG` de
+`lib/nsfw.ts`, con el rating de cada una; `NSFW_REACTION_ENDPOINTS` filtra las 18+ y
+`randomNsfwReaction()` elige una al azar.
+
+### Reactions aptas para todo público
+
+`.poke` (aliases `.poking`, `.codear`) es la única con comando propio. Su enlace dice
+`/reaction/sfw/poke/`, o sea que el contenido **no** es 18+, pero vive en esta categoría
+a pedido, así que la puerta de `.nsfw on` también lo cubre.
+
+Quedan 32 reactions SFW sin comando (en `REACTION_CATALOG` por si quieres agregarlas):
+`angry, bite, blush, bonk, bully, confy, cringe, cry, cuddle, dance, eevee, fluff,
+handhold, happy, highfive, hug, kick, kill, kiss, lay, lick, nekosfw, nom, pat, pout,
+slap, smile, smug, tail, tickle, wink, yeet`.
 
 > Nota: el nombre `.nsfw` a secas es el interruptor de admin, por eso el de contenido
 > aleatorio es `.nsfwrandom`.
