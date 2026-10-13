@@ -43,7 +43,7 @@ const getVideoStream = async (videoUrl: string): Promise<PassThrough> => {
 };
 
 export default {
-    command: ['tiktok', 'tk'],
+    command: ['tiktok', 'tk', 'tt'],
     description: 'Descarga videos de TikTok sin marca',
     category: 'download',
     group: true,

@@ -38,7 +38,7 @@ async function bajarTodos(candidatos: any[]) {
 }
 
 export default {
-    command: ['ttsearch', 'tiktoksearch', 'tts', 'tt'],
+    command: ['ttsearch', 'tiktoksearch', 'tts'],
     category: 'download',
     description: 'busca videos en tiktok',
     run: async (ctx) => {
