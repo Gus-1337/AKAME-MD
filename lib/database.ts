@@ -68,6 +68,8 @@ export const loadDB = () => {
             afk INTEGER DEFAULT -1,
             afkReason TEXT DEFAULT '',
             characters TEXT DEFAULT '[]',
+            stats TEXT DEFAULT '{}',
+            inventory TEXT DEFAULT '{}',
             PRIMARY KEY (chat_id, user_id)
         );
     `);
@@ -80,6 +82,7 @@ export const loadDB = () => {
     try { db.exec("ALTER TABLE chats ADD COLUMN sWelcome TEXT DEFAULT ''"); } catch {}
     try { db.exec("ALTER TABLE chats ADD COLUMN sGoodbye TEXT DEFAULT ''"); } catch {}
     try { db.exec("ALTER TABLE chat_users ADD COLUMN stats TEXT DEFAULT '{}'"); } catch {}
+    try { db.exec("ALTER TABLE chat_users ADD COLUMN inventory TEXT DEFAULT '{}'"); } catch {}
 
     stmtSaveUser = db.prepare(`
         INSERT INTO users (id, name, exp, level, usedcommands, description, marry, genre, birth, sPack, sAuthor)
@@ -118,8 +121,8 @@ export const loadDB = () => {
     `);
 
     stmtSaveChatUser = db.prepare(`
-        INSERT INTO chat_users (chat_id, user_id, messageCount, lastSeen, usedTime, lastCmd, coins, bank, afk, afkReason, characters, stats)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO chat_users (chat_id, user_id, messageCount, lastSeen, usedTime, lastCmd, coins, bank, afk, afkReason, characters, stats, inventory)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(chat_id, user_id) DO UPDATE SET
             messageCount = excluded.messageCount,
             lastSeen = excluded.lastSeen,
@@ -130,7 +133,8 @@ export const loadDB = () => {
             afk = excluded.afk,
             afkReason = excluded.afkReason,
             characters = excluded.characters,
-            stats = excluded.stats
+            stats = excluded.stats,
+            inventory = excluded.inventory
     `);
 
     const usersRows = db.prepare('SELECT * FROM users').all() as any[];
@@ -169,7 +173,8 @@ export const loadDB = () => {
         chatObj.users[cu.user_id] = {
             ...cu,
             characters: JSON.parse(cu.characters || '[]'),
-            stats: JSON.parse(cu.stats || '{}')
+            stats: JSON.parse(cu.stats || '{}'),
+            inventory: JSON.parse(cu.inventory || '{}')
         };
         delete chatObj.users[cu.user_id].chat_id;
         delete chatObj.users[cu.user_id].user_id;
@@ -231,7 +236,8 @@ export const saveDB = (chatId?: string, senderId?: string) => {
                     cu.afk ?? -1,
                     cu.afkReason || '',
                     JSON.stringify(cu.characters || []),
-                    JSON.stringify(cu.stats || {})
+                    JSON.stringify(cu.stats || {}),
+                    JSON.stringify(cu.inventory || {})
                 );
             }
         }
@@ -292,6 +298,8 @@ export const registerData = async (sock: any, m: any) => {
         chat.users[sender].afk = isNumber(chat.users[sender].afk) ? chat.users[sender].afk : -1;
         chat.users[sender].afkReason ??= '';
         chat.users[sender].characters = Array.isArray(chat.users[sender].characters) ? chat.users[sender].characters : [];
+        chat.users[sender].stats = chat.users[sender].stats && typeof chat.users[sender].stats === 'object' ? chat.users[sender].stats : {};
+        chat.users[sender].inventory = chat.users[sender].inventory && typeof chat.users[sender].inventory === 'object' ? chat.users[sender].inventory : {};
 
         saveDB(m.chat, sender);
     } catch (e) {
