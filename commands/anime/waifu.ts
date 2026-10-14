@@ -40,7 +40,7 @@ async function waifuDelirius(): Promise<{ id: any; image: string } | null> {
 }
 
 export default {
-    command: ['waifu', 'waifus'],
+    command: ['waifu', 'waifus', 'rw'],
     description: 'Tira una waifu del gacha (luego usa .reclamar)',
     category: 'anime',
     run: async ({ chat, m, sock, sender }: any) => {
