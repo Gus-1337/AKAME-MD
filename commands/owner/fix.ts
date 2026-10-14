@@ -24,11 +24,15 @@ export default {
     category: 'owner',
     owner: true,
     run: async (ctx: any) => {
-        const { reply } = ctx;
+        const { sock, chat, msg } = ctx;
+        const reply = (texto: string) =>
+            ctx.reply ? ctx.reply(texto) : sock.sendMessage(chat, { text: texto }, { quoted: msg });
 
         try {
             const { stdout: antes } = await execPromise('git rev-parse HEAD');
-            const { stdout } = await execPromise('git pull');
+            // Usa la rama actual y el remoto origin, así funciona aunque no tenga "tracking"
+            const { stdout: rama } = await execPromise('git rev-parse --abbrev-ref HEAD');
+            const { stdout } = await execPromise(`git pull origin ${rama.trim()}`);
             const { stdout: despues } = await execPromise('git rev-parse HEAD');
             const rootDir = path.join(process.cwd(), 'commands');
 
@@ -98,7 +102,8 @@ export default {
             );
 
         } catch (err: any) {
-            await reply(`✿ No se pudo actualizar\n> ${err.message || err.toString()}`);
+            console.error('Error en fix:', err);
+            await reply(`✿ No se pudo actualizar\n> ${String(err?.message || err).split('\n')[0]}`);
         }
     }
 };
