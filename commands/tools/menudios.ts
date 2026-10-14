@@ -4,7 +4,7 @@ export default {
     category: 'tools',
     run: async ({ chat, m, sock }: any) => {
         await sock.sendMessage(chat, {
-            text: "乂 *AKAME-MD | MENU DIOS* 乂\n\nEl menu más pro que verás\nPowered by Maycol",
+            text: "乂 *AKAME-MD | MENU DIOS* 乂\n\nEl menu más pro que verás\nPowered by LORD GUS",
             footer: "Akame",
             title: "MENU",
             interactiveButtons: [

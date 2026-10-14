@@ -38,7 +38,7 @@ declare global {
     var broadcast: (event: string, payload: any) => void;
 }
 
-globalThis.botName = config?.botName || 'Raiden-WaBot';
+globalThis.botName = config?.botName || 'AKAME-MD';
 globalThis.plugins = globalThis.plugins || {};
 
 export const eventBus = globalThis.eventBus || new EventEmitter();
@@ -193,8 +193,8 @@ async function startBot() {
         saveCreds = reloadedAuth.saveCreds;
     } else if (!state.creds.registered) {
         console.log(chalk.cyan(`
-      Raiden | Wa Bot
-     Powered by Ryuzei-Ts 
+      AKAME-MD
+     Powered by LORD GUS 
 `));
 
         if (methodCodeQR) {

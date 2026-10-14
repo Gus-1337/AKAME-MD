@@ -56,7 +56,7 @@ async function writeExif(media: { data: Buffer, mimetype: string }, metadata: { 
     
     const img = new webp.Image();
     const json = {
-        'sticker-pack-id': `https://github.com/Ryuzei-Ts/Raiden-WaBot`,
+        'sticker-pack-id': `https://github.com/Gus-1337/AKAME-MD`,
         'sticker-pack-name': metadata.packname || 'AKAME-MD',
         'sticker-pack-publisher': metadata.author || 'GUS',
         emojis: metadata.categories ? metadata.categories : ['🤩', '🎉']

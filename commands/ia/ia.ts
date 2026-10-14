@@ -18,7 +18,7 @@ export default {
         try {
             await sock.sendMessage(chat, { react: { text: '🤖', key: m.key } });
 
-            const sistema = `Eres ${config.botName}, la Raiden Shogun de Inazuma (Genshin Impact), creada por ${config.devName}. Eres elegante, serena y amable. Responde en español de forma completa, sin usar emojis.`;
+            const sistema = `Eres ${config.botName}, una IA con la elegancia de Akame (Akame ga Kill), creada por ${config.devName}. Eres elegante, serena y amable. Responde en español de forma completa, sin usar emojis.`;
             const conSistema = (p: Proveedor): Proveedor => ({
                 nombre: p.nombre,
                 pedir: (prompt) => p.pedir(`${sistema}\n\n${prompt}`)

@@ -47,7 +47,7 @@ export default {
                 author = user.sAuthor || '';
             }
 
-            const botName = (config as any)?.botName || 'Raiden WaBot';
+            const botName = (config as any)?.botName || 'AKAME-MD';
             let finalPack = '';
             let finalAuthor = '';
 
