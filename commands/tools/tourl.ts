@@ -1,7 +1,25 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import pino from 'pino';
 
-// Sube la imagen a Telegraph (enlace permanente). Si falla, usa Catbox como respaldo.
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
+
+// Sube la imagen a Pixhost (sin clave). Devuelve el enlace directo de la imagen, no la página.
+const subirPixhost = async (buf: Buffer, mime: string): Promise<string> => {
+    const form = new FormData();
+    form.append('img', new Blob([new Uint8Array(buf)], { type: mime }), `imagen.${mime.split('/')[1] || 'jpg'}`);
+    form.append('content_type', '0');
+    form.append('max_th_size', '420');
+    const res = await fetch('https://api.pixhost.to/images', {
+        method: 'POST', body: form, headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(30000)
+    });
+    const data: any = await res.json().catch(() => null);
+    const th: string = data?.th_url || '';
+    const m = th.match(/^https:\/\/t(\d+)\.pixhost\.to\/thumbs\/(.+)$/);
+    if (!res.ok || !m) throw new Error(`Pixhost HTTP ${res.status}`);
+    return `https://img${m[1]}.pixhost.to/images/${m[2]}`;
+};
+
+// Sube la imagen a Telegraph (enlace permanente).
 const subirTelegraph = async (buf: Buffer, mime: string): Promise<string> => {
     const form = new FormData();
     form.append('file', new Blob([new Uint8Array(buf)], { type: mime }), `imagen.${mime.split('/')[1] || 'jpg'}`);
@@ -24,7 +42,7 @@ const subirCatbox = async (buf: Buffer, mime: string): Promise<string> => {
 
 export default {
     command: ['tourl', 'url', 'link'],
-    description: 'Convierte una imagen en un enlace permanente.',
+    description: 'Convierte una imagen en un enlace directo.',
     category: 'tools',
     run: async ({ chat, m, sock }: any) => {
         const ctx = m?.message?.extendedTextMessage?.contextInfo;
@@ -53,9 +71,13 @@ export default {
 
             let url: string;
             try {
-                url = await subirTelegraph(buf, mime);
+                url = await subirPixhost(buf, mime);
             } catch {
-                url = await subirCatbox(buf, mime);
+                try {
+                    url = await subirTelegraph(buf, mime);
+                } catch {
+                    url = await subirCatbox(buf, mime);
+                }
             }
 
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } }).catch(() => {});
@@ -65,7 +87,7 @@ export default {
                     '───────────────',
                     `🔗 ${url}`,
                     '───────────────',
-                    '> Enlace permanente 🌸'
+                    '> Enlace directo a la imagen 🌸'
                 ].join('\n')
             }, { quoted: m });
         } catch (e: any) {
