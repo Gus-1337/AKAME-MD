@@ -23,7 +23,8 @@ global.APIs = {
   stellar: { url: 'https://api.stellarwa.xyz', key: 'api-wXCo4' },
   siputzx: { url: 'https://api.siputzx.my.id', key: null },
   evogb: { url: 'https://api.evogb.org', key: process.env.EVOGB_KEY || 'putostodos' },
-  yosoyyo: { url: 'https://api-yosoyyo-api-ofc.onrender.com', key: process.env.YOSOYYO_KEY || null }
+  yosoyyo: { url: 'https://api-yosoyyo-api-ofc.onrender.com', key: process.env.YOSOYYO_KEY || null },
+  starlights: { url: 'https://apis-starlights-team.koyeb.app/starlight', key: null }
 }
 
 export const config = {

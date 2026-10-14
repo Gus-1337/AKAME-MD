@@ -26,11 +26,21 @@ export default {
                 } else throw new Error();
             } catch {
                 // RESPALDO DELIRIUS
-                const { data } = await axios.get(`https://api.delirius.online/download/facebook?url=${encodeURIComponent(url)}`, AXIOS_CFG);
-                if (!data?.list?.[0]?.url) throw new Error('Sin video');
-                videoUrl = data.list[0].url;
-                quality = data.list[0].quality || '720p (HD)';
-                apiUsada = 'DELIRIUS';
+                try {
+                    const { data } = await axios.get(`https://api.delirius.online/download/facebook?url=${encodeURIComponent(url)}`, AXIOS_CFG);
+                    if (!data?.list?.[0]?.url) throw new Error('Sin video');
+                    videoUrl = data.list[0].url;
+                    quality = data.list[0].quality || '720p (HD)';
+                    apiUsada = 'DELIRIUS';
+                } catch {
+                    // RESPALDO STARLIGHTS
+                    const { data } = await axios.get(`https://apis-starlights-team.koyeb.app/starlight/facebook?url=${encodeURIComponent(url)}`, AXIOS_CFG);
+                    const link = data?.hd || data?.sd;
+                    if (!link || typeof link !== 'string') throw new Error('Sin video');
+                    videoUrl = link;
+                    quality = data?.hd ? 'HD' : 'SD';
+                    apiUsada = 'STARLIGHTS';
+                }
             }
 
             await sock.sendMessage(chat, { react: { text: '📤', key: msg.key } });
