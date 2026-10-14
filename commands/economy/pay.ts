@@ -13,7 +13,7 @@ export default {
     run: async ({ chat, m, sock, args, usedPrefix, prefix, sender }: any) => {
         const p = usedPrefix || prefix || (config as any).prefix || '.';
         const reply = (t: string) => sock.sendMessage(chat, { text: t }, { quoted: m });
-        const uso = `${titulo('TRANSFERIR')}\n\n✧ Uso › *${p}pay <cantidad> @usuario*\n✧ Ejemplo › *${p}pay 25000 @usuario*\n✩ Mínimo › *1.000*\n> Se transfiere desde tu *banco*`;
+        const uso = `${titulo('TRANSFERIR')}\n\n❀ Uso › *${p}pay <cantidad> @usuario*\n❀ Ejemplo › *${p}pay 25000 @usuario*\n♡ Mínimo › *1.000*\n> Se transfiere desde tu *banco*`;
         try {
             if (bloqueadoPorAdmin(chat)) return reply(`「 ꕤ 」 Los comandos de *Economía* están bloqueados. Un admin puede usar *${p}onlyadmin off*.`);
             const dbData = (global as any).db?.data;
@@ -64,7 +64,7 @@ export default {
                 text:
                     `${titulo('TRANSFERENCIA')}\n\n` +
                     `   Enviaste *${money(cantidad)}* ${coin} a @${receptorKey.split('@')[0]}\n\n` +
-                    `✩ Tu banco › *${money(emisor.bank)}* ${coin}`,
+                    `♡ Tu banco › *${money(emisor.bank)}* ${coin}`,
                 mentions: [receptorKey]
             }, { quoted: m });
         } catch (e) {

@@ -53,8 +53,8 @@ export default {
             return reply(
                 `${titulo('CACERÍA')}\n\n` +
                 `   Cazaste un *${animal.nombre}*\n\n` +
-                `✩ Ganaste › *+${money(ganancia)}* ${coin}\n` +
-                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                `♡ Ganaste › *+${money(ganancia)}* ${coin}\n` +
+                `♡ Saldo › *${money(user.coins)}* ${coin}` +
                 activeEffectsLine(user)
             );
         } catch (e) {

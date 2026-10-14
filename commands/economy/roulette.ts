@@ -22,9 +22,9 @@ export default {
             const coin = (config as any)?.coin || '¥enes';
 
             const uso = `${titulo('RULETA')}\n\n` +
-                `✧ Uso › *${p}rt <rojo|negro> <cantidad>*\n` +
-                `✧ Ejemplo › *${p}rt negro all*\n` +
-                `✩ Mínimo › *200 ${coin}*\n` +
+                `❀ Uso › *${p}rt <rojo|negro> <cantidad>*\n` +
+                `❀ Ejemplo › *${p}rt negro all*\n` +
+                `♡ Mínimo › *200 ${coin}*\n` +
                 `✦ Acertar paga el doble\n` +
                 `✦ El 0 (🟢 verde) se lleva las apuestas de color`;
 
@@ -50,15 +50,15 @@ export default {
             saveDB(chat, jid);
 
             const linea = gano
-                ? `✧ Ganaste › *+${money(bet)}* ${coin}`
-                : `✧ Perdiste › *-${money(bet)}* ${coin}`;
+                ? `❀ Ganaste › *+${money(bet)}* ${coin}`
+                : `❀ Perdiste › *-${money(bet)}* ${coin}`;
 
             return reply(
                 `${titulo('RULETA')}\n\n` +
                 `   ${EMOJI[resultado]} Cayó *${resultado}* (${n})\n\n` +
-                `✩ Apostaste a › ${EMOJI[eleccion]} ${eleccion}\n` +
+                `♡ Apostaste a › ${EMOJI[eleccion]} ${eleccion}\n` +
                 `${linea}\n` +
-                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                `♡ Saldo › *${money(user.coins)}* ${coin}` +
                 activeEffectsLine(user)
             );
         } catch (e) {

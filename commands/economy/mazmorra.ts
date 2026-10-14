@@ -22,7 +22,7 @@ export default {
             const COOLDOWN = 30 * 60 * 1000;
             const diff = Date.now() - (user.lastMazmorra || 0);
             if (user.lastMazmorra && diff < COOLDOWN) {
-                return reply(`${titulo('MAZMORRA')}\n\n   La mazmorra está en descanso\n✩ Vuelve en › *${formatDuration(COOLDOWN - diff)}*`);
+                return reply(`${titulo('MAZMORRA')}\n\n   La mazmorra está en descanso\n♡ Vuelve en › *${formatDuration(COOLDOWN - diff)}*`);
             }
 
             const boost = luckBoost(user, 0);
@@ -50,16 +50,16 @@ export default {
             saveDB(chat, jid);
 
             const linea = cambio > 0
-                ? `✩ Ganaste › *+${money(cambio)}* ${coin}`
+                ? `♡ Ganaste › *+${money(cambio)}* ${coin}`
                 : cambio < 0
-                    ? `✩ Perdiste › *-${money(Math.min(antes, Math.abs(cambio)))}* ${coin}`
-                    : `✩ Sin cambios`;
+                    ? `♡ Perdiste › *-${money(Math.min(antes, Math.abs(cambio)))}* ${coin}`
+                    : `♡ Sin cambios`;
 
             return reply(
                 `${titulo('MAZMORRA')}\n\n` +
                 `   ${historia}\n\n` +
                 `${linea}\n` +
-                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                `♡ Saldo › *${money(user.coins)}* ${coin}` +
                 activeEffectsLine(user)
             );
         } catch (e) {

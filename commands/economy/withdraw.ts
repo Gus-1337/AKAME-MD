@@ -23,7 +23,7 @@ export default {
             if (!entrada) {
                 return reply(
                     `${titulo('RETIRO')}\n\n` +
-                    `✧ Uso › *${p}with <cantidad>* o *${p}with all*\n` +
+                    `❀ Uso › *${p}with <cantidad>* o *${p}with all*\n` +
                     `✦ Ojo: el efectivo sí puede ser robado`
                 );
             }
@@ -43,9 +43,9 @@ export default {
 
             return reply(
                 `${titulo('RETIRO')}\n\n` +
-                `✩ Retiraste › *${money(cantidad)}* ${coin}\n` +
-                `✩ Efectivo › *${money(user.coins)}* ${coin}\n` +
-                `✩ Banco › *${money(user.bank)}* ${coin}`
+                `♡ Retiraste › *${money(cantidad)}* ${coin}\n` +
+                `♡ Efectivo › *${money(user.coins)}* ${coin}\n` +
+                `♡ Banco › *${money(user.bank)}* ${coin}`
             );
         } catch (e) {
             console.error('Error en withdraw:', e);

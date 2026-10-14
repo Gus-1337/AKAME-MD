@@ -51,8 +51,8 @@ export default {
             return reply(
                 `${titulo('COFRE')}\n\n` +
                 `   Abriste un cofre *${rareza.nombre}*\n\n` +
-                `✩ Ganaste › *+${money(premio)}* ${coin}\n` +
-                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                `♡ Ganaste › *+${money(premio)}* ${coin}\n` +
+                `♡ Saldo › *${money(user.coins)}* ${coin}` +
                 activeEffectsLine(user)
             );
         } catch (e) {

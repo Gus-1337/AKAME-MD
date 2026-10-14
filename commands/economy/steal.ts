@@ -82,8 +82,8 @@ export default {
                 return reply(
                     `${titulo('ROBO')}\n\n` +
                     `   ¡Le robaste a *${nombreVictima}*!\n\n` +
-                    `✩ Ganaste › *+${money(botin)}* ${coin}\n` +
-                    `✩ Saldo › *${money(user.coins)}* ${coin}`
+                    `♡ Ganaste › *+${money(botin)}* ${coin}\n` +
+                    `♡ Saldo › *${money(user.coins)}* ${coin}`
                 );
             }
 
@@ -93,8 +93,8 @@ export default {
             return reply(
                 `${titulo('ROBO')}\n\n` +
                 `   Te atraparon en el intento\n\n` +
-                `✩ Perdiste › *-${money(perdida)}* ${coin}\n` +
-                `✩ Saldo › *${money(user.coins)}* ${coin}`
+                `♡ Perdiste › *-${money(perdida)}* ${coin}\n` +
+                `♡ Saldo › *${money(user.coins)}* ${coin}`
             );
         } catch (e) {
             console.error('Error en rob:', e);

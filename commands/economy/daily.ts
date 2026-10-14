@@ -32,8 +32,8 @@ export default {
                 return reply(
                     `${titulo('DIARIO')}\n\n` +
                     `   Ya reclamaste tu recompensa de hoy\n\n` +
-                    `✩ Vuelve en › *${formatDuration(DIA - diff)}*\n` +
-                    `✩ Racha › *${user.streak || 0}* día(s)`
+                    `♡ Vuelve en › *${formatDuration(DIA - diff)}*\n` +
+                    `♡ Racha › *${user.streak || 0}* día(s)`
                 );
             }
 
@@ -50,9 +50,9 @@ export default {
             return reply(
                 `${titulo('DIARIO')}\n\n` +
                 `   ¡Recompensa del día *${streak}* reclamada!\n\n` +
-                `✩ Ganaste › *+${money(premio)}* ${coin}\n` +
-                `✩ Saldo › *${money(user.coins)}* ${coin}\n` +
-                `✩ Mañana › *+${money(siguiente)}* ${coin}` +
+                `♡ Ganaste › *+${money(premio)}* ${coin}\n` +
+                `♡ Saldo › *${money(user.coins)}* ${coin}\n` +
+                `♡ Mañana › *+${money(siguiente)}* ${coin}` +
                 (perdioRacha ? `\n> ☆ Perdiste tu racha, empieza de nuevo` : '')
             );
         } catch (e) {

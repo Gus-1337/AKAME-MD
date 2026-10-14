@@ -120,7 +120,7 @@ export default {
       stats.streak += 1;
 
       return sock.sendMessage(chat, {
-        text: `${titulo('TRIVIA GANADA')}\n\n✩ Ganador » @${foundKey.split('@')[0]}\n✩ Respuesta » *${game.ans}: ${game.extra}*\n⚿ Premio » *${premio} ${coinName}* ${bonus?`(+${bonus} por racha x${stats.streak}🔥)` : ''}\n✩ Racha » *${stats.streak}* seguidas\n✩ Victorias » *${stats.wins}*\n\n>.triviatop para ver el top`,
+        text: `${titulo('TRIVIA GANADA')}\n\n♡ Ganador » @${foundKey.split('@')[0]}\n♡ Respuesta » *${game.ans}: ${game.extra}*\n⚿ Premio » *${premio} ${coinName}* ${bonus?`(+${bonus} por racha x${stats.streak}🔥)` : ''}\n♡ Racha » *${stats.streak}* seguidas\n♡ Victorias » *${stats.wins}*\n\n>.triviatop para ver el top`,
         mentions: [foundKey]
       }, { quoted: m });
     } else {
@@ -156,7 +156,7 @@ export default {
         const bonus = stats.streak >= 2? 200 : 0;
         user.coins += 500 + bonus;
         stats.wins++; stats.streak++;
-        return sock.sendMessage(chat, { text: `✩ GANASTE @${foundKey.split('@')[0]} +${500+bonus} ${coinName} 🔥`, mentions: [foundKey] }, { quoted: m });
+        return sock.sendMessage(chat, { text: `♡ GANASTE @${foundKey.split('@')[0]} +${500+bonus} ${coinName} 🔥`, mentions: [foundKey] }, { quoted: m });
       } else {
         stats.streak = 0;
         return m.reply(`Fallaste, no era ${raw}`);
@@ -174,7 +174,7 @@ export default {
     if (recientes.length > 20) recientes.shift();
     const data = preguntas[elegida];
     await sock.sendMessage(chat, {
-      text: `${titulo('TRIVIA ANIME')}\n\n*${data.q}*\n\n✩ *A.* ${data.op[0]}\n✩ *B.* ${data.op[1]}\n✩ *C.* ${data.op[2]}\n✩ *D.* ${data.op[3]}\n\n> Premio » *500 ${coinName}* + bonus por racha 🔥\n> Responde » *A B C D* (solo la letra)\n> Tiempo » *25s*`
+      text: `${titulo('TRIVIA ANIME')}\n\n*${data.q}*\n\n♡ *A.* ${data.op[0]}\n♡ *B.* ${data.op[1]}\n♡ *C.* ${data.op[2]}\n♡ *D.* ${data.op[3]}\n\n> Premio » *500 ${coinName}* + bonus por racha 🔥\n> Responde » *A B C D* (solo la letra)\n> Tiempo » *25s*`
     }, { quoted: m });
 
     const timeout = setTimeout(async () => {

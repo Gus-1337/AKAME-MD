@@ -23,8 +23,8 @@ export default {
             if (!args[0]) {
                 return reply(
                     `${titulo('BLACKJACK')}\n\n` +
-                    `✧ Uso › *${p}bj <cantidad>* o *${p}bj all*\n` +
-                    `✩ Mínimo › *200 ${coin}*\n` +
+                    `❀ Uso › *${p}bj <cantidad>* o *${p}bj all*\n` +
+                    `♡ Mínimo › *200 ${coin}*\n` +
                     `✦ Te acercas a 21 sin pasarte\n` +
                     `✦ Si ganas con 21 exacto, cobras x1.5`
                 );
@@ -62,18 +62,18 @@ export default {
             saveDB(chat, jid);
 
             const linea = cambio > 0
-                ? `✧ Ganaste › *+${money(cambio)}* ${coin}`
+                ? `❀ Ganaste › *+${money(cambio)}* ${coin}`
                 : cambio < 0
-                    ? `✧ Perdiste › *-${money(Math.abs(cambio))}* ${coin}`
-                    : `✧ Sin cambios`;
+                    ? `❀ Perdiste › *-${money(Math.abs(cambio))}* ${coin}`
+                    : `❀ Sin cambios`;
 
             return reply(
                 `${titulo('BLACKJACK')}\n\n` +
-                `✩ Tú › *${jugador}*\n` +
-                `✩ Casa › *${casa}*\n\n` +
+                `♡ Tú › *${jugador}*\n` +
+                `♡ Casa › *${casa}*\n\n` +
                 `${estado}\n` +
                 `${linea}\n` +
-                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                `♡ Saldo › *${money(user.coins)}* ${coin}` +
                 (reintentada ? `\n> 🍀 El trébol te salvó y repartió de nuevo` : '') +
                 activeEffectsLine(user)
             );

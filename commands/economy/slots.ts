@@ -35,8 +35,8 @@ export default {
             if (!args[0]) {
                 return reply(
                     `${titulo('TRAGAMONEDAS')}\n\n` +
-                    `✧ Uso › *${p}slots <cantidad>* o *${p}slots all*\n` +
-                    `✩ Mínimo › *100 ${coin}*\n\n` +
+                    `❀ Uso › *${p}slots <cantidad>* o *${p}slots all*\n` +
+                    `♡ Mínimo › *100 ${coin}*\n\n` +
                     `✦ 7️⃣ x3 › x10  |  💎 x3 › x7\n` +
                     `✦ Otro triple › x4\n` +
                     `✦ Dos iguales › +30%`
@@ -60,15 +60,15 @@ export default {
             saveDB(chat, jid);
 
             const resultado = res.neto > 0
-                ? `✧ Ganaste › *+${money(res.neto)}* ${coin}`
-                : `✧ Perdiste › *-${money(bet)}* ${coin}`;
+                ? `❀ Ganaste › *+${money(res.neto)}* ${coin}`
+                : `❀ Perdiste › *-${money(bet)}* ${coin}`;
 
             return reply(
                 `${titulo('TRAGAMONEDAS')}\n\n` +
                 `   [ ${a} | ${b} | ${c} ]\n\n` +
-                `✩ Combinación › ${res.nombre}\n` +
+                `♡ Combinación › ${res.nombre}\n` +
                 `${resultado}\n` +
-                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                `♡ Saldo › *${money(user.coins)}* ${coin}` +
                 (reintentada && res.neto > 0 ? `\n> 🍀 El trébol te dio una tirada extra` : '') +
                 activeEffectsLine(user)
             );

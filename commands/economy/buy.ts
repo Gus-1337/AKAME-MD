@@ -21,7 +21,7 @@ export default {
 
             const pedido = String(args[0] || '').toLowerCase().trim();
             if (!pedido) {
-                return reply(`${titulo('COMPRAR')}\n\n✧ Uso › *${p}buy <nombre>*\n✧ Ejemplo › *${p}buy coinboost*\n✧ Catálogo › *${p}shop*`);
+                return reply(`${titulo('COMPRAR')}\n\n❀ Uso › *${p}buy <nombre>*\n❀ Ejemplo › *${p}buy coinboost*\n❀ Catálogo › *${p}shop*`);
             }
 
             const item = ITEM_BY_ID[pedido];
@@ -32,9 +32,9 @@ export default {
                 return reply(
                     `${titulo('SIN SALDO')}\n\n` +
                     `   No te alcanza para *${item.name}* ${item.emoji}\n\n` +
-                    `✩ Precio › *${money(item.price)}* ${coin}\n` +
-                    `✩ Tienes › *${money(user.coins || 0)}* ${coin}\n` +
-                    `✩ Te faltan › *${money(falta)}* ${coin}`
+                    `♡ Precio › *${money(item.price)}* ${coin}\n` +
+                    `♡ Tienes › *${money(user.coins || 0)}* ${coin}\n` +
+                    `♡ Te faltan › *${money(falta)}* ${coin}`
                 );
             }
 
@@ -44,10 +44,10 @@ export default {
             saveDB(chat, realSender);
 
             let txt = `${titulo('COMPRA HECHA')}\n\n   ${item.emoji} *${item.name}*\n\n`;
-            txt += `✩ Pagaste › *${money(item.price)}* ${coin}\n`;
-            txt += `✩ Saldo › *${money(user.coins || 0)}* ${coin}\n`;
+            txt += `♡ Pagaste › *${money(item.price)}* ${coin}\n`;
+            txt += `♡ Saldo › *${money(user.coins || 0)}* ${coin}\n`;
             if (item.kind === 'buff' && expiresAt) {
-                txt += `✩ Duración › *${formatDuration(buffRemaining(user, item.id))}*\n`;
+                txt += `♡ Duración › *${formatDuration(buffRemaining(user, item.id))}*\n`;
                 if (antes > 0) txt += `> ➕ Se sumó a los ${formatDuration(antes)} que ya tenías\n`;
                 txt += `\n> ${item.effect}`;
             } else {

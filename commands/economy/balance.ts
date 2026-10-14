@@ -63,11 +63,11 @@ export default {
 
             const caption =
 `˚₊· ͟͟͞͞➳❥ *BALANCE* ✦
-     ✧ Usuario › @${targetJid.split('@')[0]}
+     ❀ Usuario › @${targetJid.split('@')[0]}
 
- ✩ Efectivo › *${fmt(coins)}* ${coinName}
- ✩ Banco › *${fmt(bank)}* ${coinName}
- ✩ Total › *${fmt(total)}* ${coinName}
+ ♡ Efectivo › *${fmt(coins)}* ${coinName}
+ ♡ Banco › *${fmt(bank)}* ${coinName}
+ ♡ Total › *${fmt(total)}* ${coinName}
 
 _Usa .dep o .with para mover tu dinero_`;
 

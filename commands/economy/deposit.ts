@@ -23,7 +23,7 @@ export default {
             if (!entrada) {
                 return reply(
                     `${titulo('DEPÓSITO')}\n\n` +
-                    `✧ Uso › *${p}dep <cantidad>* o *${p}dep all*\n` +
+                    `❀ Uso › *${p}dep <cantidad>* o *${p}dep all*\n` +
                     `✦ El banco protege tu dinero de los robos`
                 );
             }
@@ -43,9 +43,9 @@ export default {
 
             return reply(
                 `${titulo('DEPÓSITO')}\n\n` +
-                `✩ Depositaste › *${money(cantidad)}* ${coin}\n` +
-                `✩ Efectivo › *${money(user.coins)}* ${coin}\n` +
-                `✩ Banco › *${money(user.bank)}* ${coin}`
+                `♡ Depositaste › *${money(cantidad)}* ${coin}\n` +
+                `♡ Efectivo › *${money(user.coins)}* ${coin}\n` +
+                `♡ Banco › *${money(user.bank)}* ${coin}`
             );
         } catch (e) {
             console.error('Error en deposit:', e);

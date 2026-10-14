@@ -126,7 +126,7 @@ export default {
             for (const c of cooldowns) {
                 const last = userInChat[c.key] || 0;
                 const remaining = last ? Math.max(0, c.ms - (now - last)) : 0;
-                body += remaining > 0 ? `✩ ${c.label} › *${formatRemaining(remaining)}*\n` : `✩ ${c.label} › ✅ Listo\n`;
+                body += remaining > 0 ? `♡ ${c.label} › *${formatRemaining(remaining)}*\n` : `♡ ${c.label} › ✅ Listo\n`;
             }
 
             const caption =
@@ -135,7 +135,7 @@ export default {
    Usuario › @${targetJid.split('@')[0]}
 
 ${body}
-✧ Total › *${total.toLocaleString('es-PE')}* ${coinName}`;
+❀ Total › *${total.toLocaleString('es-PE')}* ${coinName}`;
 
             await sock.sendMessage(chat, {
                 text: caption,

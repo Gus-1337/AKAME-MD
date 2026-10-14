@@ -21,7 +21,7 @@ export default {
         const totalColeccion = coleccion.reduce((a, [, v]) => a + v, 0);
 
         let txt = `${titulo('MOCHILA')}\n\n`;
-        txt += `✧ Efectivo › *${money(user?.coins || 0)}* ${coin}\n\n`;
+        txt += `❀ Efectivo › *${money(user?.coins || 0)}* ${coin}\n\n`;
 
         txt += `⚡ *Efectos activos* (${efectos.length})\n`;
         txt += efectos.length

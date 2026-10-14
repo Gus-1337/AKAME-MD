@@ -144,7 +144,7 @@ export const activeEffectsLine = (user: any): string => {
 /* ---- Helpers de diseño y apuestas para los juegos de economía ---- */
 
 /** Encabezado con el mismo estilo de .bal, waifus y Pokémon. */
-export const titulo = (t: string): string => `˚₊· ͟͟͞͞➳❥ *${t}* ✦`;
+export const titulo = (t: string): string => `⋆｡°✩ *${t}* ✩°｡⋆`;
 
 /** Número con separador de miles en formato peruano. */
 export const money = (n: number): string => Math.floor(Number(n) || 0).toLocaleString('es-PE');

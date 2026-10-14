@@ -21,8 +21,8 @@ export default {
             if (!args[0]) {
                 return reply(
                     `${titulo('CARA O CRUZ')}\n\n` +
-                    `✧ Uso › *${p}cf <cantidad>* o *${p}cf all*\n` +
-                    `✩ Mínimo › *200 ${coin}*\n` +
+                    `❀ Uso › *${p}cf <cantidad>* o *${p}cf all*\n` +
+                    `♡ Mínimo › *200 ${coin}*\n` +
                     `✦ Ganas el doble si aciertas`
                 );
             }
@@ -40,15 +40,15 @@ export default {
             saveDB(chat, jid);
 
             const linea = gano
-                ? `✧ Ganaste › *+${money(bet)}* ${coin}`
-                : `✧ Perdiste › *-${money(bet)}* ${coin}`;
+                ? `❀ Ganaste › *+${money(bet)}* ${coin}`
+                : `❀ Perdiste › *-${money(bet)}* ${coin}`;
 
             return reply(
                 `${titulo('CARA O CRUZ')}\n\n` +
                 `   🪙 Cayó *${resultado}*\n\n` +
-                `✩ Tu elección › ${eleccion}\n` +
+                `♡ Tu elección › ${eleccion}\n` +
                 `${linea}\n` +
-                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                `♡ Saldo › *${money(user.coins)}* ${coin}` +
                 (salvado ? `\n> 🍀 El trébol inclinó la moneda a tu favor` : '') +
                 activeEffectsLine(user)
             );

@@ -43,8 +43,8 @@ export default {
             return reply(
                 `${titulo('MINERÍA')}\n\n` +
                 `   Sacaste *${mineral.nombre}*\n\n` +
-                `✩ Ganaste › *+${money(ganancia)}* ${coin}\n` +
-                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                `♡ Ganaste › *+${money(ganancia)}* ${coin}\n` +
+                `♡ Saldo › *${money(user.coins)}* ${coin}` +
                 activeEffectsLine(user)
             );
         } catch (e) {

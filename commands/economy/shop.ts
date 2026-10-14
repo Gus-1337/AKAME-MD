@@ -20,12 +20,12 @@ export default {
             txt += `     ${item.effect}\n`;
             txt += activo
                 ? `     ⏳ Activo por *${formatDuration(buffRemaining(user, item.id))}*\n`
-                : `     ✩ Precio › *${money(item.price)}* ${coin}\n`;
+                : `     ♡ Precio › *${money(item.price)}* ${coin}\n`;
             txt += '\n';
         }
 
-        txt += `✧ Comprar › *${p}buy <nombre>*\n`;
-        txt += `✧ Ejemplo › *${p}buy coinboost*\n`;
+        txt += `❀ Comprar › *${p}buy <nombre>*\n`;
+        txt += `❀ Ejemplo › *${p}buy coinboost*\n`;
         txt += `> Si recompras un efecto activo, el tiempo se *suma*.\n`;
         txt += `> Tu mochila: *${p}inventory*`;
 

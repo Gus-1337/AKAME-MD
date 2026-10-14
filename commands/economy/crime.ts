@@ -59,8 +59,8 @@ export default {
                 return reply(
                     `${titulo('CRIMEN')}\n\n` +
                     `   ${elegir(PIERDE)}\n\n` +
-                    `✩ Perdiste › *-${money(perdida)}* ${coin}\n` +
-                    `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                    `♡ Perdiste › *-${money(perdida)}* ${coin}\n` +
+                    `♡ Saldo › *${money(user.coins)}* ${coin}` +
                     activeEffectsLine(user)
                 );
             }
@@ -72,8 +72,8 @@ export default {
             return reply(
                 `${titulo('CRIMEN')}\n\n` +
                 `   ${elegir(GANA)}\n\n` +
-                `✩ Ganaste › *+${money(ganancia)}* ${coin}\n` +
-                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                `♡ Ganaste › *+${money(ganancia)}* ${coin}\n` +
+                `♡ Saldo › *${money(user.coins)}* ${coin}` +
                 activeEffectsLine(user)
             );
         } catch (e) {
