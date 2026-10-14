@@ -284,8 +284,7 @@ export const sendNsfwMedia = async (ctx: any, endpoint: NsfwEndpoint, label?: st
             `♡ AKAME-MD - NSFW ♡\n\n` +
             `✿ *Categoría:* ${label || endpoint}\n` +
             `✿ *Peso:* ${formatBytes(media.bytes)}\n\n` +
-            `✿ Pedir otro » *${p}${endpoint === 'tiktok' ? 'nsfwtiktok' : endpoint}* o *${p}nsfwrandom* al azar\n` +
-            `✿ Made by *${(config as any).devName || 'AKAME-MD'}* ♡`;
+            `✿ Pedir otro » *${p}${endpoint === 'tiktok' ? 'nsfwtiktok' : endpoint}* o *${p}nsfwrandom* al azar ♡`;
 
         const payload: any = media.kind === 'video'
             ? { video: media.buffer, caption, gifPlayback: false, mimetype: media.mime }
@@ -364,7 +363,7 @@ export const sendReactionMedia = async (
             `✿ *Peso:* ${formatBytes(media.bytes)}\n\n` +
             `✿ Pedir otro » *${p}${extraCommand || reaction}*` +
             (extraCommand && extraCommand !== reaction ? ` o *${p}${reaction}*` : '') +
-            `\n✿ Made by *${(config as any).devName || 'AKAME-MD'}* ♡`;
+            ` ♡`;
 
         const mentions = cabecera && remitente && objetivo ? [remitente, objetivo] : undefined;
         const payload: any = media.kind === 'video'
