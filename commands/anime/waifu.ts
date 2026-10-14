@@ -1,16 +1,15 @@
 import axios from 'axios'
 import { UserJid } from '#simple'
 
-const LINEA = '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄'
 const STELLAR_KEY = 'proyectsV2'
 const TIEMPO_RECLAMO = 60000
 
-// Rarezas del gacha (probabilidad)
+// Rarezas del gacha: probabilidad, valor en yenes e icono
 const RAREZAS = [
-    { nombre: 'Común', icono: '⚪', peso: 50 },
-    { nombre: 'Rara', icono: '🔵', peso: 30 },
-    { nombre: 'Épica', icono: '🟣', peso: 15 },
-    { nombre: 'Legendaria', icono: '🟡', peso: 5 }
+    { nombre: 'Común', icono: '⚪', peso: 50, valor: 500 },
+    { nombre: 'Rara', icono: '🔵', peso: 30, valor: 1500 },
+    { nombre: 'Épica', icono: '🟣', peso: 15, valor: 4000 },
+    { nombre: 'Legendaria', icono: '🟡', peso: 5, valor: 10000 }
 ]
 
 // Waifu pendiente de reclamar por chat (compartido con .reclamar)
@@ -78,14 +77,13 @@ export default {
             await sock.sendMessage(chat, {
                 image: { url: image },
                 caption:
-                    `💖 *WAIFU ENCONTRADA* 💖\n` +
-                    `${LINEA}\n` +
-                    `🆔 ID » *#${id}*\n` +
-                    `${rareza.icono} Rareza » *${rareza.nombre}*\n` +
-                    `👤 Para » @${dueno}\n` +
-                    `${LINEA}\n` +
-                    `> Responde *.reclamar* en 60s para guardarla`,
-                mentions: [jid]
+                    `˚₊· ͟͟͞͞➳❥ *Waifu #${id}*\n\n` +
+                    `> Personaje encontrado.\n\n` +
+                    `✧ Valor › *${rareza.valor.toLocaleString('es-PE')}* yenes\n` +
+                    `✦ Serie › *Anime*\n` +
+                    `✩ Género › *Femenino*\n` +
+                    `❖ Estado › *Libre*\n\n` +
+                    `✐ Responde este mensaje con *.reclamar* o *.c* para reclamarlo.`
             }, { quoted: m })
 
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } }).catch(() => null)

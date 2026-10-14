@@ -1,19 +1,17 @@
 import { UserJid } from '#simple'
 import { saveDB } from '#db'
 
-const LINEA = '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄'
-
 const pendientes: Map<string, any> = (global as any).waifuPendientes || ((global as any).waifuPendientes = new Map())
 const normalize = (x: string) => String(x).split('@')[0].split(':').pop()?.replace(/[^\d]/g, '') || ''
 
 export default {
-    command: ['reclamar', 'claim'],
-    description: 'Reclama la waifu que acabas de encontrar con .waifu',
+    command: ['reclamar', 'claim', 'c'],
+    description: 'Reclama la waifu que acabas de encontrar con .rw',
     category: 'anime',
     run: async ({ chat, m, sock, sender }: any) => {
         const pendiente = pendientes.get(chat)
         if (!pendiente) {
-            return sock.sendMessage(chat, { text: '✿ No hay ninguna waifu para reclamar ahora\n> Usa *.waifu* para buscar una' }, { quoted: m })
+            return sock.sendMessage(chat, { text: '✿ No hay ninguna waifu para reclamar ahora\n> Usa *.rw* para buscar una' }, { quoted: m })
         }
 
         // UserJid es síncrona: devuelve el JID real del usuario
@@ -32,14 +30,14 @@ export default {
         const usuario = db.chats[chat].users[jid]
         if (!Array.isArray(usuario.characters)) usuario.characters = []
 
-        const yaLaTiene = usuario.characters.some((c: any) => c.id === pendiente.id)
-        if (yaLaTiene) {
+        if (usuario.characters.some((c: any) => c.id === pendiente.id)) {
             return sock.sendMessage(chat, { text: `💖 Ya tienes la waifu *#${pendiente.id}* en tu harem` }, { quoted: m })
         }
 
         usuario.characters.push({
             id: pendiente.id,
             rareza: pendiente.rareza.nombre,
+            valor: pendiente.rareza.valor,
             image: pendiente.image,
             fecha: Date.now()
         })
@@ -47,13 +45,13 @@ export default {
 
         return sock.sendMessage(chat, {
             text:
-                `💞 *WAIFU RECLAMADA* 💞\n` +
-                `${LINEA}\n` +
-                `🆔 ID » *#${pendiente.id}*\n` +
-                `${pendiente.rareza.icono} Rareza » *${pendiente.rareza.nombre}*\n` +
-                `💝 Harem » *${usuario.characters.length}* personajes\n` +
-                `${LINEA}\n` +
-                `> ¡Felicidades, ya es tuya!`,
+                `˚₊· ͟͟͞͞➳❥ *Waifu reclamada*\n\n` +
+                `> ¡Felicidades, ya es tuya!\n\n` +
+                `✧ Valor › *${pendiente.rareza.valor.toLocaleString('es-PE')}* yenes\n` +
+                `✦ Serie › *Anime*\n` +
+                `✩ Género › *Femenino*\n` +
+                `❖ Estado › *Reclamada*\n` +
+                `✿ Harem › *${usuario.characters.length}* personajes`,
             mentions: [jid]
         }, { quoted: m })
     }
