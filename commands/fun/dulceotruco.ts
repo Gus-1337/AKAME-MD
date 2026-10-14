@@ -138,18 +138,18 @@ export default {
 
         await sock.sendMessage(chat, {
             text:
-                `🎃 *》》 DULCE O TRUCO 《《* 🎃\n` +
-                `🦇 ─────────────────── 🦇\n\n` +
-                `👻 @${dueno} entra a la plaza... hay *3 calabazas*.\n` +
-                `🍬 Una tiene dulces, pero las otras guardan un truco.\n\n` +
+                `🎃 *DULCE O TRUCO* 🎃\n` +
+                `🦇 ──────────────── 🦇\n` +
+                `👻 @${dueno} entra a la plaza...\n` +
+                `🍬 Hay *3 calabazas*: una tiene dulces, las otras guardan un truco.\n\n` +
                 `${EMOJI_NUM[0]} 🎃 Calabaza naranja\n` +
                 `${EMOJI_NUM[1]} 🎃 Calabaza verde\n` +
                 `${EMOJI_NUM[2]} 🎃 Calabaza negra\n\n` +
                 `⛀ Premio » *+${PREMIO_DULCE} ${coinName}*\n` +
                 `⛀ Truco » *-${PENALIDAD_TRUCO} ${coinName}*\n` +
-                `⛀ Solo @${dueno} puede jugar esta ronda\n` +
-                `⏳ Tiempo » *30s*\n\n` +
+                `⏳ Tiempo » *30s* · Solo @${dueno}\n\n` +
                 `> Responde *1*, *2* o *3*`,
+
             mentions: [duenoJid]
         }, { quoted: m });
 
