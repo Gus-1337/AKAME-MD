@@ -1,7 +1,4 @@
-import axios from 'axios';
-
-const YOSOYYO_URL = 'https://api-yosoyyo-api-ofc.onrender.com';
-const YOSOYYO_KEY = process.env.YOSOYYO_KEY || 'Akame-proyet';
+import { preguntarIA, promptCompleto, enviarRespuesta, yosoyyoDeepseek, siputzx } from '#ia';
 
 export default {
     command: ['deepseek'],
@@ -14,13 +11,8 @@ export default {
         }
         try {
             await sock.sendMessage(chat, { react: { text: '🧠', key: m.key } });
-            const { data } = await axios.get(`${YOSOYYO_URL}/api/deepseek`, {
-                params: { prompt: `Responde en español, de forma clara y breve: ${pregunta}`, apiKey: YOSOYYO_KEY },
-                timeout: 60000
-            });
-            const respuesta = data?.result?.answer;
-            if (!data?.status || !respuesta) throw new Error('sin respuesta');
-            await sock.sendMessage(chat, { text: `🧠 *DeepSeek*\n\n${String(respuesta).trim().slice(0, 3500)}` }, { quoted: m });
+            const { texto } = await preguntarIA([yosoyyoDeepseek, siputzx('deepseekr1'), siputzx('gptoss120b')], promptCompleto(pregunta));
+            await enviarRespuesta(sock, chat, m, '🧠 *DeepSeek*', texto);
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } });
         } catch {
             await sock.sendMessage(chat, { react: { text: '❌', key: m.key } });

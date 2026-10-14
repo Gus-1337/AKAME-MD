@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { preguntarIA, promptCompleto, enviarRespuesta, siputzx, deliriusChatgpt, yosoyyoDeepseek } from '#ia';
 
 export default {
     command: ['gptoss', 'gptoss120b'],
@@ -11,13 +11,8 @@ export default {
         }
         try {
             await sock.sendMessage(chat, { react: { text: '🧠', key: m.key } });
-            const { data } = await axios.get('https://api.siputzx.my.id/api/ai/gptoss120b', {
-                params: { prompt: `Responde en español, de forma clara y breve: ${pregunta}` },
-                timeout: 90000
-            });
-            const respuesta = data?.data?.response;
-            if (!data?.status || !respuesta) throw new Error('sin respuesta');
-            await sock.sendMessage(chat, { text: `🧠 *GPT OSS 120B*\n\n${String(respuesta).trim().slice(0, 3500)}` }, { quoted: m });
+            const { texto } = await preguntarIA([siputzx('gptoss120b'), deliriusChatgpt, yosoyyoDeepseek], promptCompleto(pregunta));
+            await enviarRespuesta(sock, chat, m, '🧠 *GPT OSS 120B*', texto);
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } });
         } catch {
             await sock.sendMessage(chat, { react: { text: '❌', key: m.key } });

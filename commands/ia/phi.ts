@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { preguntarIA, promptCompleto, enviarRespuesta, siputzx, yosoyyoDeepseek } from '#ia';
 
 export default {
     command: ['phi', 'phi2'],
@@ -11,13 +11,8 @@ export default {
         }
         try {
             await sock.sendMessage(chat, { react: { text: '💡', key: m.key } });
-            const { data } = await axios.get('https://api.siputzx.my.id/api/ai/phi2', {
-                params: { prompt: `Responde en español, de forma clara y breve: ${pregunta}` },
-                timeout: 90000
-            });
-            const respuesta = data?.data?.response;
-            if (!data?.status || !respuesta) throw new Error('sin respuesta');
-            await sock.sendMessage(chat, { text: `💡 *Phi-2*\n\n${String(respuesta).trim().slice(0, 3500)}` }, { quoted: m });
+            const { texto } = await preguntarIA([siputzx('phi2'), siputzx('glm47flash'), yosoyyoDeepseek], promptCompleto(pregunta));
+            await enviarRespuesta(sock, chat, m, '💡 *Phi-2*', texto);
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } });
         } catch {
             await sock.sendMessage(chat, { react: { text: '❌', key: m.key } });

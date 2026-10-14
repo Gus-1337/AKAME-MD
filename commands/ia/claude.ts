@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { preguntarIA, promptCompleto, enviarRespuesta, faaClaude, deliriusChatgpt, siputzx } from '#ia';
 
 export default {
     command: ['claude'],
@@ -11,14 +11,8 @@ export default {
         }
         try {
             await sock.sendMessage(chat, { react: { text: '🧡', key: m.key } });
-            const { data } = await axios.get('https://api-faa.my.id/faa/claude-ai', {
-                params: { text: `Responde en español, de forma clara y breve: ${pregunta}` },
-                timeout: 60000,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
-            });
-            const respuesta = data?.result;
-            if (!data?.status || typeof respuesta !== 'string' || !respuesta.trim()) throw new Error('sin respuesta');
-            await sock.sendMessage(chat, { text: `🧡 *Claude*\n\n${respuesta.trim().slice(0, 3500)}` }, { quoted: m });
+            const { texto } = await preguntarIA([faaClaude, deliriusChatgpt, siputzx('gptoss120b')], promptCompleto(pregunta));
+            await enviarRespuesta(sock, chat, m, '🧡 *Claude*', texto);
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } });
         } catch {
             await sock.sendMessage(chat, { react: { text: '❌', key: m.key } });

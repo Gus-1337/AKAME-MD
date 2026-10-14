@@ -20,7 +20,8 @@
     "#logomaker": "./lib/logomaker.ts",
     "#handler": "./handler.ts",
     "#index": "./index.ts",
-    "#alertas": "./lib/alertas.ts"
+    "#alertas": "./lib/alertas.ts",
+    "#ia": "./lib/ia.ts"
   },
   "dependencies": {
     "@hapi/boom": "^10.0.1",

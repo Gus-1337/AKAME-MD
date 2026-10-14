@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { preguntarIA, promptCompleto, enviarRespuesta, deliriusChatgpt, siputzx, yosoyyoDeepseek } from '#ia';
 
 export default {
     command: ['chatgpt'],
@@ -11,13 +11,8 @@ export default {
         }
         try {
             await sock.sendMessage(chat, { react: { text: '🤖', key: m.key } });
-            const { data } = await axios.get('https://api.delirius.online/ia/chatgpt', {
-                params: { q: `Responde en español, de forma clara y breve: ${pregunta}` },
-                timeout: 60000
-            });
-            const respuesta = typeof data?.data === 'string' ? data.data : data?.data?.result;
-            if (!data?.status || !respuesta) throw new Error('sin respuesta');
-            await sock.sendMessage(chat, { text: `🤖 *ChatGPT*\n\n${respuesta.trim().slice(0, 3500)}` }, { quoted: m });
+            const { texto } = await preguntarIA([deliriusChatgpt, siputzx('gptoss120b'), yosoyyoDeepseek], promptCompleto(pregunta));
+            await enviarRespuesta(sock, chat, m, '🤖 *ChatGPT*', texto);
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } });
         } catch {
             await sock.sendMessage(chat, { react: { text: '❌', key: m.key } });

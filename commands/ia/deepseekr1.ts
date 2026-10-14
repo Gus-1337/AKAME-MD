@@ -1,10 +1,4 @@
-import axios from 'axios';
-
-/** Quita el bloque de razonamiento <think>...</think> que devuelve DeepSeek R1. */
-const limpiar = (t: string) =>
-    t.replace(/<think>[\s\S]*?<\/think>/gi, '')
-     .replace(/<think>[\s\S]*/gi, '')
-     .trim();
+import { preguntarIA, promptCompleto, enviarRespuesta, siputzx, yosoyyoDeepseek } from '#ia';
 
 export default {
     command: ['deepseekr1', 'r1'],
@@ -17,13 +11,8 @@ export default {
         }
         try {
             await sock.sendMessage(chat, { react: { text: '🧠', key: m.key } });
-            const { data } = await axios.get('https://api.siputzx.my.id/api/ai/deepseekr1', {
-                params: { prompt: `Responde solo en español, de forma clara y breve, sin mostrar tu razonamiento: ${pregunta}` },
-                timeout: 120000
-            });
-            const respuesta = limpiar(String(data?.data?.response || ''));
-            if (!data?.status || !respuesta) throw new Error('sin respuesta');
-            await sock.sendMessage(chat, { text: `🧠 *DeepSeek R1*\n\n${respuesta.slice(0, 3500)}` }, { quoted: m });
+            const { texto } = await preguntarIA([siputzx('deepseekr1'), yosoyyoDeepseek, siputzx('gptoss120b')], promptCompleto(pregunta));
+            await enviarRespuesta(sock, chat, m, '🧠 *DeepSeek R1*', texto);
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } });
         } catch {
             await sock.sendMessage(chat, { react: { text: '❌', key: m.key } });
