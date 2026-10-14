@@ -24,6 +24,7 @@ import { handler, invalidateGroupCache } from '#handler';
 import printMessageLog from './lib/printlog.ts';
 import { handleGroupAlerts, handleGroupParticipants } from '#alertas';
 import { avisarReinicio } from './commands/owner/restart.ts';
+import { leerPrefijo } from './lib/prefijo.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -150,6 +151,10 @@ const displayLoadingMessage = () => {
 
 async function startBot() {
     await loadDB();
+    const prefijoGuardado = leerPrefijo();
+    if (prefijoGuardado !== undefined) {
+        (global as any).db.data.settings = { ...((global as any).db.data.settings || {}), globalPrefix: prefijoGuardado };
+    }
     await cargarPlugins('./commands');
 
     if (!fs.existsSync(sDir)) {

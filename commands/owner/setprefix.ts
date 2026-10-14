@@ -1,3 +1,4 @@
+import { guardarPrefijo } from '../../lib/prefijo.ts'
 import fs from 'fs'
 import path from 'path'
 
@@ -26,11 +27,13 @@ export default {
 
     if (value.toLowerCase() === 'reset') {
       settings.globalPrefix = "."
+      guardarPrefijo(settings.globalPrefix)
       return await sock.sendMessage(chat, { text: `❖ Prefijos restaurados a *.*` }, { quoted: m })
     }
 
     if (value.toLowerCase() === 'noprefix') {
       settings.globalPrefix = 1
+      guardarPrefijo(settings.globalPrefix)
       return await sock.sendMessage(chat, { text: `❖ Modo sin prefijos activado.\nAhora escribe *menu* sin prefijo.` }, { quoted: m })
     }
 
@@ -58,6 +61,7 @@ export default {
 
     // ESTO ES LO IMPORTANTE: solo guardamos en DB, NO TOCAMOS config.js
     settings.globalPrefix = lista.length === 1? lista[0] : lista
+    guardarPrefijo(settings.globalPrefix)
 
     return await sock.sendMessage(chat, {
       text: `✤ Prefijo cambiado a *${lista.join(' ')}* correctamente.\nAhora puedes usar: ${lista.map(p => p+'menu').join(', ')}`
