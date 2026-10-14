@@ -78,13 +78,29 @@ const intentarYosoyyo = async (api: string): Promise<Buffer> => {
     throw ultimo;
 };
 
+/** Dorratz: pide el enlace y descarga el archivo por su proxy (más estable que el enlace directo). */
+const intentarDorratz = async (videoUrl: string, type: 'audio' | 'video', quality: number): Promise<Buffer> => {
+    const api = `https://api.dorratz.com/v1/youtube?url=${encodeURIComponent(videoUrl)}&type=${type}&quality=${quality}`;
+    const { data } = await axios.get(api, { timeout: 25000, headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (!data?.ok || !data?.data) throw new Error('dorratz sin resultado');
+    const candidatos = [
+        data.data.proxy ? `https://api.dorratz.com${data.data.proxy}` : '',
+        typeof data.data.download === 'string' ? data.data.download : ''
+    ].filter((l) => l.startsWith('http'));
+    let ultimo: any = new Error('dorratz sin enlaces');
+    for (const l of candidatos) {
+        try { return await descargar(l); } catch (e) { ultimo = e; }
+    }
+    throw ultimo;
+};
+
 /** Principales en paralelo; si fallan, respaldo yosoyyo. Dos rondas. */
 const getVideo = async (videoUrl: string): Promise<Buffer> => {
     const { principales, respaldo } = sources(videoUrl);
     let ultimo: any = null;
     for (let ronda = 1; ronda <= 2; ronda++) {
         try {
-            return await Promise.any(principales.map((api) => intentar(api)));
+            return await Promise.any([...principales.map((api) => intentar(api)), intentarDorratz(videoUrl, 'video', 720)]);
         } catch (e) { ultimo = e; }
         if (respaldo) {
             try {
