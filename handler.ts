@@ -198,7 +198,9 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
     const normalizedSender = normalizeNumber(realJidResult);
     const normalizedMsgSender = normalizeNumber(msgSender);
     // Los mensajes del propio bot no se procesan.
-    if (rawMsg?.key?.fromMe) return;
+    // Subbots: el dueño escribe desde su propia cuenta; esos mensajes sí se atienden.
+    // Las respuestas que envía el propio subbot se filtran en index.ts.
+    if (rawMsg?.key?.fromMe && !(global as any).esSubbot) return;
     // El límite de comandos se aplica más abajo, solo cuando el mensaje ES un comando.
     // Estaba acá y contaba TODOS los mensajes: en un grupo con conversación el 6º
     // mensaje en 3 s se descartaba en silencio y no llegaba ni a los hooks `before`

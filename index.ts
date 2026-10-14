@@ -247,6 +247,20 @@ async function startBot() {
         fetchOpts: { agent: httpAgent } as any
     });
 
+    // Subbots: recordar los mensajes que envía el propio subbot para no responderse a sí mismo
+    const enviadosPorBot = new Set<string>();
+    if (esSubbot) {
+        const enviarOriginal = (sock as any).sendMessage.bind(sock);
+        (sock as any).sendMessage = async (...args: any[]) => {
+            const r: any = await enviarOriginal(...args);
+            if (r?.key?.id) {
+                enviadosPorBot.add(r.key.id);
+                if (enviadosPorBot.size > 500) enviadosPorBot.delete(enviadosPorBot.values().next().value as string);
+            }
+            return r;
+        };
+    }
+
     if (esSubbot) {
         // La vinculación del subbot se pide en connection.update (ver abajo)
     } else if (usarCodigo && !state.creds.registered) {
@@ -370,6 +384,7 @@ async function startBot() {
             mStore.set(mId, true);
 
             // Subbot: primero sus comandos de personalización (.setnombre, .perfil, ...)
+            if (esSubbot && rawMsg.key.fromMe && enviadosPorBot.has(mId)) continue;
             if (esSubbot && manejarPersonal(sock, rawMsg)) continue;
 
             const msg = serialize(sock, rawMsg);

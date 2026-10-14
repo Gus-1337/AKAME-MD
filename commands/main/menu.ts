@@ -19,6 +19,9 @@ export default {
         const p = usedPrefix || prefix || (config as any).prefix || '.';
         const plg = global.plugins || {};
         const perfilSub = (global as any).subbotPerfil;
+        // En un subbot, el menú usa el nombre que puso su dueño
+        const marcaMenu = String(perfilSub?.nombre || 'AKAME').toUpperCase();
+        const marcaPie = perfilSub?.nombre || 'AKAME-MD';
         const mainBanner = perfilSub?.banner || (config as any).banner;
         const banners = (config as any).banners || {};
 
@@ -63,7 +66,7 @@ export default {
                 caption: txt,
                 title: `♡ ${carg.toUpperCase()} ♡`,
                 subtitle: `${cmds.length} comandos`,
-                footer: 'AKAME-MD',
+                footer: marcaPie,
                 interactiveButtons: [
                     { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🏠 Menú', id: `${p}menu` }) }
                 ]
@@ -87,9 +90,9 @@ export default {
             return await sock.sendMessage(chat, {
                 image: banners['main'] || mainBanner? { url: banners['main'] || mainBanner } : undefined,
                 caption: menu,
-                title: 'MENU AKAME',
+                title: `MENU ${marcaMenu}`,
                 subtitle: `${tot} comandos`,
-                footer: 'AKAME-MD',
+                footer: marcaPie,
                 mentions: [senderJid],
                 interactiveButtons: [
                     { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: '🏠 Menú', id: `${p}menu` }) }
@@ -117,12 +120,12 @@ export default {
         await sock.sendMessage(chat, {
             image: mainBanner? { url: mainBanner } : undefined,
             caption: mainText,
-            title: '｡･:*˚:✧｡ MENU AKAME ｡✧:˚*･｡',
+            title: `｡･:*˚:✧｡ MENU ${marcaMenu} ｡✧:˚*･｡`,
             subtitle: `Hola ${userName}`,
-            footer: 'AKAME-MD',
+            footer: marcaPie,
             mentions: [senderJid],
             interactiveButtons: [
-                { name: 'single_select', buttonParamsJson: JSON.stringify({ title: 'Ver Categorías', sections: [{ title: 'Categorías AKAME', highlight_label: 'AKAME', rows: rows }] }) }
+                { name: 'single_select', buttonParamsJson: JSON.stringify({ title: 'Ver Categorías', sections: [{ title: 'Categorías ' + marcaMenu, highlight_label: marcaMenu, rows: rows }] }) }
             ]
         }, { quoted: msg });
     }
