@@ -41,7 +41,7 @@ export default {
             caption:
                 `😂 *${titulo}*\n` +
                 `${LINEA}\n` +
-                `📌 r/${meme.subreddit}  ·  👍 ${meme.ups ?? 0}`
+                `> 🎭 Meme de r/${meme.subreddit}`
         }, { quoted: m })
 
         await sock.sendMessage(chat, { react: { text: '✅', key: m.key } }).catch(() => null)
