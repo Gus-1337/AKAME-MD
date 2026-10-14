@@ -1,3 +1,4 @@
+import { formatear } from '../../lib/owner-coins.ts';
 import { UserJid } from '#simple';
 import config from '#config';
 
@@ -59,7 +60,7 @@ export default {
             const coins = Number(userInChat.coins) || 0;
             const bank = Number(userInChat.bank) || 0;
             const total = coins + bank;
-            const fmt = (n: number) => n.toLocaleString('es-PE');
+            const fmt = (n: number) => formatear(n); // ∞ cuando son coins infinitas
 
             const caption =
 `˚₊· ͟͟͞͞➳❥ *BALANCE* ✦

@@ -1,4 +1,5 @@
 import config from '#config';
+import { formatear } from '../../lib/owner-coins.ts';
 
 export default {
     command: ['baltop', 'eboard', 'economytop'],
@@ -66,7 +67,7 @@ export default {
             slice.forEach((entry, index) => {
                 const pos = start + index + 1;
                 const name = dbData.users?.[entry.jid]?.name || entry.jid.split('@')[0];
-                text += `✰ ${pos} » *${name}*\n\t\t Total→ *${entry.total.toLocaleString()} ${coinName}*\n`;
+                text += `✰ ${pos} » *${name}*\n\t\t Total→ *${formatear(entry.total)} ${coinName}*\n`;
             });
 
             text += `\n> • Página *${page}* de *${totalPages}*`;
