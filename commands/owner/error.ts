@@ -7,13 +7,14 @@ import { pathToFileURL } from 'url';
 // 2) Revisa que las APIs que usa cada comando respondan.
 
 const LIMITE_URLS = 150;
-const CONCURRENCIA = 12;
+const CONCURRENCIA = 4;
 const TIMEOUT_MS = 8000;
 const MAX_CARACTERES = 3300;
 const LINEA = '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄';
 
-// Enlaces que no son APIs, se ignoran
-const IGNORAR = /(github\.com|whatsapp\.com|t\.me|wa\.me|patreon\.com|jsdelivr|raw\.githubusercontent|tumblr|pone\.rs|example\.com)/i;
+// Solo se revisan APIs: el host debe contener "api" o "nyx".
+// Así se ignoran páginas normales (YouTube, MediaFire, miniaturas, etc.)
+const esApi = (host: string) => /api|nyx/i.test(host);
 
 function listarArchivos(dir: string): string[] {
     const salida: string[] = [];
@@ -40,8 +41,13 @@ function extraerUrls(src: string): string[] {
         const corte = url.indexOf('${');
         if (corte !== -1) url = url.slice(0, corte);
         url = url.replace(/[;,]+$/, '');
-        if (!/^https?:\/\/[a-z0-9.-]+\.[a-z]{2,}/i.test(url)) continue;
-        if (IGNORAR.test(url)) continue;
+        let host = '';
+        try {
+            const u = new URL(url);
+            host = u.hostname;
+            if (!host.includes('.') || host.endsWith('.')) continue;
+        } catch { continue; }
+        if (!esApi(host)) continue;
         encontrados.add(url);
     }
     return [...encontrados];
@@ -57,8 +63,10 @@ async function probar(url: string): Promise<{ ok: boolean; motivo: string }> {
         });
         try { await res.body?.cancel(); } catch {}
         const s = res.status;
-        if (s < 400 || s === 400 || s === 422) return { ok: true, motivo: '' };
-        if (s === 401) return { ok: false, motivo: 'pide clave API (401)' };
+        // 400/422: la API responde pero faltan parámetros (normal al probar sin datos)
+        // 401: pide clave; el comando sí la envía, así que no es un fallo
+        // 429: la API está viva, solo limita el uso de nuestra prueba
+        if (s < 400 || [400, 401, 422, 429].includes(s)) return { ok: true, motivo: '' };
         if (s === 403) return { ok: false, motivo: 'bloqueado (403)' };
         if (s === 404) return { ok: false, motivo: 'ruta no existe (404)' };
         if (s === 429) return { ok: false, motivo: 'límite de uso (429)' };
