@@ -89,20 +89,16 @@ export default {
         if (!/^[123]$/.test(elegida)) return false;
 
         const jid = sender || m.sender;
+        // Solo responde quien inició la ronda; a los demás se les ignora en silencio
+        if (normalize(jid) !== partida.dueno) return false;
+
         const idx = Number(elegida) - 1;
         const db = (global as any).db?.data;
 
-        if (partida.jugaron.has(normalize(jid))) {
-            return sock.sendMessage(chat, {
-                text: `👻 @${normalize(jid)} ya abriste una calabaza en esta ronda. ¡Espera a los demás!`,
-                mentions: [jid]
-            }, { quoted: m });
-        }
         if (partida.abiertas.includes(idx)) {
             return m.reply('🎃 Esa calabaza ya fue abierta, elige otra.');
         }
 
-        partida.jugaron.add(normalize(jid));
         partida.abiertas.push(idx);
         const { foundKey, user } = await getUser(db, chat, sock, jid);
         const nombre = `@${foundKey.split('@')[0]}`;
@@ -127,31 +123,34 @@ export default {
         }, { quoted: m });
     },
 
-    run: async ({ chat, m, sock }: any) => {
+    run: async ({ chat, m, sock, sender }: any) => {
         if (!eventoActivo()) return avisoFin(sock, chat, m);
 
         if (partidas.has(chat)) {
-            return m.reply('🦇 Ya hay una ronda de *Dulce o Truco* en este grupo. ¡Responde *1*, *2* o *3*!');
+            return m.reply('🦇 Ya hay una ronda de *Dulce o Truco* en este grupo. Espera a que termine.');
         }
 
         // La calabaza con dulces se elige al azar en cada ronda
         const contenido = mezclar(['dulce', 'truco', 'truco']);
-        const partida: any = { contenido, abiertas: [], jugaron: new Set<string>(), timeout: null };
+        const duenoJid = sender || m.sender;
+        const dueno = normalize(duenoJid);
+        const partida: any = { contenido, abiertas: [], dueno, timeout: null };
 
         await sock.sendMessage(chat, {
             text:
                 `🎃 *》》 DULCE O TRUCO 《《* 🎃\n` +
                 `🦇 ─────────────────── 🦇\n\n` +
-                `👻 Hay *3 calabazas* en la plaza...\n` +
+                `👻 @${dueno} entra a la plaza... hay *3 calabazas*.\n` +
                 `🍬 Una tiene dulces, pero las otras guardan un truco.\n\n` +
                 `${EMOJI_NUM[0]} 🎃 Calabaza naranja\n` +
                 `${EMOJI_NUM[1]} 🎃 Calabaza verde\n` +
                 `${EMOJI_NUM[2]} 🎃 Calabaza negra\n\n` +
                 `⛀ Premio » *+${PREMIO_DULCE} ${coinName}*\n` +
                 `⛀ Truco » *-${PENALIDAD_TRUCO} ${coinName}*\n` +
-                `⛀ Cada jugador abre *una* calabaza\n` +
+                `⛀ Solo @${dueno} puede jugar esta ronda\n` +
                 `⏳ Tiempo » *30s*\n\n` +
-                `> Responde *1*, *2* o *3*`
+                `> Responde *1*, *2* o *3*`,
+            mentions: [duenoJid]
         }, { quoted: m });
 
         partida.timeout = setTimeout(async () => {
