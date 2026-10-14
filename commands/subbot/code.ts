@@ -53,29 +53,18 @@ export default {
             await sock.sendMessage(chat, { react: { text: '⏳', key: msg.key } }).catch(() => {});
             const { codigo } = await crearSubbot(numero);
 
-            const cuerpo = caja('TU CÓDIGO', [
-                `✧ Código » *${codigo}*`,
+            // Mismo chat donde se pidió. Primero las instrucciones y después el código solo,
+            // en su propio mensaje, para que se pueda copiar con una pulsación.
+            await responder(caja('TU CÓDIGO', [
                 '✦ Vence » en 90 segundos',
                 '',
                 '*Pasos:*',
                 '1. Abre WhatsApp en tu teléfono',
                 '2. Toca ⋮ → Dispositivos vinculados',
                 '3. Vincular con número de teléfono',
-                '4. Escribe el código de arriba'
-            ]);
-
-            // El código va al WhatsApp de quien lo pidió, no al grupo
-            const privado = `${numero}@s.whatsapp.net`;
-            const enviadoPrivado = await sock.sendMessage(privado, { text: cuerpo }).then(() => true).catch(() => false);
-
-            if (enviadoPrivado) {
-                if (privado !== chat) {
-                    await responder(caja('CÓDIGO ENVIADO', ['✧ Revisa tu WhatsApp, te llegó el código por privado.']));
-                }
-            } else {
-                // No se pudo escribir al privado: el código se muestra aquí mismo
-                await responder(cuerpo);
-            }
+                '4. Copia el código del mensaje siguiente y pégalo'
+            ]));
+            await sock.sendMessage(chat, { text: codigo });
             await sock.sendMessage(chat, { react: { text: '✅', key: msg.key } }).catch(() => {});
         } catch (e: any) {
             await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => {});

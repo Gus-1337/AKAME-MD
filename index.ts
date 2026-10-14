@@ -152,6 +152,10 @@ const displayLoadingMessage = () => {
         `${chalk.bold.white('---> ')} `));
 };
 
+// Subbots: el código de vinculación se pide una sola vez por proceso
+let codigoSubbotPedido = false;
+let intentosCodigoSubbot = 0;
+
 async function startBot() {
     await loadDB();
     if (esSubbot) {
@@ -183,7 +187,6 @@ async function startBot() {
     if (!state.creds.registered && esSubbot) {
         // Subbot nuevo: la vinculación la pide lib/subbots.ts, sin preguntas en consola
         usarCodigo = SUBBOT_MODO === 'vincular';
-        limpiarSesion();
         fs.mkdirSync(sDir, { recursive: true });
         const reloadedAuth = await useMultiFileAuthState(sDir);
         state = reloadedAuth.state;
@@ -225,7 +228,7 @@ async function startBot() {
         logger: P({ level: 'silent' }) as any,
         printQRInTerminal: false,
         version,
-        browser: Browsers.macOS('Safari'),
+        browser: esSubbot ? Browsers.windows('Chrome') : Browsers.macOS('Safari'),
         auth: {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, P({ level: 'silent' }) as any)
@@ -244,17 +247,8 @@ async function startBot() {
         fetchOpts: { agent: httpAgent } as any
     });
 
-    if (esSubbot && usarCodigo && !state.creds.registered) {
-        setTimeout(async () => {
-            try {
-                const raw: string = await sock.requestPairingCode(leerPerfil().numero);
-                const codigo = raw?.match(/.{1,4}/g)?.join('-') ?? raw;
-                reportar({ tipo: 'codigo', codigo });
-            } catch (err: any) {
-                reportar({ tipo: 'error', motivo: `No se pudo generar el código: ${err?.message || 'error'}` });
-                setTimeout(() => process.exit(1), 300);
-            }
-        }, 3000);
+    if (esSubbot) {
+        // La vinculación del subbot se pide en connection.update (ver abajo)
     } else if (usarCodigo && !state.creds.registered) {
         displayLoadingMessage();
         let num = await askQuestion('');
@@ -292,6 +286,26 @@ async function startBot() {
 
     sock.ev.on('connection.update', async (u) => {
         const { connection, lastDisconnect, qr } = u;
+
+        if (esSubbot && connection === 'connecting' && usarCodigo && !state.creds.registered && !codigoSubbotPedido) {
+            codigoSubbotPedido = true;
+            // Esperamos a que el socket esté abierto; si se cierra antes, la siguiente conexión lo reintenta
+            setTimeout(async () => {
+                try {
+                    const raw: string = await sock.requestPairingCode(leerPerfil().numero);
+                    const codigo = raw?.match(/.{1,4}/g)?.join('-') ?? raw;
+                    intentosCodigoSubbot = 0;
+                    reportar({ tipo: 'codigo', codigo });
+                } catch (err: any) {
+                    codigoSubbotPedido = false;
+                    intentosCodigoSubbot++;
+                    if (intentosCodigoSubbot >= 5) {
+                        reportar({ tipo: 'error', motivo: `No se pudo generar el código: ${err?.message || 'error'}` });
+                        setTimeout(() => process.exit(1), 300);
+                    }
+                }
+            }, 2500);
+        }
 
         if (qr && esQR) {
             try {
