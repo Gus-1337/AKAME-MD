@@ -1,125 +1,83 @@
 import { UserJid } from '#simple';
-import { activeEffectsLine, coinMultiplier, effectiveCooldown, luckBoost, softenPenalty } from '#shop';
+import { activeEffectsLine, coinMultiplier, effectiveCooldown, luckBoost, softenPenalty, titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin } from '#shop';
 import { saveDB } from '#db';
 import config from '#config';
 
+const GANA = [
+    'Robaste una tienda de conveniencia y escapaste con',
+    'Estafaste a un millonario distraído y conseguiste',
+    'Hackeaste una cuenta bancaria y te llevaste',
+    'Vendiste mercancía robada en el mercado negro y ganaste',
+    'Asaltaste un banco sin disparos y huiste con',
+    'Participaste en una pelea clandestina y ganaste',
+    'Falsificaste documentos y los vendiste por',
+    'Traficaste con boletos falsos y juntaste'
+];
+
+const PIERDE = [
+    'Te atraparon robando en una tienda y pagaste la fianza de',
+    'La policía te detuvo y tuviste que sobornar con',
+    'Un socio te traicionó y te robó',
+    'Intentaste estafar al equivocado y te hizo pagar',
+    'Te cayó la policía en plena operación y perdiste',
+    'Compraste material falso y perdiste',
+    'Tu plan falló y terminaste pagando'
+];
+
+const elegir = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+
 export default {
-    command: ['crime'],
+    command: ['crime', 'crimen'],
     description: 'Comete un crimen para ganar o perder monedas',
     category: 'economy',
     group: true,
-    run: async ({ chat, m, sock, usedPrefix, prefix, sender }: any) => {
-        const p = usedPrefix || prefix || config.prefix || '.';
-
+    run: async ({ chat, m, sock, sender, usedPrefix, prefix }: any) => {
+        const p = usedPrefix || prefix || (config as any).prefix || '.';
+        const reply = (t: string) => sock.sendMessage(chat, { text: t }, { quoted: m });
         try {
-            const realSender = await UserJid(sock, chat, sender);
+            if (bloqueadoPorAdmin(chat)) return reply(`「 ꕤ 」 Los comandos de *Economía* están bloqueados. Un admin puede usar *${p}onlyadmin off*.`);
+            const jid = await UserJid(sock, chat, sender);
+            const user = ecoUser(chat, jid);
+            if (!user) return reply('「 ꕤ 」 Error: La base de datos no está inicializada.');
+            const coin = (config as any)?.coin || '¥enes';
 
-            const dbData = (global as any).db?.data;
-            if (!dbData) {
-                return await sock.sendMessage(chat, { text: '「 ꕤ 」 Error: La base de datos no está inicializada.' }, { quoted: m });
+            const cooldown = effectiveCooldown(user, 5 * 60 * 1000);
+            const diff = Date.now() - (user.lastCrime || 0);
+            if (user.lastCrime && diff < cooldown) {
+                return reply(`「 ꕤ 」 La policía te busca, espera *${formatDuration(cooldown - diff)}* antes de otro crimen.`);
             }
-
-            if (!dbData.chats) dbData.chats = {};
-            if (!dbData.chats[chat]) dbData.chats[chat] = {};
-            if (!dbData.users) dbData.users = {};
-
-            const chatDb = dbData.chats[chat];
-            const chatUsers = chatDb.users || (chatDb.users = {});
-
-            if (chatDb.adminonly) {
-                return await sock.sendMessage(chat, {
-                    text:
-`「 ꕤ 」 Para utilizar comandos de *Economía* en este grupo, se requiere desactivar el modo *solo administradores*.
-
-> Un *administrador* puede desactivarlo con el comando » *${p}onlyadmin off*`
-                }, { quoted: m });
-            }
-
-            if (!chatUsers[realSender]) {
-                chatUsers[realSender] = { coins: 0, bank: 0, lastCrime: 0 };
-            }
-            const userInChat = chatUsers[realSender];
-
-            const coinName = (config as any)?.coin || '¥enes';
-            const coins = userInChat.coins || 0;
 
             const now = Date.now();
-            const cooldown = effectiveCooldown(userInChat, 5 * 60 * 1000);
-            const last = userInChat.lastCrime || 0;
-            const diff = now - last;
+            user.lastCrime = now;
 
-            if (last && diff < cooldown) {
-                const remaining = cooldown - diff;
-                const minutos = Math.floor(remaining / (1000 * 60));
-                const segundos = Math.floor((remaining % (1000 * 60)) / 1000);
-                const tiempo = minutos > 0
-                    ? `${minutos} minutos ${segundos} segundos`
-                    : `${segundos} segundos`;
-                return await sock.sendMessage(chat, {
-                    text: `「 ꕤ 」 Debes esperar *${tiempo}* para usar *${p}crime* de nuevo.`
-                }, { quoted: m });
-            }
-
-            const ganoFrases = [
-                'Robaste una tienda de conveniencia y escapaste con',
-                'Estafaste a un millonario distraído y conseguiste',
-                'Hackeaste una cuenta bancaria y te llevaste',
-                'Vendiste mercancía robada en el mercado negro y ganaste',
-                'Asaltaste un banco sin disparos y huiste con',
-                'Te intentaron robar, pero al no tener nada les diste pena y te dieron',
-                'Participaste en una pelea clandestina y ganaste',
-                'Falsificaste documentos y los vendiste por',
-                'Secuestraste al perro de un vecino y cobraste el rescate de',
-                'Traficaste con boletos falsos y juntaste'
-            ];
-
-            const perdioFrases = [
-                'Intentaste vender a tu hermana pero te la quitaron y perdiste',
-                'Te atraparon robando en una tienda y pagaste la fianza de',
-                'La policía te detuvo y tuviste que sobornar con',
-                'Un socio te traicionó y te robó',
-                'Intentaste estafar al equivocado y te hizo pagar',
-                'Te cayó la policía en plena operación y perdiste',
-                'Compraste droga falsa y perdiste',
-                'El negocio salió mal y tuviste que pagar',
-                'Te hackearon de vuelta y perdiste',
-                'Tu plan falló y terminaste pagando'
-            ];
-
-            const random = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
-
-            const perder = Math.random() < 0.25 * (1 - luckBoost(userInChat, 0));
-
+            const perder = Math.random() < 0.25 * (1 - luckBoost(user, 0));
             if (perder) {
-                const rango = Math.floor(Math.random() * 15000) + 3000;
-                const perdida = softenPenalty(userInChat, Math.min(coins, rango));
-                const frase = random(perdioFrases);
-
-                userInChat.coins = coins - perdida;
-                userInChat.lastCrime = now;
-
-                saveDB(chat, realSender);
-
-                return await sock.sendMessage(chat, {
-                    text: `✿ ${frase} *-${perdida.toLocaleString()} ${coinName}*.${activeEffectsLine(userInChat)}`
-                }, { quoted: m });
+                const perdida = softenPenalty(user, Math.min(user.coins || 0, Math.floor(Math.random() * 15000) + 3000));
+                user.coins = (user.coins || 0) - perdida;
+                saveDB(chat, jid);
+                return reply(
+                    `${titulo('CRIMEN')}\n\n` +
+                    `   ${elegir(PIERDE)}\n\n` +
+                    `✩ Perdiste › *-${money(perdida)}* ${coin}\n` +
+                    `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                    activeEffectsLine(user)
+                );
             }
 
-            const ganancia = (Math.floor(Math.random() * 15000) + 3000) * coinMultiplier(userInChat);
-            const frase = random(ganoFrases);
+            const ganancia = (Math.floor(Math.random() * 15000) + 3000) * coinMultiplier(user);
+            user.coins = (user.coins || 0) + ganancia;
+            saveDB(chat, jid);
 
-            userInChat.coins = coins + ganancia;
-            userInChat.lastCrime = now;
-
-            saveDB(chat, realSender);
-
-            return await sock.sendMessage(chat, {
-                text: `✿ ${frase} *${ganancia.toLocaleString()} ${coinName}*.${activeEffectsLine(userInChat)}`
-            }, { quoted: m });
-
+            return reply(
+                `${titulo('CRIMEN')}\n\n` +
+                `   ${elegir(GANA)}\n\n` +
+                `✩ Ganaste › *+${money(ganancia)}* ${coin}\n` +
+                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                activeEffectsLine(user)
+            );
         } catch (e) {
             console.error('Error en crime:', e);
-            await sock.sendMessage(chat, { text: '「 ꕤ 」 Ocurrió un error al ejecutar el crimen.' }, { quoted: m });
+            return reply('「 ꕤ 」 Ocurrió un error al ejecutar el crimen.');
         }
     }
 };

@@ -138,3 +138,46 @@ export const activeEffectsLine = (user: any): string => {
     if (!activos.length) return '';
     return `\n> ${activos.map((i) => `${i.emoji} ${formatDuration(buffRemaining(user, i.id))}`).join('  ')}`;
 };
+
+/* ---- Helpers de diseño y apuestas para los juegos de economía ---- */
+
+/** Encabezado con el mismo estilo de .bal, waifus y Pokémon. */
+export const titulo = (t: string): string => `˚₊· ͟͟͞͞➳❥ *${t}* ✦`;
+
+/** Número con separador de miles en formato peruano. */
+export const money = (n: number): string => Math.floor(Number(n) || 0).toLocaleString('es-PE');
+
+const soloDigitos = (x: string): string => String(x).split('@')[0].split(':').pop()?.replace(/[^\d]/g, '') || '';
+
+/** Busca la cuenta de economía del usuario en el grupo (la crea si no existe). */
+export const ecoUser = (chat: string, jid: string): any => {
+    const db = (globalThis as any).db?.data;
+    if (!db) return null;
+    if (!db.chats) db.chats = {};
+    if (!db.chats[chat]) db.chats[chat] = {};
+    const users = db.chats[chat].users || (db.chats[chat].users = {});
+    let u = users[jid];
+    if (!u) {
+        const num = soloDigitos(jid);
+        for (const [k, v] of Object.entries(users)) {
+            if (soloDigitos(k) === num) { u = v; break; }
+        }
+    }
+    if (!u) u = users[jid] = { coins: 0, bank: 0 };
+    return u;
+};
+
+/** true si el grupo está en modo solo administradores (los juegos de economía se bloquean). */
+export const bloqueadoPorAdmin = (chat: string): boolean =>
+    !!(globalThis as any).db?.data?.chats?.[chat]?.adminonly;
+
+/** Valida una apuesta. Acepta un número o `all` / `todo` para apostar todo el efectivo. */
+export const parseApuesta = (raw: string | undefined, saldo: number, min = 200): { bet: number } | { error: string } => {
+    const s = String(raw || '').toLowerCase().trim();
+    if (!s) return { error: 'Indica cuánto quieres apostar (o *all* para todo).' };
+    const bet = ['all', 'todo', 'max'].includes(s) ? Math.floor(saldo) : Math.floor(Number(s.replace(/[^\d]/g, '')));
+    if (!bet || bet <= 0) return { error: 'La cantidad no es válida.' };
+    if (bet > saldo) return { error: `No tienes suficiente efectivo. Tienes *${money(saldo)}*.` };
+    if (bet < min) return { error: `La apuesta mínima es *${money(min)}*.` };
+    return { bet };
+};

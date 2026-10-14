@@ -1,62 +1,68 @@
 import { UserJid } from '#simple';
-import { activeEffectsLine, luckBoost, softenPenalty } from '#shop';
+import { activeEffectsLine, luckBoost, softenPenalty, titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin } from '#shop';
 import config from '#config';
 import { saveDB } from '#db';
-
-const normalizeNumber = (x: string) => {
-    let c = String(x).split('@')[0].split(':').pop() || '';
-    return c.replace(/[^\d]/g, '');
-};
 
 export default {
     command: ['mazmorra', 'dungeon'],
     description: 'Entra a la mazmorra: puedes ganar mucho o perder',
     category: 'economy',
     group: true,
-    run: async ({ chat, m, sock, sender }: any) => {
-        const realSender = await UserJid(sock, chat, sender);
-        const chatUsers = (global as any).db.data.chats[chat].users;
-        let user = chatUsers[realSender];
-        if (!user) {
-            const num = normalizeNumber(realSender);
-            for (const [k, v] of Object.entries(chatUsers)) {
-                if (normalizeNumber(k) === num) { user = v as any; break; }
+    run: async ({ chat, m, sock, sender, usedPrefix, prefix }: any) => {
+        const p = usedPrefix || prefix || (config as any).prefix || '.';
+        const reply = (t: string) => sock.sendMessage(chat, { text: t }, { quoted: m });
+        try {
+            if (bloqueadoPorAdmin(chat)) return reply(`「 ꕤ 」 Los comandos de *Economía* están bloqueados. Un admin puede usar *${p}onlyadmin off*.`);
+            const jid = await UserJid(sock, chat, sender);
+            const user = ecoUser(chat, jid);
+            if (!user) return reply('「 ꕤ 」 Error: La base de datos no está inicializada.');
+            const coin = (config as any)?.coin || '¥enes';
+
+            const COOLDOWN = 30 * 60 * 1000;
+            const diff = Date.now() - (user.lastMazmorra || 0);
+            if (user.lastMazmorra && diff < COOLDOWN) {
+                return reply(`${titulo('MAZMORRA')}\n\n   La mazmorra está en descanso\n✩ Vuelve en › *${formatDuration(COOLDOWN - diff)}*`);
             }
+
+            const boost = luckBoost(user, 0);
+            const tiro = Math.random();
+            let cambio = 0;
+            let historia: string;
+
+            if (tiro < 0.5 + boost) {
+                cambio = Math.floor(Math.random() * 7000) + 3000;
+                historia = 'Entraste y saliste con un botín';
+            } else if (tiro < 0.75 + boost) {
+                cambio = Math.floor(Math.random() * 12000) + 8000;
+                historia = '¡Encontraste un cofre legendario!';
+            } else if (tiro < 0.9 + boost * 0.5) {
+                cambio = -softenPenalty(user, Math.floor(Math.random() * 3000) + 1000);
+                historia = 'Un monstruo te atacó y tuviste que huir';
+            } else {
+                historia = 'Caminaste por horas y no encontraste nada';
+            }
+
+            const antes = user.coins || 0;
+            user.coins = Math.max(0, antes + cambio);
+            user.lastMazmorra = Date.now();
+            saveDB(chat, jid);
+
+            const linea = cambio > 0
+                ? `✩ Ganaste › *+${money(cambio)}* ${coin}`
+                : cambio < 0
+                    ? `✩ Perdiste › *-${money(Math.min(antes, Math.abs(cambio)))}* ${coin}`
+                    : `✩ Sin cambios`;
+
+            return reply(
+                `${titulo('MAZMORRA')}\n\n` +
+                `   ${historia}\n\n` +
+                `${linea}\n` +
+                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                activeEffectsLine(user)
+            );
+        } catch (e) {
+            console.error('Error en mazmorra:', e);
+            return reply('「 ꕤ 」 Ocurrió un error en la mazmorra.');
         }
-        if (!user) user = chatUsers[realSender] = { coins: 0, bank: 0 };
-
-        const coinName = (config as any)?.coin || '¥enes';
-        const COOLDOWN = 30 * 60 * 1000;
-
-        if (user.lastMazmorra && Date.now() - user.lastMazmorra < COOLDOWN) {
-            const r = COOLDOWN - (Date.now() - user.lastMazmorra);
-            const mins = Math.floor(r / 60000);
-            const secs = Math.ceil((r % 60000) / 1000);
-            return sock.sendMessage(chat, { text: `「✿」 La mazmorra está en descanso\n> Vuelve en *${mins}m ${secs}s*` }, { quoted: m });
-        }
-
-        const boost = luckBoost(user, 0);
-        const random = Math.random();
-        let amount = 0;
-        let msg = '';
-
-        if (random < 0.5 + boost) {
-            amount = Math.floor(Math.random() * 7000) + 3000;
-            msg = `「✿」 Entraste a la mazmorra y conseguiste *${amount.toLocaleString()} ${coinName}*`;
-        } else if (random < 0.75 + boost) {
-            amount = Math.floor(Math.random() * 12000) + 8000;
-            msg = `「✿」 Encontraste un cofre con *${amount.toLocaleString()} ${coinName}*\n> Cofre legendario`;
-        } else if (random < 0.9 + boost * 0.5) {
-            amount = -softenPenalty(user, Math.floor(Math.random() * 3000) + 1000);
-            msg = `「✿」 Un monstruo te atacó y perdiste *${Math.abs(amount).toLocaleString()} ${coinName}*`;
-        } else {
-            msg = `「✿」 No encontraste nada en la mazmorra`;
-        }
-
-        user.coins = Math.max(0, (user.coins || 0) + amount);
-        user.lastMazmorra = Date.now();
-        saveDB(chat, realSender);
-
-        await sock.sendMessage(chat, { text: `${msg}\n> Balance » *${user.coins.toLocaleString()} ${coinName}*${activeEffectsLine(user)}` }, { quoted: m });
     }
 };

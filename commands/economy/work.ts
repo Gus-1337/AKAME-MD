@@ -1,7 +1,32 @@
 import { UserJid } from '#simple';
-import { activeEffectsLine, coinMultiplier, effectiveCooldown, softenPenalty } from '#shop';
+import { activeEffectsLine, coinMultiplier, effectiveCooldown, softenPenalty, titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin } from '#shop';
 import { saveDB } from '#db';
 import config from '#config';
+
+const GANA = [
+    'Cargaste cajas en el mercado toda la tarde y ganaste',
+    'Repartiste pizzas bajo la lluvia y recibiste',
+    'Programaste toda la noche y tu jefe te pagó',
+    'Limpiaste oficinas a escondidas y conseguiste',
+    'Vendiste limonada en el parque y juntaste',
+    'Ayudaste a una anciana a cruzar y te dio',
+    'Ganaste un mini torneo de barrio y te llevaste',
+    'Hiciste un mandado urgente y te pagaron',
+    'Tradujiste un texto aburrido y cobraste'
+];
+
+const PIERDE = [
+    'Tu jefe te estafó y perdiste',
+    'Te robaron la cartera camino al trabajo y perdiste',
+    'Invertiste en un negocio trucho y perdiste',
+    'Te multaron por estacionar mal y perdiste',
+    'Un cliente no te pagó y perdiste',
+    'Te hackearon la cuenta y perdiste',
+    'Tropezaste y se te cayeron las monedas, perdiste',
+    'El banco te cobró comisiones y perdiste'
+];
+
+const elegir = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
 export default {
     command: ['work', 'w'],
@@ -10,104 +35,54 @@ export default {
     group: true,
     run: async (ctx: any) => {
         const { chat, m, sock, sender, usedPrefix, prefix } = ctx;
-        const p = usedPrefix || prefix || config.prefix || '.';
-        const reply = (txt: string) => sock.sendMessage(chat, { text: txt }, { quoted: m });
+        const p = usedPrefix || prefix || (config as any).prefix || '.';
+        const reply = (t: string) => sock.sendMessage(chat, { text: t }, { quoted: m });
 
         try {
-            const realSender = await UserJid(sock, chat, sender);
+            if (bloqueadoPorAdmin(chat)) {
+                return reply(`「 ꕤ 」 Los comandos de *Economía* están bloqueados. Un admin puede usar *${p}onlyadmin off*.`);
+            }
+            const jid = await UserJid(sock, chat, sender);
+            const user = ecoUser(chat, jid);
+            if (!user) return reply('「 ꕤ 」 Error: La base de datos no está inicializada.');
+            const coin = (config as any)?.coin || '¥enes';
 
-            const dbData = (global as any).db?.data;
-            if (!dbData) return reply('✿ Error: La base de datos no está inicializada.');
+            const now = Date.now();
+            const cooldown = effectiveCooldown(user, 60 * 1000);
+            const diff = now - (user.lastWork || 0);
+            if (user.lastWork && diff < cooldown) {
+                return reply(`「 ꕤ 」 Vuelve en *${formatDuration(cooldown - diff)}* para trabajar de nuevo.`);
+            }
 
-            if (!dbData.chats) dbData.chats = {};
-            if (!dbData.chats[chat]) dbData.chats[chat] = {};
-            if (!dbData.users) dbData.users = {};
+            user.lastWork = now;
 
-            const chatDb = dbData.chats[chat];
-            const chatUsers = chatDb.users || (chatDb.users = {});
-
-            if (chatDb.adminonly) {
+            if (Math.random() < 0.25) {
+                const perdida = softenPenalty(user, Math.min(user.coins || 0, Math.floor(Math.random() * 5000) + 1000));
+                user.coins = (user.coins || 0) - perdida;
+                saveDB(chat, jid);
                 return reply(
-`「 ꕤ 」 Para utilizar comandos de *Economía* en este grupo, se requiere desactivar el modo *solo administradores*.
-
-> Un *administrador* puede desactivarlo con el comando » *${p}onlyadmin off*`
+                    `${titulo('TRABAJO')}\n\n` +
+                    `   ${elegir(PIERDE)}\n\n` +
+                    `✩ Perdiste › *-${money(perdida)}* ${coin}\n` +
+                    `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                    activeEffectsLine(user)
                 );
             }
 
-            if (!chatUsers[realSender]) {
-                chatUsers[realSender] = { coins: 0, bank: 0, lastWork: 0 };
-            }
-            const userInChat = chatUsers[realSender];
+            const ganancia = (Math.floor(Math.random() * 10000) + 1) * coinMultiplier(user);
+            user.coins = (user.coins || 0) + ganancia;
+            saveDB(chat, jid);
 
-            const coinName = (config as any)?.coin || '¥enes';
-            const coins = userInChat.coins || 0;
-
-            const now = Date.now();
-            const cooldown = effectiveCooldown(userInChat, 60 * 1000);
-            const last = userInChat.lastWork || 0;
-            const diff = now - last;
-
-            if (last && diff < cooldown) {
-                const remaining = Math.ceil((cooldown - diff) / 1000);
-                return reply(`「 ꕤ 」 Debes esperar *${remaining} segundos* para usar *${p}work* de nuevo.`);
-            }
-
-            const ganoFrases = [
-                'Trabajaste para el gran sistema capitalista y fuiste recompensado con',
-                'Cargaste cajas en el mercado toda la tarde y ganaste',
-                'Repartiste pizzas bajo la lluvia y recibiste',
-                'Programaste toda la noche y tu jefe te pagó',
-                'Limpiaste oficinas a escondidas y conseguiste',
-                'Vendiste limonada en el parque y juntaste',
-                'Ayudaste a una anciana a cruzar y te dio',
-                'Ganaste un mini torneo de barrio y te llevaste',
-                'Hiciste un mandado urgente y te pagaron',
-                'Tradujiste un texto aburrido y cobraste'
-            ];
-
-            const perdioFrases = [
-                'Intentaste trabajar pero tu jefe te estafó y perdiste',
-                'Te robaron la cartera camino al trabajo y perdiste',
-                'Invertiste en un negocio trucho y perdiste',
-                'Te multaron por estacionar mal y perdiste',
-                'Compraste material defectuoso y perdiste',
-                'Un cliente no te pagó y perdiste',
-                'Te hackearon la cuenta y perdiste',
-                'Tropezaste y se te cayeron las monedas, perdiste',
-                'El banco te cobró comisiones y perdiste',
-                'Te salió mal el trabajo y perdiste'
-            ];
-
-            const random = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
-
-            const perder = Math.random() < 0.25;
-
-            if (perder) {
-                const cantidad = Math.floor(Math.random() * 5000) + 1000;
-                const perdida = softenPenalty(userInChat, Math.min(coins, cantidad));
-                const frase = random(perdioFrases);
-
-                userInChat.coins = coins - perdida;
-                userInChat.lastWork = now;
-
-                saveDB(chat, realSender);
-
-                return reply(`✿ ${frase} *${perdida.toLocaleString()} ${coinName}*.${activeEffectsLine(userInChat)}`);
-            }
-
-            const ganancia = (Math.floor(Math.random() * 10000) + 1) * coinMultiplier(userInChat);
-            const frase = random(ganoFrases);
-
-            userInChat.coins = coins + ganancia;
-            userInChat.lastWork = now;
-
-            saveDB(chat, realSender);
-
-            return reply(`✿ ${frase} *${ganancia.toLocaleString()} ${coinName}*.${activeEffectsLine(userInChat)}`);
-
+            return reply(
+                `${titulo('TRABAJO')}\n\n` +
+                `   ${elegir(GANA)}\n\n` +
+                `✩ Ganaste › *+${money(ganancia)}* ${coin}\n` +
+                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                activeEffectsLine(user)
+            );
         } catch (e) {
             console.error('Error en work:', e);
-            return reply('「 ꕤ 」 Ocurrió un error al ejecutar el comando.');
+            return reply('「 ꕤ 」 Ocurrió un error al trabajar.');
         }
     }
 };

@@ -1,11 +1,24 @@
 import { UserJid } from '#simple';
-import { activeEffectsLine, coinMultiplier, effectiveCooldown, softenPenalty } from '#shop';
+import { activeEffectsLine, coinMultiplier, effectiveCooldown, titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin } from '#shop';
 import config from '#config';
 import { saveDB } from '#db';
 
-const normalizeNumber = (x) => {
-    let c = String(x).split('@')[0].split(':').pop() || '';
-    return c.replace(/[^\d]/g, '');
+const ANIMALES = [
+    { nombre: 'Conejo 🐰', coins: 300, prob: 0.1667 },
+    { nombre: 'Zorro 🦊', coins: 600, prob: 0.1667 },
+    { nombre: 'Jabalí 🐗', coins: 1200, prob: 0.1667 },
+    { nombre: 'Lobo 🐺', coins: 900, prob: 0.1667 },
+    { nombre: 'Oso 🐻', coins: 1500, prob: 0.1667 },
+    { nombre: 'Dragón 🐉', coins: 5000, prob: 0.1667 }
+];
+
+const sacarAnimal = () => {
+    let t = Math.random();
+    for (const a of ANIMALES) {
+        if (t < a.prob) return a;
+        t -= a.prob;
+    }
+    return ANIMALES[0];
 };
 
 export default {
@@ -13,41 +26,39 @@ export default {
     description: 'Caza animales para ganar coins',
     category: 'economy',
     group: true,
-    run: async ({ chat, m, sock, sender }) => {
-        const realSender = await UserJid(sock, chat, sender);
-        const chatUsers = global.db.data.chats[chat].users;
-        let user = chatUsers[realSender];
-        if (!user) {
-            const num = normalizeNumber(realSender);
-            for (const [k, v] of Object.entries(chatUsers)) {
-                if (normalizeNumber(k) === num) { user = v; break; }
+    run: async ({ chat, m, sock, sender, usedPrefix, prefix }: any) => {
+        const p = usedPrefix || prefix || (config as any).prefix || '.';
+        const reply = (t: string) => sock.sendMessage(chat, { text: t }, { quoted: m });
+        try {
+            if (bloqueadoPorAdmin(chat)) return reply(`「 ꕤ 」 Los comandos de *Economía* están bloqueados. Un admin puede usar *${p}onlyadmin off*.`);
+            const jid = await UserJid(sock, chat, sender);
+            const user = ecoUser(chat, jid);
+            if (!user) return reply('「 ꕤ 」 Error: La base de datos no está inicializada.');
+            const coin = (config as any)?.coin || '¥enes';
+
+            const cooldown = effectiveCooldown(user, 3 * 60 * 1000);
+            const diff = Date.now() - (user.lastCazar || 0);
+            if (user.lastCazar && diff < cooldown) {
+                return reply(`「 ꕤ 」 Los animales se esconden, vuelve en *${formatDuration(cooldown - diff)}*.`);
             }
+
+            const animal = sacarAnimal();
+            const ganancia = (animal.coins + Math.floor(Math.random() * 300)) * coinMultiplier(user);
+
+            user.coins = (user.coins || 0) + ganancia;
+            user.lastCazar = Date.now();
+            saveDB(chat, jid);
+
+            return reply(
+                `${titulo('CACERÍA')}\n\n` +
+                `   Cazaste un *${animal.nombre}*\n\n` +
+                `✩ Ganaste › *+${money(ganancia)}* ${coin}\n` +
+                `✩ Saldo › *${money(user.coins)}* ${coin}` +
+                activeEffectsLine(user)
+            );
+        } catch (e) {
+            console.error('Error en cazar:', e);
+            return reply('「 ꕤ 」 Ocurrió un error al cazar.');
         }
-        if (!user) user = chatUsers[realSender] = { coins: 0, bank: 0 };
-
-        const coinName = config?.coin || '¥enes';
-        const COOLDOWN = effectiveCooldown(user, 3 * 60 * 1000);
-
-        if (user.lastCazar && Date.now() - user.lastCazar < COOLDOWN) {
-            const r = Math.ceil((COOLDOWN - (Date.now() - user.lastCazar)) / 1000);
-            return sock.sendMessage(chat, { text: `「✿」 Debes esperar *${r}s* para volver a cazar` }, { quoted: m });
-        }
-
-        const animales = [
-            { name: 'Conejo 🐰', coins: 300 },
-            { name: 'Zorro 🦊', coins: 600 },
-            { name: 'Lobo 🐺', coins: 900 },
-            { name: 'Oso 🐻', coins: 1500 },
-            { name: 'Jabalí 🐗', coins: 1200 },
-            { name: 'Dragón 🐉', coins: 5000 },
-        ];
-        const animal = animales[Math.floor(Math.random() * animales.length)];
-        const reward = (animal.coins + Math.floor(Math.random() * 300)) * coinMultiplier(user);
-
-        user.coins = (user.coins || 0) + reward;
-        user.lastCazar = Date.now();
-        saveDB(chat, realSender);
-
-        await sock.sendMessage(chat, { text: `「🏹」 Cazaste un *${animal.name}* y ganaste *${reward.toLocaleString()} ${coinName}*\n> Balance » *${user.coins.toLocaleString()} ${coinName}*${activeEffectsLine(user)}` }, { quoted: m });
     }
 };
