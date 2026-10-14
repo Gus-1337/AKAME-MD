@@ -1,4 +1,4 @@
-import { crearSubbot, buscarSubbot } from '../../lib/subbots.ts';
+import { crearSubbot, buscarSubbot, borrarSubbot, esperaCodigo } from '../../lib/subbots.ts';
 
 const caja = (titulo: string, lineas: string[]) =>
     `˚₊· ͟͟͞͞➳❥ *${titulo}*\n───────────────\n${lineas.join('\n')}\n───────────────\n> AKAME-MD 🌸`;
@@ -24,12 +24,18 @@ const numeroDelRemitente = (ctx: any): string => {
 const ESTADOS: Record<string, string> = {
     emparejando: '⏳ esperando vinculación',
     conectado: '✅ conectado',
-    caido: '⚠️ caído (se está reconectando)'
+    caido: '⏸️ caído (usa .reactivar en el bot principal)',
+    pausado: '⏸️ pausado (usa .reactivar en el bot principal)'
 };
+
+const MSG_ESPERA = (seg: number) => caja('ESPERA', [
+    '✧ Lo siento, tienes que esperar 1 minuto para usar de nuevo el comando.',
+    `✦ Puedes volver a intentarlo en ${seg} s.`
+]);
 
 export default {
     command: ['code', 'vincular'],
-    description: 'Crea tu subbot y te envía el código de vinculación a tu WhatsApp',
+    description: 'Crea tu subbot y te envía el código de vinculación',
     category: 'subbot',
     run: async (ctx: any) => {
         const { sock, msg, chat, args } = ctx;
@@ -42,16 +48,27 @@ export default {
         }
 
         const existente = buscarSubbot(numero);
-        if (existente) {
+        const espera = esperaCodigo(numero);
+
+        if (existente?.estado === 'conectado') {
+            return responder(caja('TU SUBBOT', ['✧ Tu subbot ya está conectado.', '✦ Usa .subbot para ver tus datos.']));
+        }
+        if (existente && existente.estado !== 'emparejando') {
             return responder(caja('TU SUBBOT', [
                 `✧ Estado » ${ESTADOS[existente.estado] || existente.estado}`,
-                '✦ Usa .subbot para ver los datos.'
+                '✦ Escribe .reactivar en el bot principal para encenderlo.'
             ]));
+        }
+        if (espera > 0) {
+            return responder(MSG_ESPERA(espera));
         }
 
         try {
+            // Código que nunca se vinculó y ya pasó la espera: se reemplaza por uno nuevo
+            if (existente) borrarSubbot(existente.id);
+
             await sock.sendMessage(chat, { react: { text: '⏳', key: msg.key } }).catch(() => {});
-            const { codigo } = await crearSubbot(numero);
+            const { codigo } = await crearSubbot(numero, chat);
 
             // Mismo chat donde se pidió. Primero las instrucciones y después el código solo,
             // en su propio mensaje, para que se pueda copiar con una pulsación.

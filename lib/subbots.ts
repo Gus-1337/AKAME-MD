@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 /**
  * Gestor de subbots (proceso principal).
- * Cada subbot corre en su propio proceso (subbot/worker.ts) con su carpeta en subbots/<id>.
- * El cupo lo cambia el owner con .subbots max <n> (por defecto 20).
+ * Cada subbot corre el mismo index.ts en modo subbot, con su carpeta en subbots/<id>.
+ * Estados: emparejando → conectado; conectado → caido (se reintenta) o pausado (.stop).
  */
 
 export const CUPO_DEFECTO = 20;
@@ -14,15 +14,15 @@ const CUPO_MIN = 1;
 const CUPO_MAX = 100;
 const TIEMPO_VINCULAR_MS = 90_000;
 const ESPERA_CODIGO_MS = 25_000;
+const ESPERA_ENTRE_CODIGOS_MS = 60_000;
 const MAX_REINTENTOS = 5;
 
 const RAIZ = path.join(process.cwd(), 'subbots');
 const REGISTRO = path.join(RAIZ, 'registro.json');
 const CUPO_ARCHIVO = path.join(RAIZ, 'cupo.json');
-// El subbot corre el mismo index.ts del bot, en modo subbot (ver lib/subbot-mode.ts)
 const ENTRADA = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'index.ts');
 
-// Mismos flags que scripts/lanzar.mjs, para que el worker corra TypeScript directo
+// Mismos flags que scripts/lanzar.mjs, para que el subbot corra TypeScript directo
 const [MAJ, MIN] = process.versions.node.split('.').map(Number);
 const alMenos = (a: number, b: number) => MAJ > a || (MAJ === a && MIN >= b);
 const EXEC_ARGV = [
@@ -30,13 +30,14 @@ const EXEC_ARGV = [
     ...(alMenos(22, 18) || alMenos(23, 6) ? [] : ['--experimental-strip-types'])
 ];
 
-export type EstadoSubbot = 'emparejando' | 'conectado' | 'caido';
+export type EstadoSubbot = 'emparejando' | 'conectado' | 'caido' | 'pausado';
 
 export interface Subbot {
     id: string;
     numero: string;
     estado: EstadoSubbot;
     creado: string;
+    chat?: string; // chat donde se pidió el código (aquí se avisa cuando se conecta)
 }
 
 interface Vivo {
@@ -47,6 +48,7 @@ interface Vivo {
 }
 
 const vivos = new Map<string, Vivo>();
+const ultimoCodigo = new Map<string, number>(); // número → última vez que recibió código
 
 fs.mkdirSync(RAIZ, { recursive: true });
 
@@ -86,7 +88,12 @@ export const setCupo = (n: number) => {
 
 // ---------- Consulta ----------
 
+/** Todos los subbots registrados (cuentan para el cupo). */
 export const listarSubbots = (): Subbot[] => leerRegistro();
+
+/** Los que se muestran en la lista: los conectados y los que esperan vincularse. */
+export const listarVisibles = (): Subbot[] =>
+    leerRegistro().filter((s) => s.estado === 'conectado' || s.estado === 'emparejando');
 
 export const buscarSubbot = (idONumero: string): Subbot | undefined => {
     const clave = String(idONumero || '').trim();
@@ -94,9 +101,34 @@ export const buscarSubbot = (idONumero: string): Subbot | undefined => {
     return leerRegistro().find((s) => s.id === clave || (digitos && s.numero === digitos));
 };
 
+/** Segundos que faltan para poder pedir otro código con este número (0 si ya puede). */
+export const esperaCodigo = (numero: string): number => {
+    const t = ultimoCodigo.get(soloDigitos(numero));
+    if (!t) return 0;
+    return Math.max(0, Math.ceil((t + ESPERA_ENTRE_CODIGOS_MS - Date.now()) / 1000));
+};
+
+/** Sesión guardada con la cuenta ya vinculada (sin esto no se puede reactivar). */
+const sesionVinculada = (id: string): boolean => {
+    const creds = leerJSON<{ registered?: boolean }>(path.join(RAIZ, id, 'auth', 'creds.json'), {});
+    return creds.registered === true;
+};
+
 // ---------- Procesos ----------
 
-const perfilDe = (id: string) => leerJSON<Record<string, any>>(path.join(RAIZ, id, 'perfil.json'), {});
+const notificarConexion = (entrada: Subbot) => {
+    const sock = (global as any).mainConn;
+    if (!sock || !entrada.chat) return;
+    const texto = [
+        '˚₊· ͟͟͞͞➳❥ *NUEVO SUBBOT CONECTADO*',
+        '───────────────',
+        `✧ Número » +${entrada.numero}`,
+        '✦ Ya puede usar sus comandos',
+        '───────────────',
+        '> AKAME-MD 🌸'
+    ].join('\n');
+    sock.sendMessage(entrada.chat, { text: texto }).catch(() => {});
+};
 
 const lanzarWorker = (id: string, modo: 'vincular' | 'restaurar'): ChildProcess => {
     const proc = fork(ENTRADA, [], {
@@ -117,8 +149,19 @@ const lanzarWorker = (id: string, modo: 'vincular' | 'restaurar'): ChildProcess 
         if (m?.tipo === 'conectado') {
             const v = vivos.get(id);
             if (v) { clearTimeout(v.timer); v.reintentos = 0; }
+            const antes = leerRegistro().find((s) => s.id === id);
             cambiar(id, { estado: 'conectado' });
+            if (antes?.estado === 'emparejando' && antes.chat) {
+                notificarConexion({ ...antes, estado: 'conectado' });
+            }
             console.log(`[SUBBOT ${id}] conectado`);
+        }
+        if (m?.tipo === 'pausar') {
+            // Lo pidió el dueño con .stop: el proceso se cierra y no se vuelve a levantar
+            const v = vivos.get(id);
+            if (v) { v.apagando = true; clearTimeout(v.timer); }
+            cambiar(id, { estado: 'pausado' });
+            console.log(`[SUBBOT ${id}] pausado por su dueño`);
         }
         if (m?.tipo === 'desvinculado') {
             console.log(`[SUBBOT ${id}] desvinculado desde WhatsApp, se borra`);
@@ -138,12 +181,13 @@ const lanzarWorker = (id: string, modo: 'vincular' | 'restaurar'): ChildProcess 
         }
         cambiar(id, { estado: 'caido' });
         if (v.reintentos >= MAX_REINTENTOS) {
-            console.log(`[SUBBOT ${id}] caído varias veces, no se reintenta`);
+            console.log(`[SUBBOT ${id}] caído varias veces, queda pendiente de .reactivar`);
             return;
         }
         console.log(`[SUBBOT ${id}] caído, reintento ${v.reintentos + 1}/${MAX_REINTENTOS} en 10 s`);
         setTimeout(() => {
             if (!fs.existsSync(path.join(RAIZ, id))) return;
+            if (leerRegistro().find((s) => s.id === id)?.estado !== 'caido') return;
             const previo = vivos.get(id);
             lanzarWorker(id, 'restaurar');
             const nuevo = vivos.get(id);
@@ -167,25 +211,49 @@ export const borrarSubbot = (id: string) => {
     guardarRegistro(leerRegistro().filter((s) => s.id !== id));
 };
 
-/** Al arrancar el bot principal: vuelve a levantar los subbots que ya estaban vinculados. */
+/**
+ * Vuelve a encender un subbot pausado o caído. Devuelve:
+ * 'ok' si arrancó, 'cerrada' si la sesión ya no existe (se borra), 'activo' si ya estaba encendido.
+ */
+export const reactivarSubbot = (id: string): 'ok' | 'cerrada' | 'activo' | 'pendiente' => {
+    const entrada = leerRegistro().find((s) => s.id === id);
+    if (!entrada) return 'cerrada';
+    if (entrada.estado === 'conectado') return 'activo';
+    if (entrada.estado === 'emparejando') return 'pendiente';
+    if (vivos.has(id) && entrada.estado !== 'pausado') return 'activo';
+    if (!sesionVinculada(id)) {
+        borrarSubbot(id);
+        return 'cerrada';
+    }
+    cambiar(id, { estado: 'caido' });
+    vivos.delete(id);
+    lanzarWorker(id, 'restaurar');
+    vivos.get(id)!.reintentos = 0;
+    return 'ok';
+};
+
+/** Al arrancar el bot principal: vuelve a levantar los subbots vinculados que no estaban pausados. */
 export const restaurarSubbots = () => {
     const lista = leerRegistro();
+    let levantados = 0;
     for (const s of lista) {
         if (!fs.existsSync(path.join(RAIZ, s.id))) {
             guardarRegistro(leerRegistro().filter((x) => x.id !== s.id));
             continue;
         }
-        if (vivos.has(s.id)) continue;
+        if (s.estado === 'pausado' || vivos.has(s.id)) continue;
         lanzarWorker(s.id, 'restaurar');
+        levantados++;
     }
-    if (lista.length) console.log(`[SUBBOTS] restaurando ${lista.length} subbot(s)`);
+    if (levantados) console.log(`[SUBBOTS] restaurando ${levantados} subbot(s)`);
 };
 
 /**
  * Crea un subbot para un número y devuelve el código de vinculación.
+ * `chat` es donde se pidió el código: ahí se avisa cuando se conecte.
  * Lanza error si el número no es válido, ya tiene subbot o no hay cupo.
  */
-export const crearSubbot = async (numero: string): Promise<{ id: string; codigo: string }> => {
+export const crearSubbot = async (numero: string, chat?: string): Promise<{ id: string; codigo: string }> => {
     const num = soloDigitos(numero);
     if (num.length < 8 || num.length > 15) {
         throw new Error('Número inválido. Usa el formato con código de país, ej. 51999999999');
@@ -201,11 +269,9 @@ export const crearSubbot = async (numero: string): Promise<{ id: string; codigo:
     fs.writeFileSync(path.join(carpeta, 'perfil.json'), JSON.stringify({
         numero: num,
         nombre: 'AKAME Subbot',
-        prefijo: '.',
-        banner: '',
-        bienvenida: ''
+        banner: ''
     }, null, 2));
-    guardarRegistro([...lista, { id, numero: num, estado: 'emparejando', creado: new Date().toISOString() }]);
+    guardarRegistro([...lista, { id, numero: num, estado: 'emparejando', creado: new Date().toISOString(), chat }]);
 
     return new Promise((resolver, rechazar) => {
         const proc = lanzarWorker(id, 'vincular');
@@ -226,6 +292,7 @@ export const crearSubbot = async (numero: string): Promise<{ id: string; codigo:
             if (m?.tipo === 'codigo') {
                 listo = true;
                 clearTimeout(espera);
+                ultimoCodigo.set(num, Date.now());
                 // Si no se vincula en 90 s, se borra
                 v.timer = setTimeout(() => {
                     if (leerRegistro().find((s) => s.id === id)?.estado !== 'conectado') {

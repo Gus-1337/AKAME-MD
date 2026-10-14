@@ -16,7 +16,8 @@ const numeroDelRemitente = (ctx: any): string => {
 const ESTADOS: Record<string, string> = {
     emparejando: '⏳ esperando vinculación',
     conectado: '✅ conectado',
-    caido: '⚠️ caído (reconectando)'
+    caido: '⚠️ caído (usa .reactivar en el bot principal)',
+    pausado: '⏸️ pausado (usa .reactivar en el bot principal)'
 };
 
 export default {

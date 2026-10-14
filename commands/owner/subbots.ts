@@ -1,4 +1,4 @@
-import { listarSubbots, buscarSubbot, borrarSubbot, getCupo, setCupo } from '../../lib/subbots.ts';
+import { listarSubbots, listarVisibles, buscarSubbot, borrarSubbot, getCupo, setCupo } from '../../lib/subbots.ts';
 
 const caja = (titulo: string, lineas: string[]) =>
     `˚₊· ͟͟͞͞➳❥ *${titulo}*\n───────────────\n${lineas.join('\n')}\n───────────────\n> AKAME-MD 🌸`;
@@ -6,7 +6,6 @@ const caja = (titulo: string, lineas: string[]) =>
 const ESTADOS: Record<string, string> = {
     emparejando: '⏳ vinculando',
     conectado: '✅ conectado',
-    caido: '⚠️ caído'
 };
 
 export default {
@@ -48,14 +47,15 @@ export default {
         }
 
         // .subbots (lista)
-        const lista = listarSubbots();
+        const usados = listarSubbots().length;
+        const lista = listarVisibles();
         const cupo = getCupo();
         const filas = lista.length
             ? lista.map((s, i) => `${i + 1}. ${s.numero} · ${ESTADOS[s.estado] || s.estado}\n   ↳ ${s.id}`)
-            : ['Todavía no hay subbots.'];
+            : ['Todavía no hay subbots activos.'];
 
         return responder(caja('SUBBOTS', [
-            `✧ Cupo » ${lista.length}/${cupo}`,
+            `✧ Cupo » ${usados}/${cupo}`,
             '',
             ...filas,
             '',
