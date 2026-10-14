@@ -3,7 +3,8 @@ import fs from 'fs'
 import path from 'path'
 
 export default {
-  command: ['setprefix', 'setbotprefix'],
+  // 'setprefix' lo atiende commands/subbot/setprefix.ts, que reenvía aquí para el dueño del bot
+  command: ['setbotprefix'],
   description: 'Cambia el prefijo del bot (multi, reset o noprefix)',
   category: 'owner',
   owner: true,

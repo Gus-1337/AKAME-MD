@@ -26,7 +26,7 @@ import { handleGroupAlerts, handleGroupParticipants } from '#alertas';
 import { avisarReinicio } from './commands/owner/restart.ts';
 import { restaurarSubbots } from './lib/subbots.ts';
 import { leerPrefijo } from './lib/prefijo.ts';
-import { esSubbot, SUBBOT_MODO, CARPETA_SUBBOT, aplicarPerfil, leerPerfil, manejarPersonal, reportar } from './lib/subbot-mode.ts';
+import { esSubbot, SUBBOT_MODO, CARPETA_SUBBOT, aplicarPerfil, leerPerfil, manejarPersonal, bienvenidaSubbot, reportar } from './lib/subbot-mode.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -276,6 +276,7 @@ async function startBot() {
         const { id, action } = update;
         invalidateGroupCache(id);
         broadcast('group_updated', { chatId: id, action });
+        await bienvenidaSubbot(sock, update);
         await handleGroupParticipants(sock, update);
     });
 
