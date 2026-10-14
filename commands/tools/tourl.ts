@@ -1,22 +1,21 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import pino from 'pino';
 
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
+// Clave de NyxDLaPI: usa NYX_KEY del servidor si existe; si no, la clave de respaldo.
+const NYX_KEY = process.env.NYX_KEY || 'nyx_aOtu2zWUS5jfVwzbtmiDBZAfPZ_xeMTX';
 
-// Sube la imagen a Pixhost (sin clave). Devuelve el enlace directo de la imagen, no la página.
-const subirPixhost = async (buf: Buffer, mime: string): Promise<string> => {
+// Sube la imagen a NyxDLaPI (almacenamiento permanente en Vercel Blob).
+const subirNyx = async (buf: Buffer, mime: string): Promise<string> => {
     const form = new FormData();
-    form.append('img', new Blob([new Uint8Array(buf)], { type: mime }), `imagen.${mime.split('/')[1] || 'jpg'}`);
-    form.append('content_type', '0');
-    form.append('max_th_size', '420');
-    const res = await fetch('https://api.pixhost.to/images', {
-        method: 'POST', body: form, headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(30000)
+    form.append('files', new Blob([new Uint8Array(buf)], { type: mime }), `imagen.${mime.split('/')[1] || 'jpg'}`);
+    const res = await fetch('https://nyxdlapi.vercel.app/api/tools/tourl', {
+        method: 'POST', body: form, headers: { 'X-API-Key': NYX_KEY, 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(30000)
     });
     const data: any = await res.json().catch(() => null);
-    const th: string = data?.th_url || '';
-    const m = th.match(/^https:\/\/t(\d+)\.pixhost\.to\/thumbs\/(.+)$/);
-    if (!res.ok || !m) throw new Error(`Pixhost HTTP ${res.status}`);
-    return `https://img${m[1]}.pixhost.to/images/${m[2]}`;
+    const url: string | undefined = data?.result?.files?.[0]?.url;
+    if (!res.ok || !url) throw new Error(data?.message || data?.error || `NyxDLaPI HTTP ${res.status}`);
+    return url;
 };
 
 // Sube la imagen a Telegraph (enlace permanente).
@@ -42,7 +41,7 @@ const subirCatbox = async (buf: Buffer, mime: string): Promise<string> => {
 
 export default {
     command: ['tourl', 'url', 'link'],
-    description: 'Convierte una imagen en un enlace directo.',
+    description: 'Convierte una imagen en un enlace permanente.',
     category: 'tools',
     run: async ({ chat, m, sock }: any) => {
         const ctx = m?.message?.extendedTextMessage?.contextInfo;
@@ -71,7 +70,7 @@ export default {
 
             let url: string;
             try {
-                url = await subirPixhost(buf, mime);
+                url = await subirNyx(buf, mime);
             } catch {
                 try {
                     url = await subirTelegraph(buf, mime);
@@ -87,7 +86,7 @@ export default {
                     '───────────────',
                     `🔗 ${url}`,
                     '───────────────',
-                    '> Enlace directo a la imagen 🌸'
+                    '> Enlace permanente 🌸'
                 ].join('\n')
             }, { quoted: m });
         } catch (e: any) {
