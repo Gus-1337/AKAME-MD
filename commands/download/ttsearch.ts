@@ -3,9 +3,10 @@ import axios from 'axios';
 import crypto from 'crypto';
 
 const MAX_VIDEOS = 10;
-const WORKERS = 6;                  // descargas simultáneas
+const WORKERS = 8;                  // descargas simultáneas
 const MAX_BYTES = 45 * 1024 * 1024; // descarta videos muy pesados
-const TIMEOUT_BAJADA = 20000;
+const TIMEOUT_BAJADA = 12000;
+const TIMEOUT_BUSQUEDA = 10000;
 
 /** Convierte cualquier forma de respuesta de búsqueda de TikTok a un formato común. */
 const normalizar = (v: any) => ({
@@ -30,13 +31,13 @@ const UA = { 'User-Agent': 'Mozilla/5.0' };
 const buscar = (q: string) => {
     const e = encodeURIComponent(q);
     return Promise.any([
-        axios.get(`https://api-faa.my.id/faa/tiktok-search?q=${e}`, { timeout: 15000, headers: UA })
+        axios.get(`https://api-faa.my.id/faa/tiktok-search?q=${e}`, { timeout: TIMEOUT_BUSQUEDA, headers: UA })
             .then((r) => extraerLista(r.data)),
-        axios.get(`https://api.delirius.online/search/tiktoksearch?query=${e}`, { timeout: 15000, headers: UA })
+        axios.get(`https://api.delirius.online/search/tiktoksearch?query=${e}`, { timeout: TIMEOUT_BUSQUEDA, headers: UA })
             .then((r) => extraerLista(r.data)),
-        axios.get(`https://apis-starlights-team.koyeb.app/starlight/tiktoksearch?text=${e}`, { timeout: 15000, headers: UA })
+        axios.get(`https://apis-starlights-team.koyeb.app/starlight/tiktoksearch?text=${e}`, { timeout: TIMEOUT_BUSQUEDA, headers: UA })
             .then((r) => extraerLista(r.data)),
-        axios.get(`https://api.melodiaauris.qzz.io/v1/search/tiktok?q=${e}`, { timeout: 15000, headers: { ...UA, Authorization: 'Bearer OguriCap-Bot' } })
+        axios.get(`https://api.melodiaauris.qzz.io/v1/search/tiktok?q=${e}`, { timeout: TIMEOUT_BUSQUEDA, headers: { ...UA, Authorization: 'Bearer OguriCap-Bot' } })
             .then((r) => extraerLista(r.data))
     ]).catch((err) => {
         console.log('[TTSEARCH] búsqueda fallida:', err?.errors?.map((x) => x.message).join(' | '));
@@ -102,8 +103,11 @@ export default {
         try {
             await sock.sendMessage(chat, { react: { text: '🔍', key: msg.key } });
 
+            const t0 = Date.now();
             const lista = await buscar(query);
+            const tBusca = Date.now();
             const buffers = await bajarTodos(lista);
+            const tBaja = Date.now();
             if (!buffers.length) throw new Error('no pude descargar ningún video');
 
             // 1. Abrir álbum
@@ -134,6 +138,7 @@ export default {
                 await sock.relayMessage(targetJid, child.message, { messageId: child.key.id });
             }
 
+            console.log(`[TTSEARCH] buscar ${((tBusca - t0) / 1000).toFixed(1)}s · bajar ${((tBaja - tBusca) / 1000).toFixed(1)}s · subir+enviar ${((Date.now() - tBaja) / 1000).toFixed(1)}s · ${buffers.length} videos`);
             await sock.sendMessage(chat, { react: { text: '✅', key: msg.key } });
 
         } catch (e) {
