@@ -8,10 +8,10 @@ const coinName = (config as any)?.coin || 'coins'
 
 // Rareza según la especie: legendarios y míticos valen más
 const RAREZAS: Record<string, { icono: string; valor: number }> = {
-    'Común': { icono: '⚪', valor: 500 },
-    'Rara': { icono: '🔵', valor: 1500 },
-    'Épica': { icono: '🟣', valor: 4000 },
-    'Legendaria': { icono: '🟡', valor: 10000 }
+    'Común': { icono: '⚪', valor: 1000 },
+    'Rara': { icono: '🔵', valor: 3000 },
+    'Épica': { icono: '🟣', valor: 8000 },
+    'Legendaria': { icono: '🟡', valor: 20000 }
 }
 
 const TIPOS: Record<string, string> = {
