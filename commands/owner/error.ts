@@ -39,7 +39,12 @@ function extraerUrls(src: string): string[] {
     while ((m = re.exec(src))) {
         let url = m[0];
         const corte = url.indexOf('${');
-        if (corte !== -1) url = url.slice(0, corte);
+        if (corte !== -1) {
+            // Si la ruta quedó incompleta (p. ej. /repos/ sin usuario), no se prueba
+            url = url.slice(0, corte);
+            const sinQuery = url.split('?')[0];
+            if (sinQuery.endsWith('/')) continue;
+        }
         url = url.replace(/[;,]+$/, '');
         let host = '';
         try {

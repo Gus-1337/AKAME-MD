@@ -1,91 +1,78 @@
 import axios from 'axios'
 
+const LINEA = '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄'
+
 export default {
     command: ['gitclone', 'clone', 'git'],
-    description: 'Descarga un repo de github en zip',
+    description: 'Descarga un repo de GitHub en zip',
     category: 'tools',
     run: async ({ chat, m, sock, args }) => {
-        const msgId = m?.id || m?.key?.id;
+        const reply = (text: string) => sock.sendMessage(chat, { text }, { quoted: m });
         try {
-            let url = args[0];
+            const url = args[0];
             if (!url) {
-                return await sock.sendMessage(chat, {
-                    text:
-`╭─ *🌟 GITCLONE* ─
-│ ❌ Pon el link del repo
-│
-│ ✦ Ejemplo:
-│.gitclone https://github.com/usuario/repo
-╰──────────────`
-                }, { quoted: m });
+                return reply(`📦 *GITCLONE*\n${LINEA}\nUsa » *.gitclone <link de GitHub>*\nEjemplo » *.gitclone https://github.com/usuario/repo*`);
             }
 
-            if (!url.includes('github.com')) return sock.sendMessage(chat, { text: `❌ Solo links de github` }, { quoted: m });
+            const match = url.match(/github\.com\/([^\/]+)\/([^\/\s]+)/);
+            if (!match) return reply('❌ Ese link no es de GitHub');
 
-            let regex = /github\.com\/([^\/]+)\/([^\/\s]+)/;
-            let match = url.match(regex);
-            if (!match) return sock.sendMessage(chat, { text: `❌ Link inválido bro` }, { quoted: m });
+            const user = match[1];
+            const repo = match[2].replace(/\.git$/, '');
 
-            let user = match[1];
-            let repo = match[2].replace('.git', '');
+            // Reacción en vez de mensaje de "descargando": menos texto en el chat
+            await sock.sendMessage(chat, { react: { text: '⏳', key: m.key } }).catch(() => null);
 
-            // Info bonita del repo
-            let repoInfo = null;
+            // Info del repo (opcional, si falla solo se omite)
+            let info: any = null;
             try {
-                let infoRes = await axios.get(`https://api.github.com/repos/${user}/${repo}`);
-                repoInfo = infoRes.data;
+                const res = await axios.get(`https://api.github.com/repos/${user}/${repo}`, { timeout: 15000 });
+                info = res.data;
             } catch {}
 
-            await sock.sendMessage(chat, { text: `⏳ Descargando *${repo}*...` }, { quoted: m });
-
-            const branches = ['main', 'master'];
-            let buffer = null;
-            let branchUsed = 'main';
-
-            for (let branch of branches) {
+            let buffer: any = null;
+            let rama = info?.default_branch || 'main';
+            for (const branch of [rama, 'main', 'master']) {
                 try {
-                    let zipUrl = `https://github.com/${user}/${repo}/archive/refs/heads/${branch}.zip`;
-                    let res = await axios.get(zipUrl, { responseType: 'arraybuffer' });
+                    const res = await axios.get(`https://github.com/${user}/${repo}/archive/refs/heads/${branch}.zip`, {
+                        responseType: 'arraybuffer', timeout: 60000
+                    });
                     buffer = res.data;
-                    branchUsed = branch;
+                    rama = branch;
                     break;
                 } catch {}
             }
 
             if (!buffer) {
-                let zipUrl = `https://api.github.com/repos/${user}/${repo}/zipball`;
-                let res = await axios.get(zipUrl, { responseType: 'arraybuffer' });
+                const res = await axios.get(`https://api.github.com/repos/${user}/${repo}/zipball`, {
+                    responseType: 'arraybuffer', timeout: 60000
+                });
                 buffer = res.data;
             }
+            if (!buffer) throw new Error('No se pudo descargar el repo');
 
-            if (!buffer) throw new Error('No se pudo descargar');
-
-            let fileName = `${repo}.zip`;
-            let sizeMB = (buffer.length / (1024 * 1024)).toFixed(2);
-
-            let caption =
-`╭─ *📦 REPO DESCARGADO* ─
-│ 🆔 *Repo:* ${user}/${repo}
-│ 📛 *Nombre:* ${repoInfo?.name || repo}
-│ ⭐ *Stars:* ${repoInfo?.stargazers_count || 'N/A'}
-│ 🍴 *Forks:* ${repoInfo?.forks_count || 'N/A'}
-│ 📂 *Branch:* ${branchUsed}
-│ 📏 *Peso:* ${sizeMB} MB
-│ 🔗 *Url:* ${repoInfo?.html_url || url}
-╰──────────────
-
-> ${repoInfo?.description || 'Sin descripción 😅'}`;
+            const peso = (buffer.length / (1024 * 1024)).toFixed(2);
+            const descripcion = info?.description ? String(info.description).slice(0, 120) : 'Sin descripción';
+            const caption =
+                `📦 *${info?.name || repo}*\n` +
+                `${LINEA}\n` +
+                `👤 ${user}\n` +
+                `⭐ ${info?.stargazers_count ?? 'N/A'}  🍴 ${info?.forks_count ?? 'N/A'}  🌿 ${rama}  💾 ${peso} MB\n` +
+                `${LINEA}\n` +
+                `> ${descripcion}`;
 
             await sock.sendMessage(chat, {
                 document: Buffer.from(buffer),
                 mimetype: 'application/zip',
-                fileName: fileName,
-                caption: caption
+                fileName: `${repo}.zip`,
+                caption
             }, { quoted: m });
 
-        } catch (e) {
+            await sock.sendMessage(chat, { react: { text: '✅', key: m.key } }).catch(() => null);
+        } catch (e: any) {
             console.error(e);
-            return sock.sendMessage(chat, { text: `❌ Error: ${e.message}` }, { quoted: m });
+            await sock.sendMessage(chat, { react: { text: '❌', key: m.key } }).catch(() => null);
+            return reply(`❌ No pude descargar el repo\n> ${e?.message || 'Error desconocido'}`);
         }
     }
 }
