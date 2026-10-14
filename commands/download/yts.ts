@@ -12,9 +12,8 @@ export default {
         if (!q) return sock.sendMessage(chat, { text: `✦ Usa: ${usedPrefix}yts Anuel AA` }, { quoted: msg });
 
         try {
-            // La clave viene de la variable de entorno NYX_KEY (no va en el código)
-            const apikey = process.env.NYX_KEY || '';
-            if (!apikey) return sock.sendMessage(chat, { text: '✿ Falta configurar la clave NYX_KEY en el servidor' }, { quoted: msg });
+            // Usa NYX_KEY del servidor si existe; si no, la clave de respaldo
+            const apikey = process.env.NYX_KEY || 'nyx_aOtu2zWUS5jfVwzbtmiDBZAfPZ_xeMTX';
 
             // Una sola petición optimizada
             const apiUrl = `https://nyxdlapi.vercel.app/api/search/youtube?apikey=${apikey}&q=${encodeURIComponent(q)}`;

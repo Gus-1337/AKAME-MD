@@ -1,12 +1,14 @@
-// Versículos de la Biblia. La clave viene de la variable de entorno NYX_KEY (no va en el código).
+// Versículos de la Biblia. Usa NYX_KEY del servidor si existe; si no, la clave de respaldo.
 // El texto original sale en inglés y se traduce al español.
 
+const CLAVE = process.env.NYX_KEY || 'nyx_aOtu2zWUS5jfVwzbtmiDBZAfPZ_xeMTX'
 const LINEA = '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄'
 const BASE = 'https://nyxdlapi.vercel.app/api/bible'
 const MAX_VERSICULOS = 8
 
 async function pedir(ruta: string, params: Record<string, string> = {}) {
-    const qs = new URLSearchParams({ ...params, apikey: process.env.NYX_KEY || '' }).toString()
+    const qs = new URLSearchParams({ ...params, apikey: CLAVE }).toString()
+
     const res = await fetch(`${BASE}/${ruta}?${qs}`, { signal: AbortSignal.timeout(15000) })
     const data: any = await res.json().catch(() => null)
     if (!res.ok || !data?.status || !data?.result) throw new Error(data?.message || `HTTP ${res.status}`)
@@ -45,10 +47,6 @@ export default {
     category: 'tools',
     run: async ({ chat, m, sock, args }: any) => {
         const reply = (text: string) => sock.sendMessage(chat, { text }, { quoted: m })
-
-        if (!process.env.NYX_KEY) {
-            return reply('✿ Falta configurar la clave NYX_KEY en el servidor')
-        }
 
         const texto = args.join(' ').trim().toLowerCase()
         try {
