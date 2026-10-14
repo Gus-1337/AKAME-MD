@@ -1,155 +1,75 @@
 import { UserJid } from '#simple';
 import { saveDB } from '#db';
 import config from '#config';
+import { titulo, money, ecoUser, bloqueadoPorAdmin } from '#shop';
 
-const normalizeNumber = (x: string) => {
-    if (!x) return '';
-    let cleaned = String(x).split('@')[0].split(':').pop() || '';
-    cleaned = cleaned.replace(/[^\d]/g, '');
-    return cleaned;
-};
+const soloDigitos = (x: string) => String(x).split('@')[0].split(':').pop()?.replace(/[^\d]/g, '') || '';
 
 export default {
     command: ['pay', 'transfer', 'give'],
-    description: 'Transfiere monedas a otro usuario',
+    description: 'Transfiere monedas del banco a otro usuario',
     category: 'economy',
     group: true,
     run: async ({ chat, m, sock, args, usedPrefix, prefix, sender }: any) => {
-        const p = usedPrefix || prefix || config.prefix || '.';
-
+        const p = usedPrefix || prefix || (config as any).prefix || '.';
+        const reply = (t: string) => sock.sendMessage(chat, { text: t }, { quoted: m });
+        const uso = `${titulo('TRANSFERIR')}\n\n✧ Uso › *${p}pay <cantidad> @usuario*\n✧ Ejemplo › *${p}pay 25000 @usuario*\n✩ Mínimo › *1.000*\n> Se transfiere desde tu *banco*`;
         try {
-            const realSender = await UserJid(sock, chat, sender);
-
+            if (bloqueadoPorAdmin(chat)) return reply(`「 ꕤ 」 Los comandos de *Economía* están bloqueados. Un admin puede usar *${p}onlyadmin off*.`);
             const dbData = (global as any).db?.data;
-            if (!dbData) {
-                return await sock.sendMessage(chat, { text: '「 ꕤ 」 Error: La base de datos no está inicializada.' }, { quoted: m });
-            }
+            if (!dbData) return reply('「 ꕤ 」 Error: La base de datos no está inicializada.');
+            const coin = (config as any)?.coin || '¥enes';
 
-            if (!dbData.chats) dbData.chats = {};
-            if (!dbData.chats[chat]) dbData.chats[chat] = {};
-            if (!dbData.users) dbData.users = {};
-
-            const chatDb = dbData.chats[chat];
-            const chatUsers = chatDb.users || (chatDb.users = {});
-
-            if (chatDb.adminonly) {
-                return await sock.sendMessage(chat, {
-                    text:
-`「 ꕤ 」 Para utilizar comandos de *Economía* en este grupo, se requiere desactivar el modo *solo administradores*.
-
-> Un *administrador* puede desactivarlo con el comando » *${p}onlyadmin off*`
-                }, { quoted: m });
-            }
-
-            const mentionedJid = m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-            const quotedSender = m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.key?.sender;
-            const participant = m.message?.extendedTextMessage?.contextInfo?.participant;
+            const realSender = await UserJid(sock, chat, sender);
+            const ctxInfo = m.message?.extendedTextMessage?.contextInfo;
+            const mentionedJid = ctxInfo?.mentionedJid?.[0];
+            const quotedSender = ctxInfo?.quotedMessage?.key?.sender;
+            const participant = ctxInfo?.participant;
 
             let targetJid: string | null = null;
-            if (mentionedJid && mentionedJid !== '') {
-                targetJid = await UserJid(sock, chat, mentionedJid);
-            } else if (quotedSender) {
-                targetJid = await UserJid(sock, chat, quotedSender);
-            } else if (participant) {
-                targetJid = await UserJid(sock, chat, participant);
-            }
+            if (mentionedJid) targetJid = await UserJid(sock, chat, mentionedJid);
+            else if (quotedSender) targetJid = await UserJid(sock, chat, quotedSender);
+            else if (participant) targetJid = await UserJid(sock, chat, participant);
 
-            if (!targetJid) {
-                return await sock.sendMessage(chat, {
-                    text:
-`「 ꕤ 」 Debes mencionar a quién quieres regalarle *Coins*.
-> Ejemplo » *${p}pay 25000 @mencion*`
-                }, { quoted: m });
-            }
+            if (!targetJid) return reply(uso);
+            if (targetJid === realSender) return reply(`「 ꕤ 」 No puedes transferirte a ti mismo.`);
 
-            if (targetJid === realSender) {
-                return await sock.sendMessage(chat, {
-                    text: `「 ꕤ 」 No puedes transferirte monedas a ti mismo.`
-                }, { quoted: m });
-            }
+            const cantidad = parseInt(String(args[0] || '').replace(/[^0-9]/g, ''));
+            if (!cantidad || cantidad <= 0) return reply(uso);
+            if (cantidad < 1000) return reply(`「 ꕤ 」 La transferencia mínima es *${money(1000)} ${coin}*.`);
 
-            if (!chatUsers[realSender]) {
-                chatUsers[realSender] = { coins: 0, bank: 0 };
-            }
-            const userInChat = chatUsers[realSender];
-
-            const coinName = (config as any)?.coin || '¥enes';
-            const coins = userInChat.coins || 0;
-
-            const input = (args[0] || '').replace(/[^0-9]/g, '');
-            if (!input) {
-                return await sock.sendMessage(chat, {
-                    text:
-`「 ꕤ 」 Debes mencionar a quién quieres regalarle *Coins*.
-> Ejemplo » *${p}pay 25000 @mencion*`
-                }, { quoted: m });
-            }
-
-            const cantidad = parseInt(input);
-            const minPay = 1000;
-
-            if (!cantidad || cantidad <= 0) {
-                return await sock.sendMessage(chat, {
-                    text:
-`「 ꕤ 」 Debes mencionar a quién quieres regalarle *Coins*.
-> Ejemplo » *${p}pay 25000 @mencion*`
-                }, { quoted: m });
-            }
-
-            if (cantidad < minPay) {
-                return await sock.sendMessage(chat, {
-                    text: `「 ꕤ 」 Debes regalar al menos *${minPay.toLocaleString()} ${coinName}*.`
-                }, { quoted: m });
-            }
-
-            let targetInChat = chatUsers[targetJid];
-            let targetKey = targetJid;
-            const targetNumber = normalizeNumber(targetJid);
-
-            if (!targetInChat) {
-                for (const [key, value] of Object.entries(chatUsers)) {
-                    if (normalizeNumber(key) === targetNumber) {
-                        targetInChat = value;
-                        targetKey = key;
-                        break;
-                    }
+            const emisor = ecoUser(chat, realSender);
+            const chatUsers = dbData.chats[chat].users;
+            let receptor = chatUsers[targetJid];
+            let receptorKey = targetJid;
+            if (!receptor) {
+                const num = soloDigitos(targetJid);
+                for (const [k, v] of Object.entries(chatUsers)) {
+                    if (soloDigitos(k) === num) { receptor = v; receptorKey = k; break; }
                 }
             }
+            if (!receptor) return reply(`「 ꕤ 」 Ese usuario no tiene cuenta de economía en este grupo.`);
 
-            if (!targetInChat) {
-                return await sock.sendMessage(chat, {
-                    text: `「 ꕤ 」 El usuario no tiene una cuenta de economía en este grupo.`
-                }, { quoted: m });
+            const banco = emisor.bank || 0;
+            if (banco < cantidad) {
+                return reply(`「 ꕤ 」 No tienes suficiente en el banco. Tienes *${money(banco)} ${coin}*.`);
             }
 
-            const bank = userInChat.bank || 0;
-
-            if (bank < cantidad) {
-                return await sock.sendMessage(chat, {
-                    text:
-`「 ꕤ 」 No tienes suficientes *${coinName}* en el banco.
-> Tienes *${bank.toLocaleString()} ${coinName}* en el banco.`
-                }, { quoted: m });
-            }
-
-            userInChat.bank = bank - cantidad;
-            targetInChat.bank = (targetInChat.bank || 0) + cantidad;
-
+            emisor.bank = banco - cantidad;
+            receptor.bank = (receptor.bank || 0) + cantidad;
             saveDB(chat, realSender);
-            saveDB(chat, targetKey);
+            saveDB(chat, receptorKey);
 
-            const targetName = dbData.users?.[targetKey]?.name || targetKey.split('@')[0];
-
-            await sock.sendMessage(chat, {
+            return sock.sendMessage(chat, {
                 text:
-`✿ Transferiste *${cantidad.toLocaleString()} ${coinName}* a *@${targetKey.split('@')[0]}*.
-> Ahora tienes *${userInChat.bank.toLocaleString()} ${coinName}* en el banco.`,
-                mentions: [targetKey]
+                    `${titulo('TRANSFERENCIA')}\n\n` +
+                    `   Enviaste *${money(cantidad)}* ${coin} a @${receptorKey.split('@')[0]}\n\n` +
+                    `✩ Tu banco › *${money(emisor.bank)}* ${coin}`,
+                mentions: [receptorKey]
             }, { quoted: m });
-
         } catch (e) {
             console.error('Error en pay:', e);
-            await sock.sendMessage(chat, { text: '「 ꕤ 」 Ocurrió un error al transferir.' }, { quoted: m });
+            return reply('「 ꕤ 」 Ocurrió un error al transferir.');
         }
     }
 };

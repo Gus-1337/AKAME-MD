@@ -1,153 +1,140 @@
 import { UserJid } from '#simple';
 import config from '#config';
 import { saveDB } from '#db';
+import { titulo, money, ecoUser, bloqueadoPorAdmin } from '#shop';
 
-const normalizeNumber = (x: string) => {
-    if (!x) return '';
-    let cleaned = String(x).split('@')[0].split(':').pop() || '';
-    cleaned = cleaned.replace(/[^\d]/g, '');
-    return cleaned;
-};
+// CONFIGURACIÓN DEL BANCO
+const MIN_LOAN = 1000;
+const MAX_LOAN = 100000;
+const INTEREST = 0.15; // 15%
+const MIN_DAYS = 1;
+const MAX_DAYS = 30;
+const DEFAULT_DAYS = 7;
+
+const fechaCorta = (d: Date) => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 
 export default {
     command: ['loan', 'prestamo', 'prestar'],
-    description: 'Pide un préstamo',
+    description: 'Pide un préstamo al banco y paga con interés',
     category: 'economy',
     group: true,
     run: async ({ chat, m, sock, args, usedPrefix, prefix, sender }: any) => {
-        const p = usedPrefix || prefix || config.prefix || '.';
-        const reply = (txt: string) => sock.sendMessage(chat, { text: txt }, { quoted: m });
+        const p = usedPrefix || prefix || (config as any).prefix || '.';
+        const reply = (t: string) => sock.sendMessage(chat, { text: t }, { quoted: m });
 
         try {
+            if (bloqueadoPorAdmin(chat)) return reply(`「 ꕤ 」 Los comandos de *Economía* están bloqueados. Un admin puede usar *${p}onlyadmin off*.`);
             const realSender = await UserJid(sock, chat, sender);
-            const dbData = (global as any).db?.data;
-            if (!dbData.chats) dbData.chats = {};
-            if (!dbData.chats[chat]) dbData.chats[chat] = {};
-            const chatDb = dbData.chats[chat];
-            const chatUsers = chatDb.users || (chatDb.users = {});
+            const user = ecoUser(chat, realSender);
+            if (!user) return reply('「 ꕤ 」 Error: La base de datos no está inicializada.');
+            const coin = (config as any)?.coin || '¥enes';
+            const fmt = (n: number) => `${money(n)} ${coin}`;
 
-            let userInChat = chatUsers[realSender];
-            if (!userInChat) {
-                const num = normalizeNumber(realSender);
-                for (const [k, v] of Object.entries(chatUsers)) {
-                    if (normalizeNumber(k) === num) { userInChat = v; break; }
-                }
-            }
-            if (!userInChat) {
-                userInChat = chatUsers[realSender] = { coins: 0, bank: 0 };
-            }
-
-            const coinName = (config as any)?.coin || '¥enes';
-            const fmt = (n: number) => `${n.toLocaleString()} ${coinName}`;
-
-            // CONFIGURACIÓN DEL BANCO
-            const MIN_LOAN = 1000;
-            const MAX_LOAN = 100000; // límite máximo
-            const INTEREST = 0.15; // 15% de interés
-            const MIN_DAYS = 1;
-            const MAX_DAYS = 30;
-            const DEFAULT_DAYS = 7;
-
-            // Si escribe.loan pagar
-            const sub = (args[0] || '').toLowerCase();
+            // Pagar la deuda
+            const sub = String(args[0] || '').toLowerCase();
             if (sub === 'pagar' || sub === 'pay' || sub === 'abonar') {
-                if (!userInChat.loan) return reply(`✿ No tienes ninguna deuda pendiente.`);
+                if (!user.loan) return reply(`${titulo('PRÉSTAMO')}\n\n   No tienes deudas pendientes ✅`);
 
-                let amountToPay: number;
-                if (args[1]?.toLowerCase() === 'all' || args[1]?.toLowerCase() === 'todo') {
-                    amountToPay = userInChat.loan.remaining;
+                const arg1 = String(args[1] || '').toLowerCase();
+                let pagar: number;
+                if (arg1 === 'all' || arg1 === 'todo') {
+                    pagar = user.loan.remaining;
                 } else {
-                    amountToPay = parseInt(args[1]?.replace(/[^0-9]/g, ''));
-                    if (!amountToPay || amountToPay <= 0) return reply(`✿ Debes poner cuánto quieres pagar\nEj: *${p}loan pagar 5000*\nEj: *${p}loan pagar all*`);
+                    pagar = parseInt(arg1.replace(/[^0-9]/g, ''));
+                    if (!pagar || pagar <= 0) {
+                        return reply(`「 ꕤ 」 Indica cuánto pagar.\n> Ejemplo » *${p}loan pagar 5000*\n> Ejemplo » *${p}loan pagar all*`);
+                    }
+                }
+                if ((user.coins || 0) < pagar) {
+                    return reply(`「 ꕤ 」 No tienes suficiente efectivo. Tienes *${fmt(user.coins || 0)}*.`);
                 }
 
-                if (userInChat.coins < amountToPay) return reply(`✿ No tienes suficiente efectivo. Tienes ${fmt(userInChat.coins)} pero quieres pagar ${fmt(amountToPay)}`);
+                user.coins -= pagar;
+                user.loan.remaining -= pagar;
 
-                userInChat.coins -= amountToPay;
-                userInChat.loan.remaining -= amountToPay;
-
-                if (userInChat.loan.remaining <= 0) {
-                    const totalPagado = userInChat.loan.totalDebt;
-                    delete userInChat.loan;
+                if (user.loan.remaining <= 0) {
+                    const total = user.loan.totalDebt;
+                    delete user.loan;
                     saveDB(chat, realSender);
-                    return reply(`✩.･:｡≻───── ⋆💰⋆ ─────.•:｡✩\n\n✅ *¡Deuda pagada!* ✅\n\nGracias por pagar tu préstamo de *${fmt(totalPagado)}*\nYa puedes pedir otro cuando quieras 💖\n\n✩.･:｡≻───── ⋆💰⋆ ─────.•:｡✩`);
-                } else {
-                    saveDB(chat, realSender);
-                    return reply(`✅ Abonaste *${fmt(amountToPay)}* a tu deuda.\n\nTe falta por pagar: *${fmt(userInChat.loan.remaining)}*\nVence: ${userInChat.loan.dueDateStr}`);
+                    return reply(
+                        `${titulo('DEUDA PAGADA')}\n\n` +
+                        `   ¡Gracias! Liquidaste tu préstamo de *${fmt(total)}*\n\n` +
+                        `✩ Efectivo › *${fmt(user.coins)}*`
+                    );
                 }
-            }
 
-            // Si ya tiene préstamo
-            if (userInChat.loan) {
-                const diasRestantes = Math.ceil((new Date(userInChat.loan.dueTimestamp) - new Date()) / (1000 * 60 * 60 * 24));
+                saveDB(chat, realSender);
                 return reply(
-`「 ⚠️ 」 *¡Ya tienes una deuda pendiente!*
-
-💰 Debes: *${fmt(userInChat.loan.remaining)}* de *${fmt(userInChat.loan.totalDebt)}*
-📅 Vence: *${userInChat.loan.dueDateStr}* (${diasRestantes > 0? `en ${diasRestantes} días` : '¡VENCIDO!'})
-> Paga con: *${p}loan pagar <cantidad|all>*`
+                    `${titulo('ABONO')}\n\n` +
+                    `✩ Abonaste › *${fmt(pagar)}*\n` +
+                    `✩ Te falta › *${fmt(user.loan.remaining)}*\n` +
+                    `✩ Vence › *${user.loan.dueDateStr}*`
                 );
             }
 
-            // Pedir préstamo:.loan 5000 7
-            const cantidad = parseInt((args[0] || '').replace(/[^0-9]/g, ''));
-            let dias = parseInt((args[1] || '').replace(/[^0-9]/g, '')) || DEFAULT_DAYS;
+            // Ya tiene una deuda
+            if (user.loan) {
+                const dias = Math.ceil((user.loan.dueTimestamp - Date.now()) / (1000 * 60 * 60 * 24));
+                return reply(
+                    `${titulo('DEUDA PENDIENTE')}\n\n` +
+                    `✩ Debes › *${fmt(user.loan.remaining)}* de *${fmt(user.loan.totalDebt)}*\n` +
+                    `✩ Vence › *${user.loan.dueDateStr}* (${dias > 0 ? `en ${dias} días` : '¡VENCIDO!'})\n\n` +
+                    `> Paga con *${p}loan pagar <cantidad|all>*`
+                );
+            }
+
+            // Pedir préstamo: .loan <cantidad> [días]
+            const cantidad = parseInt(String(args[0] || '').replace(/[^0-9]/g, ''));
+            let dias = parseInt(String(args[1] || '').replace(/[^0-9]/g, '')) || DEFAULT_DAYS;
 
             if (!cantidad) {
                 return reply(
-`✿ *SISTEMA DE PRÉSTAMOS* ✿
-
-> Presta dinero y paga con interés del ${INTEREST*100}%
-
-📌 Uso:
-» *${p}loan <cantidad> [días]*
-» *${p}loan pagar <cantidad|all>*
-
-Ejemplos:
-» *${p}loan 10000*
-» *${p}loan 50000 7*
-» *${p}loan pagar 5000*
-» *${p}loan pagar all*
-
-Límites:
-• Mínimo: ${fmt(MIN_LOAN)}
-• Máximo: ${fmt(MAX_LOAN)}
-• Días: ${MIN_DAYS} a ${MAX_DAYS} días (por defecto ${DEFAULT_DAYS})`
+                    `${titulo('PRÉSTAMOS')}\n\n` +
+                    `   Presta dinero y paga con *${INTEREST * 100}%* de interés\n\n` +
+                    `✧ Pedir › *${p}loan <cantidad> [días]*\n` +
+                    `✧ Pagar › *${p}loan pagar <cantidad|all>*\n\n` +
+                    `✩ Mínimo › *${fmt(MIN_LOAN)}*\n` +
+                    `✩ Máximo › *${fmt(MAX_LOAN)}*\n` +
+                    `✩ Plazo › *${MIN_DAYS} a ${MAX_DAYS} días* (por defecto ${DEFAULT_DAYS})`
                 );
             }
 
-            if (cantidad < MIN_LOAN) return reply(`✿ El préstamo mínimo es de *${fmt(MIN_LOAN)}*`);
-            if (cantidad > MAX_LOAN) return reply(`✿ El préstamo máximo es de *${fmt(MAX_LOAN)}*`);
+            if (cantidad < MIN_LOAN) return reply(`「 ꕤ 」 El préstamo mínimo es *${fmt(MIN_LOAN)}*.`);
+            if (cantidad > MAX_LOAN) return reply(`「 ꕤ 」 El préstamo máximo es *${fmt(MAX_LOAN)}*.`);
             if (dias < MIN_DAYS) dias = MIN_DAYS;
             if (dias > MAX_DAYS) dias = MAX_DAYS;
 
             const interes = Math.floor(cantidad * INTEREST);
             const totalDeuda = cantidad + interes;
+            const vence = new Date();
+            vence.setDate(vence.getDate() + dias);
 
-            const fechaVencimiento = new Date();
-            fechaVencimiento.setDate(fechaVencimiento.getDate() + dias);
-
-            userInChat.coins = (userInChat.coins || 0) + cantidad;
-            userInChat.loan = {
+            user.coins = (user.coins || 0) + cantidad;
+            user.loan = {
                 amount: cantidad,
                 interest: interes,
                 totalDebt: totalDeuda,
                 remaining: totalDeuda,
                 days: dias,
                 borrowedAt: new Date().toLocaleString('es-ES'),
-                dueTimestamp: fechaVencimiento.getTime(),
-                dueDateStr: fechaVencimiento.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+                dueTimestamp: vence.getTime(),
+                dueDateStr: fechaCorta(vence)
             };
-
             saveDB(chat, realSender);
 
-            await sock.sendMessage(chat, {
-                text: `✩.･:｡≻───── ⋆🏦⋆ ─────.•:｡✩\n\n💰 *¡Préstamo aprobado!* 💰\n\n» Recibiste: *${fmt(cantidad)}*\n» Interés (${INTEREST*100}%): *${fmt(interes)}*\n» Total a pagar: *${fmt(totalDeuda)}*\n» Plazo: *${dias} días*\n» Vence: *${userInChat.loan.dueDateStr}*\n\n> Si no pagas a tiempo se te cobrará automáticamente del banco\n> Paga con: *${p}loan pagar all*\n\n✩.･:｡≻───── ⋆🏦⋆ ─────.•:｡✩`
-            }, { quoted: m });
-
+            return reply(
+                `${titulo('PRÉSTAMO APROBADO')}\n\n` +
+                `✩ Recibiste › *${fmt(cantidad)}*\n` +
+                `✩ Interés › *${fmt(interes)}* (${INTEREST * 100}%)\n` +
+                `✩ Total a pagar › *${fmt(totalDeuda)}*\n` +
+                `✩ Plazo › *${dias} días*\n` +
+                `✩ Vence › *${user.loan.dueDateStr}*\n\n` +
+                `> Si no pagas a tiempo se cobrará del banco\n` +
+                `> Paga con *${p}loan pagar all*`
+            );
         } catch (e) {
             console.error('Error en loan:', e);
-            await sock.sendMessage(chat, { text: '「 ꕤ 」 Ocurrió un error en el préstamo.' }, { quoted: m });
+            return reply('「 ꕤ 」 Ocurrió un error en el préstamo.');
         }
     }
 };

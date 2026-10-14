@@ -1,175 +1,102 @@
 import { UserJid } from '#simple';
-import { buffRemaining, formatDuration, hasRobShield, luckBoost, softenPenalty } from '#shop';
+import { buffRemaining, formatDuration, hasRobShield, luckBoost, softenPenalty, titulo, money, ecoUser, bloqueadoPorAdmin } from '#shop';
 import { saveDB } from '#db';
 import config from '#config';
 
-const normalizeNumber = (x: string) => {
-    if (!x) return '';
-    let cleaned = String(x).split('@')[0].split(':').pop() || '';
-    cleaned = cleaned.replace(/[^\d]/g, '');
-    return cleaned;
-};
+const soloDigitos = (x: string) => String(x).split('@')[0].split(':').pop()?.replace(/[^\d]/g, '') || '';
 
 export default {
     command: ['rob', 'steal', 'robar'],
-    description: 'Roba monedas a otro usuario',
+    description: 'Roba monedas a otro usuario inactivo',
     category: 'economy',
     group: true,
     run: async ({ chat, m, sock, usedPrefix, prefix, sender }: any) => {
-        const p = usedPrefix || prefix || config.prefix || '.';
-
+        const p = usedPrefix || prefix || (config as any).prefix || '.';
+        const reply = (t: string) => sock.sendMessage(chat, { text: t }, { quoted: m });
         try {
-            const realSender = await UserJid(sock, chat, sender);
-
+            if (bloqueadoPorAdmin(chat)) return reply(`「 ꕤ 」 Los comandos de *Economía* están bloqueados. Un admin puede usar *${p}onlyadmin off*.`);
             const dbData = (global as any).db?.data;
-            if (!dbData) {
-                return await sock.sendMessage(chat, { text: '「 ꕤ 」 Error: La base de datos no está inicializada.' }, { quoted: m });
-            }
+            if (!dbData) return reply('「 ꕤ 」 Error: La base de datos no está inicializada.');
+            const coin = (config as any)?.coin || '¥enes';
 
-            if (!dbData.chats) dbData.chats = {};
-            if (!dbData.chats[chat]) dbData.chats[chat] = {};
-            if (!dbData.users) dbData.users = {};
-
-            const chatDb = dbData.chats[chat];
-            const chatUsers = chatDb.users || (chatDb.users = {});
-
-            if (chatDb.adminonly) {
-                return await sock.sendMessage(chat, {
-                    text:
-`「 ꕤ 」 Para utilizar comandos de *Economía* en este grupo, se requiere desactivar el modo *solo administradores*.
-
-> Un *administrador* puede desactivarlo con el comando » *${p}onlyadmin off*`
-                }, { quoted: m });
-            }
-
-            const mentionedJid = m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-            const quotedSender = m.message?.extendedTextMessage?.contextInfo?.quotedMessage?.key?.sender;
-            const participant = m.message?.extendedTextMessage?.contextInfo?.participant;
+            const realSender = await UserJid(sock, chat, sender);
+            const ctxInfo = m.message?.extendedTextMessage?.contextInfo;
+            const mentionedJid = ctxInfo?.mentionedJid?.[0];
+            const quotedSender = ctxInfo?.quotedMessage?.key?.sender;
+            const participant = ctxInfo?.participant;
 
             let targetJid: string | null = null;
+            if (mentionedJid) targetJid = await UserJid(sock, chat, mentionedJid);
+            else if (quotedSender) targetJid = await UserJid(sock, chat, quotedSender);
+            else if (participant) targetJid = await UserJid(sock, chat, participant);
 
-            if (mentionedJid && mentionedJid !== '') {
-                targetJid = await UserJid(sock, chat, mentionedJid);
-            } else if (quotedSender) {
-                targetJid = await UserJid(sock, chat, quotedSender);
-            } else if (participant) {
-                targetJid = await UserJid(sock, chat, participant);
-            }
+            if (!targetJid) return reply(`「 ꕤ 」 Menciona o responde a quien quieres robarle.\n> Ejemplo » *${p}rob @usuario*`);
+            if (targetJid === realSender) return reply(`「 ꕤ 」 No puedes robarte a ti mismo.`);
 
-            if (!targetJid) {
-                return await sock.sendMessage(chat, {
-                    text: `「 ꕤ 」 Debes mencionar a quién quieres robarle *Coins*.`
-                }, { quoted: m });
-            }
-
-            if (targetJid === realSender) {
-                return await sock.sendMessage(chat, {
-                    text: `「 ꕤ 」 No puedes robarte a ti mismo.`
-                }, { quoted: m });
-            }
-
-            if (!chatUsers[realSender]) {
-                chatUsers[realSender] = { coins: 0, bank: 0, lastRob: 0 };
-            }
-            const userInChat = chatUsers[realSender];
-
-            const coinName = (config as any)?.coin || '¥enes';
-            const coins = userInChat.coins || 0;
+            const user = ecoUser(chat, realSender);
+            const chatUsers = dbData.chats[chat].users;
 
             const now = Date.now();
             const cooldown = 10 * 60 * 1000;
-            const last = userInChat.lastRob || 0;
-            const diff = now - last;
-
-            if (last && diff < cooldown) {
-                const remaining = cooldown - diff;
-                const minutos = Math.floor(remaining / (1000 * 60));
-                const segundos = Math.floor((remaining % (1000 * 60)) / 1000);
-                const tiempo = minutos > 0
-                    ? `${minutos} minutos ${segundos} segundos`
-                    : `${segundos} segundos`;
-                return await sock.sendMessage(chat, {
-                    text: `「 ꕤ 」 Debes esperar *${tiempo}* para usar *${p}rob* de nuevo.`
-                }, { quoted: m });
+            const diff = now - (user.lastRob || 0);
+            if (user.lastRob && diff < cooldown) {
+                return reply(`「 ꕤ 」 Los vecinos te vigilan, espera *${formatDuration(cooldown - diff)}* para usar *${p}rob* de nuevo.`);
             }
 
-            let targetInChat = chatUsers[targetJid];
-            let targetKey = targetJid;
-            const targetNumber = normalizeNumber(targetJid);
-
-            if (!targetInChat) {
-                for (const [key, value] of Object.entries(chatUsers)) {
-                    if (normalizeNumber(key) === targetNumber) {
-                        targetInChat = value;
-                        targetKey = key;
-                        break;
-                    }
+            let victima = chatUsers[targetJid];
+            let victimaKey = targetJid;
+            if (!victima) {
+                const num = soloDigitos(targetJid);
+                for (const [k, v] of Object.entries(chatUsers)) {
+                    if (soloDigitos(k) === num) { victima = v; victimaKey = k; break; }
                 }
             }
+            if (!victima) return reply(`「 ꕤ 」 Ese usuario no tiene cuenta de economía en este grupo.`);
 
-            if (!targetInChat) {
-                return await sock.sendMessage(chat, {
-                    text: `「 ꕤ 」 El usuario no tiene una cuenta de economía en este grupo.`
-                }, { quoted: m });
+            const ultimaVez = (victima as any).lastSeen || (victima as any).lastCommand || 0;
+            const inactivo = ultimaVez > 0 && (now - ultimaVez) > 60 * 60 * 1000;
+            if (!inactivo) return reply(`「 ꕤ 」 Solo puedes robarle a alguien que lleve más de *1 hora* inactivo.`);
+
+            const nombreVictima = dbData.users?.[victimaKey]?.name || victimaKey.split('@')[0];
+            if (hasRobShield(victima)) {
+                return reply(`🛡️ *${nombreVictima}* tiene un *escudo antirrobo* activo por *${formatDuration(buffRemaining(victima, 'robprotect'))}* más.`);
             }
 
-            const targetLastSeen = targetInChat.lastSeen || targetInChat.lastCommand || 0;
-            const inactivo = targetLastSeen > 0 && (now - targetLastSeen) > 60 * 60 * 1000;
-
-            if (!inactivo) {
-                return await sock.sendMessage(chat, {
-                    text: `「 ꕤ 」 Solo puedes robarle *Coins* a un usuario que lleve más de 1 hora inactivo.`
-                }, { quoted: m });
+            const saldoVictima = victima.coins || 0;
+            if (saldoVictima < 100) {
+                return reply(`「 ꕤ 」 *${nombreVictima}* no tiene suficiente efectivo para valer la pena.`);
             }
 
-            const targetCoins = targetInChat.coins || 0;
-            const targetName = dbData.users?.[targetKey]?.name || targetKey.split('@')[0];
-
-            if (hasRobShield(targetInChat)) {
-                const resto = formatDuration(buffRemaining(targetInChat, 'robprotect'));
-                return await sock.sendMessage(chat, {
-                    text: `🛡️ *${targetName}* tiene un *escudo antirrobo* activo por *${resto}* más.\n> Vuelve cuando se le acabe.`
-                }, { quoted: m });
-            }
-
-            if (targetCoins < 100) {
-                return await sock.sendMessage(chat, {
-                    text: `「 ꕤ 」 *${targetName}* no tiene suficientes *Coins* fuera del banco como para que valga la pena intentar robar.`
-                }, { quoted: m });
-            }
-
-            const exitoso = Math.random() < luckBoost(userInChat, 0.5);
+            user.lastRob = now;
+            const exitoso = Math.random() < luckBoost(user, 0.5);
 
             if (exitoso) {
                 const porcentaje = Math.random() * 0.3 + 0.1;
-                const cantidadRobada = Math.min(Math.floor(targetCoins * porcentaje), targetCoins);
-
-                userInChat.coins = coins + cantidadRobada;
-                userInChat.lastRob = now;
-                targetInChat.coins = targetCoins - cantidadRobada;
-
+                const robado = Math.min(Math.floor(saldoVictima * porcentaje), saldoVictima);
+                user.coins = (user.coins || 0) + robado;
+                victima.coins = saldoVictima - robado;
                 saveDB(chat, realSender);
-                saveDB(chat, targetKey);
-
-                return await sock.sendMessage(chat, {
-                    text: `✐ Le robaste *${cantidadRobada.toLocaleString()} ${coinName}* a *${targetName}*.`
-                }, { quoted: m });
+                saveDB(chat, victimaKey);
+                return reply(
+                    `${titulo('ROBO')}\n\n` +
+                    `   ¡Le robaste a *${nombreVictima}*!\n\n` +
+                    `✩ Ganaste › *+${money(robado)}* ${coin}\n` +
+                    `✩ Saldo › *${money(user.coins)}* ${coin}`
+                );
             }
 
-            const perdida = softenPenalty(userInChat, Math.min(coins, Math.floor(Math.random() * 5000) + 1000));
-
-            userInChat.coins = coins - perdida;
-            userInChat.lastRob = now;
-
+            const perdida = softenPenalty(user, Math.min(user.coins || 0, Math.floor(Math.random() * 5000) + 1000));
+            user.coins = (user.coins || 0) - perdida;
             saveDB(chat, realSender);
-
-            return await sock.sendMessage(chat, {
-                text: `✿ Te atraparon en el intento y perdiste *-${perdida.toLocaleString()} ${coinName}*.`
-            }, { quoted: m });
-
+            return reply(
+                `${titulo('ROBO')}\n\n` +
+                `   Te atraparon en el intento\n\n` +
+                `✩ Perdiste › *-${money(perdida)}* ${coin}\n` +
+                `✩ Saldo › *${money(user.coins)}* ${coin}`
+            );
         } catch (e) {
             console.error('Error en rob:', e);
-            await sock.sendMessage(chat, { text: '「 ꕤ 」 Ocurrió un error al intentar robar.' }, { quoted: m });
+            return reply('「 ꕤ 」 Ocurrió un error al intentar robar.');
         }
     }
 };

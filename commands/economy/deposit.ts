@@ -1,99 +1,55 @@
 import { UserJid } from '#simple';
+import { titulo, money, ecoUser, bloqueadoPorAdmin } from '#shop';
 import { saveDB } from '#db';
 import config from '#config';
 
 export default {
     command: ['deposit', 'dep', 'd'],
-    description: 'Deposita monedas en el banco',
+    description: 'Deposita monedas en el banco (a salvo de robos)',
     category: 'economy',
     group: true,
     run: async ({ chat, m, sock, args, usedPrefix, prefix, sender }: any) => {
-        const p = usedPrefix || prefix || config.prefix || '.';
-
+        const p = usedPrefix || prefix || (config as any).prefix || '.';
+        const reply = (t: string) => sock.sendMessage(chat, { text: t }, { quoted: m });
         try {
-            const realSender = await UserJid(sock, chat, sender);
+            if (bloqueadoPorAdmin(chat)) return reply(`「 ꕤ 」 Los comandos de *Economía* están bloqueados. Un admin puede usar *${p}onlyadmin off*.`);
+            const jid = await UserJid(sock, chat, sender);
+            const user = ecoUser(chat, jid);
+            if (!user) return reply('「 ꕤ 」 Error: La base de datos no está inicializada.');
+            const coin = (config as any)?.coin || '¥enes';
+            const efectivo = user.coins || 0;
 
-            const dbData = (global as any).db?.data;
-            if (!dbData) {
-                return await sock.sendMessage(chat, { text: '「 ꕤ 」 Error: La base de datos no está inicializada.' }, { quoted: m });
+            const entrada = String(args[0] || '').toLowerCase().trim();
+            if (!entrada) {
+                return reply(
+                    `${titulo('DEPÓSITO')}\n\n` +
+                    `✧ Uso › *${p}dep <cantidad>* o *${p}dep all*\n` +
+                    `✦ El banco protege tu dinero de los robos`
+                );
             }
 
-            if (!dbData.chats) dbData.chats = {};
-            if (!dbData.chats[chat]) dbData.chats[chat] = {};
-            if (!dbData.users) dbData.users = {};
+            const cantidad = (entrada === 'all' || entrada === 'todo')
+                ? efectivo
+                : parseInt(entrada.replace(/[^0-9]/g, ''));
 
-            const chatDb = dbData.chats[chat];
-            const chatUsers = chatDb.users || (chatDb.users = {});
-
-            if (chatDb.adminonly) {
-                return await sock.sendMessage(chat, {
-                    text:
-`「 ꕤ 」 Para utilizar comandos de *Economía* en este grupo, se requiere desactivar el modo *solo administradores*.
-
-> Un *administrador* puede desactivarlo con el comando » *${p}onlyadmin off*`
-                }, { quoted: m });
+            if (!cantidad || cantidad <= 0) return reply(`「 ꕤ 」 La cantidad no es válida.`);
+            if (efectivo <= 0 || cantidad > efectivo) {
+                return reply(`「 ꕤ 」 No tienes suficiente efectivo. Tienes *${money(efectivo)} ${coin}*.`);
             }
 
-            if (!chatUsers[realSender]) {
-                chatUsers[realSender] = { coins: 0, bank: 0 };
-            }
-            const userInChat = chatUsers[realSender];
+            user.coins = efectivo - cantidad;
+            user.bank = (user.bank || 0) + cantidad;
+            saveDB(chat, jid);
 
-            const coinName = (config as any)?.coin || '¥enes';
-            const coins = userInChat.coins || 0;
-            const bank = userInChat.bank || 0;
-
-            const input = (args[0] || '').toLowerCase().trim();
-
-            const menuText =
-`「 ꕤ 」 Debes depositar una cantidad válida.
-> Ejemplo 1 » *${p}d 25000*
-> Ejemplo 2 » *${p}d all*`;
-
-            if (!input) {
-                return await sock.sendMessage(chat, { text: menuText }, { quoted: m });
-            }
-
-            let cantidad = 0;
-
-            if (input === 'all' || input === 'todo') {
-                cantidad = coins;
-            } else {
-                const cleanNumber = input.replace(/[^0-9]/g, '');
-                if (!cleanNumber) {
-                    return await sock.sendMessage(chat, { text: menuText }, { quoted: m });
-                }
-                cantidad = parseInt(cleanNumber);
-            }
-
-            if (coins <= 0) {
-                return await sock.sendMessage(chat, {
-                    text: `「 ꕤ 」 No tienes suficientes *${coinName}* en efectivo para depositar.`
-                }, { quoted: m });
-            }
-
-            if (!cantidad || cantidad <= 0) {
-                return await sock.sendMessage(chat, { text: menuText }, { quoted: m });
-            }
-
-            if (cantidad > coins) {
-                return await sock.sendMessage(chat, {
-                    text: `「 ꕤ 」 No tienes suficientes *${coinName}* en efectivo para depositar.`
-                }, { quoted: m });
-            }
-
-            userInChat.coins = coins - cantidad;
-            userInChat.bank = bank + cantidad;
-
-            saveDB(chat, realSender);
-
-            await sock.sendMessage(chat, {
-                text: `✿ Depositaste *${cantidad.toLocaleString()} ${coinName}* en el banco, ya no podrán robártelo.`
-            }, { quoted: m });
-
+            return reply(
+                `${titulo('DEPÓSITO')}\n\n` +
+                `✩ Depositaste › *${money(cantidad)}* ${coin}\n` +
+                `✩ Efectivo › *${money(user.coins)}* ${coin}\n` +
+                `✩ Banco › *${money(user.bank)}* ${coin}`
+            );
         } catch (e) {
             console.error('Error en deposit:', e);
-            await sock.sendMessage(chat, { text: '「 ꕤ 」 Ocurrió un error al depositar.' }, { quoted: m });
+            return reply('「 ꕤ 」 Ocurrió un error al depositar.');
         }
     }
 };

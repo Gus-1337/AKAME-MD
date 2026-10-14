@@ -1,3 +1,4 @@
+import { titulo } from '#shop';
 import { UserJid } from '#simple';
 import config from '#config';
 
@@ -115,7 +116,7 @@ export default {
 
             const cooldowns: { label: string; key: string; ms: number }[] = [
                 { label: 'Work',  key: 'lastWork',  ms: 60 * 1000 },
-                { label: 'Slut',  key: 'lastSlut',  ms: 5 * 60 * 1000 },
+                { label: 'Slut',  key: 'lastSlut',  ms: 4 * 60 * 1000 },
                 { label: 'Crime', key: 'lastCrime', ms: 5 * 60 * 1000 },
                 { label: 'Rob',   key: 'lastRob',   ms: 10 * 60 * 1000 },
                 { label: 'Daily', key: 'lastDaily', ms: 24 * 60 * 60 * 1000 }
@@ -125,14 +126,16 @@ export default {
             for (const c of cooldowns) {
                 const last = userInChat[c.key] || 0;
                 const remaining = last ? Math.max(0, c.ms - (now - last)) : 0;
-                body += `ⴵ ${c.label} » *${formatRemaining(remaining)}*\n`;
+                body += remaining > 0 ? `✩ ${c.label} › *${formatRemaining(remaining)}*\n` : `✩ ${c.label} › ✅ Listo\n`;
             }
 
             const caption =
-`✿ *》》Economía @${targetJid.split('@')[0]}《《* ✿
+`${titulo('ECONOMÍA')}
+
+   Usuario › @${targetJid.split('@')[0]}
 
 ${body}
-⛁ ${coinName} totales » ${total.toLocaleString()} ${coinName}`;
+✧ Total › *${total.toLocaleString('es-PE')}* ${coinName}`;
 
             await sock.sendMessage(chat, {
                 text: caption,
