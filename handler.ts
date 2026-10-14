@@ -316,6 +316,8 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
         return;
     }
 
+    // Subbots: sin comandos de dueño del bot ni de la categoría subbot (no crean subbots en subbots)
+    if ((global as any).esSubbot && (cmd.owner || cmd.category === 'subbot')) return;
     if (cmd.owner &&!isOwner) {
         queueMicrotask(() => { broadcast('security_event', { type: 'unauthorized_access', command: rawCommand, sender: normalizedSender, chat }); });
         return msg.reply('ׅ ׄ ✿ Este comando solo puede ser utilizado por el dueño del bot.');

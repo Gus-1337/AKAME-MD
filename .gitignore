@@ -26,3 +26,6 @@ prefijo-guardado.json
 
 # Sesiones de subbots (credenciales de WhatsApp, nunca subir)
 subbots/
+
+# Base de datos local (datos de usuarios, nunca subir)
+database/

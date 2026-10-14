@@ -18,7 +18,8 @@ export default {
         const { sock, msg, chat, args, usedPrefix, prefix, sender } = ctx;
         const p = usedPrefix || prefix || (config as any).prefix || '.';
         const plg = global.plugins || {};
-        const mainBanner = (config as any).banner;
+        const perfilSub = (global as any).subbotPerfil;
+        const mainBanner = perfilSub?.banner || (config as any).banner;
         const banners = (config as any).banners || {};
 
         const cats: Map<string, any[]> = new Map();
@@ -29,6 +30,7 @@ export default {
             if (!item?.command) continue;
             tot++;
             const cat = (item.category || 'otros').toLowerCase();
+            if ((global as any).esSubbot && (cat === 'owner' || cat === 'subbot')) continue;
             if (!cats.has(cat)) cats.set(cat, []);
             const mainCmd = Array.isArray(item.command)? item.command[0] : item.command;
             if (!cats.get(cat)!.some(x => x.cmd === mainCmd)) {
@@ -103,7 +105,7 @@ export default {
 
         const mainText =
 `╭─〔 Hola ${userName} 〕─
-│ ✧ Bot: ${config.botName}
+│ ✧ Bot: ${perfilSub?.nombre || config.botName}
 │ ✧ Creador: GUS
 │ ✧ Hora: ${hora}
 │ ✧ Total: ${tot} cmds

@@ -26,6 +26,7 @@ import { handleGroupAlerts, handleGroupParticipants } from '#alertas';
 import { avisarReinicio } from './commands/owner/restart.ts';
 import { restaurarSubbots } from './lib/subbots.ts';
 import { leerPrefijo } from './lib/prefijo.ts';
+import { esSubbot, SUBBOT_MODO, CARPETA_SUBBOT, aplicarPerfil, leerPerfil, manejarPersonal, bienvenidaSubbot, reportar } from './lib/subbot-mode.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -51,7 +52,8 @@ export function broadcast(event: string, payload: any) {
 
 globalThis.broadcast = broadcast;
 
-const sDir = path.join(__dirname, 'Session');
+// Subbots: sesión propia en subbots/<id>/auth. El bot principal sigue usando Session/.
+const sDir = esSubbot ? path.join(CARPETA_SUBBOT, 'auth') : path.join(__dirname, 'Session');
 
 const mStore = new LRUCache<string, any>({
     max: 1000,
@@ -152,9 +154,13 @@ const displayLoadingMessage = () => {
 
 async function startBot() {
     await loadDB();
-    const prefijoGuardado = leerPrefijo();
-    if (prefijoGuardado !== undefined) {
-        (global as any).db.data.settings = { ...((global as any).db.data.settings || {}), globalPrefix: prefijoGuardado };
+    if (esSubbot) {
+        aplicarPerfil();
+    } else {
+        const prefijoGuardado = leerPrefijo();
+        if (prefijoGuardado !== undefined) {
+            (global as any).db.data.settings = { ...((global as any).db.data.settings || {}), globalPrefix: prefijoGuardado };
+        }
     }
     await cargarPlugins('./commands');
 
@@ -168,7 +174,21 @@ async function startBot() {
     let opcion: string = '';
     let usarCodigo: boolean = false;
 
-    if (!state.creds.registered) {
+    if (esSubbot && !state.creds.registered && SUBBOT_MODO === 'restaurar') {
+        // Sin sesión guardada no hay nada que restaurar: el padre lo borra
+        reportar({ tipo: 'desvinculado' });
+        process.exit(0);
+    }
+
+    if (!state.creds.registered && esSubbot) {
+        // Subbot nuevo: la vinculación la pide lib/subbots.ts, sin preguntas en consola
+        usarCodigo = SUBBOT_MODO === 'vincular';
+        limpiarSesion();
+        fs.mkdirSync(sDir, { recursive: true });
+        const reloadedAuth = await useMultiFileAuthState(sDir);
+        state = reloadedAuth.state;
+        saveCreds = reloadedAuth.saveCreds;
+    } else if (!state.creds.registered) {
         console.log(chalk.cyan(`
       Raiden | Wa Bot
      Powered by Ryuzei-Ts 
@@ -224,7 +244,18 @@ async function startBot() {
         fetchOpts: { agent: httpAgent } as any
     });
 
-    if (usarCodigo && !state.creds.registered) {
+    if (esSubbot && usarCodigo && !state.creds.registered) {
+        setTimeout(async () => {
+            try {
+                const raw: string = await sock.requestPairingCode(leerPerfil().numero);
+                const codigo = raw?.match(/.{1,4}/g)?.join('-') ?? raw;
+                reportar({ tipo: 'codigo', codigo });
+            } catch (err: any) {
+                reportar({ tipo: 'error', motivo: `No se pudo generar el código: ${err?.message || 'error'}` });
+                setTimeout(() => process.exit(1), 300);
+            }
+        }, 3000);
+    } else if (usarCodigo && !state.creds.registered) {
         displayLoadingMessage();
         let num = await askQuestion('');
         num = normalizePhone(num);
@@ -251,6 +282,7 @@ async function startBot() {
         const { id, action } = update;
         invalidateGroupCache(id);
         broadcast('group_updated', { chatId: id, action });
+        await bienvenidaSubbot(sock, update);
         await handleGroupParticipants(sock, update);
     });
 
@@ -276,8 +308,12 @@ async function startBot() {
             (global as any).mainConn = sock;
             console.log(chalk.bold.cyan(`\n✿ ${globalThis.botName} conectado y listo ✰\n`));
             broadcast('bot_status', { status: 'connected', botName: globalThis.botName });
-            avisarReinicio(sock);
-            restaurarSubbots();
+            if (esSubbot) {
+                reportar({ tipo: 'conectado' });
+            } else {
+                avisarReinicio(sock);
+                restaurarSubbots();
+            }
         }
 
         if (connection === 'close') {
@@ -288,6 +324,9 @@ async function startBot() {
             if (statusCode === 515 || isStreamError) {
                 console.log(chalk.yellow('[ RECONNECT ] Reiniciando socket por actualización de sesión...'));
                 setTimeout(() => startBot(), 2000);
+            } else if (statusCode === DisconnectReason.loggedOut && esSubbot) {
+                reportar({ tipo: 'desvinculado' });
+                setTimeout(() => process.exit(0), 500);
             } else if (statusCode === DisconnectReason.loggedOut) {
                 console.log(chalk.red('[ SESSION ] Sesión cerrada desde el teléfono. Limpiando...'));
                 limpiarSesion();
@@ -315,6 +354,9 @@ async function startBot() {
 
             if (mStore.has(mId)) continue;
             mStore.set(mId, true);
+
+            // Subbot: primero sus comandos de personalización (.setnombre, .perfil, ...)
+            if (esSubbot && manejarPersonal(sock, rawMsg)) continue;
 
             const msg = serialize(sock, rawMsg);
             if (!msg) continue;
@@ -355,6 +397,9 @@ async function startBot() {
         });
     }
 }
+
+// Si el proceso principal se cae, el subbot también se cierra
+if (esSubbot) process.on('disconnect', () => process.exit(0));
 
 startBot().catch(() => {});
 

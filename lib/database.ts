@@ -6,7 +6,8 @@ import { UserJid } from '#simple';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dbDir = join(__dirname, '../database');
-const dbPath = join(dbDir, 'database.db');
+// Cada subbot usa su propia base (AKAME_DB_PATH) para no pisar datos del bot principal
+const dbPath = process.env.AKAME_DB_PATH || join(dbDir, 'database.db');
 
 export let db: DatabaseSync;
 
@@ -19,8 +20,8 @@ let stmtSaveChat: any;
 let stmtSaveChatUser: any;
 
 export const loadDB = () => {
-    if (!existsSync(dbDir)) {
-        mkdirSync(dbDir, { recursive: true });
+    if (!existsSync(dirname(dbPath))) {
+        mkdirSync(dirname(dbPath), { recursive: true });
     }
 
     db = new DatabaseSync(dbPath);

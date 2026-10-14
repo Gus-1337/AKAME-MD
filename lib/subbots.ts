@@ -19,7 +19,8 @@ const MAX_REINTENTOS = 5;
 const RAIZ = path.join(process.cwd(), 'subbots');
 const REGISTRO = path.join(RAIZ, 'registro.json');
 const CUPO_ARCHIVO = path.join(RAIZ, 'cupo.json');
-const WORKER = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'subbot', 'worker.ts');
+// El subbot corre el mismo index.ts del bot, en modo subbot (ver lib/subbot-mode.ts)
+const ENTRADA = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'index.ts');
 
 // Mismos flags que scripts/lanzar.mjs, para que el worker corra TypeScript directo
 const [MAJ, MIN] = process.versions.node.split('.').map(Number);
@@ -98,11 +99,16 @@ export const buscarSubbot = (idONumero: string): Subbot | undefined => {
 const perfilDe = (id: string) => leerJSON<Record<string, any>>(path.join(RAIZ, id, 'perfil.json'), {});
 
 const lanzarWorker = (id: string, modo: 'vincular' | 'restaurar'): ChildProcess => {
-    const proc = fork(WORKER, [id, modo], {
+    const proc = fork(ENTRADA, [], {
         execArgv: EXEC_ARGV,
         cwd: process.cwd(),
-        stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
-        env: process.env
+        stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+        env: {
+            ...process.env,
+            AKAME_SUBBOT_ID: id,
+            AKAME_SUBBOT_MODO: modo,
+            AKAME_DB_PATH: path.join(RAIZ, id, 'database.db')
+        }
     });
     const previo = vivos.get(id);
     vivos.set(id, { proc, reintentos: previo?.reintentos ?? 0, apagando: false, timer: previo?.timer });
