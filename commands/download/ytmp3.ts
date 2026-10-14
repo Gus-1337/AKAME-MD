@@ -1,7 +1,7 @@
 import axios from 'axios'
 import yts from 'yt-search'
 
-const MAX_BYTES = 100 * 1024 * 1024 // 100 MB (canciones largas)
+const MAX_BYTES = 400 * 1024 * 1024 // 400 MB (canciones largas)
 const MIN_BYTES = 20 * 1024        // menos de 20 KB = respuesta basura
 const YOSOYYO_URL = 'https://api-yosoyyo-api-ofc.onrender.com'
 const YOSOYYO_KEY = process.env.YOSOYYO_KEY || 'Akame-proyet'

@@ -2,7 +2,7 @@ import axios from 'axios';
 import yts from 'yt-search';
 import config from '#config';
 
-const MAX_BYTES = 100 * 1024 * 1024; // 100 MB
+const MAX_BYTES = 400 * 1024 * 1024; // 400 MB
 const MIN_BYTES = 50 * 1024;         // menos de 50 KB = respuesta basura
 
 const YT_REGEX = /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/;
@@ -50,14 +50,14 @@ const sources = (videoUrl: string) => {
     };
 };
 
-/** yosoyyo: candidatos mp4 de video, de mejor a peor (hasta 720p primero, luego el resto). */
+/** yosoyyo: candidatos mp4 de video, de mejor a peor (360p primero, luego el resto). */
 const candidatosYosoyyo = (d: any): string[] => {
     const lista = (d?.result?.results || []).filter((r: any) =>
         r?.type === 'video' && r?.extension === 'mp4' && typeof r?.download === 'string' && r.download.startsWith('http'));
     const altura = (r: any) => parseInt(String(r.quality || '').replace(/\D/g, '')) || 0;
-    const hasta720 = lista.filter((r: any) => altura(r) <= 720).sort((a: any, b: any) => altura(b) - altura(a));
-    const resto = lista.filter((r: any) => altura(r) > 720).sort((a: any, b: any) => altura(a) - altura(b));
-    return [...hasta720, ...resto].map((r: any) => r.download).slice(0, 4);
+    const hasta360 = lista.filter((r: any) => altura(r) <= 360).sort((a: any, b: any) => altura(b) - altura(a));
+    const resto = lista.filter((r: any) => altura(r) > 360).sort((a: any, b: any) => altura(a) - altura(b));
+    return [...hasta360, ...resto].map((r: any) => r.download).slice(0, 4);
 };
 
 /** Pide el enlace a una API y descarga el video. */
@@ -100,7 +100,7 @@ const getVideo = async (videoUrl: string): Promise<Buffer> => {
     let ultimo: any = null;
     for (let ronda = 1; ronda <= 2; ronda++) {
         try {
-            return await Promise.any([...principales.map((api) => intentar(api)), intentarDorratz(videoUrl, 'video', 720)]);
+            return await Promise.any([...principales.map((api) => intentar(api)), intentarDorratz(videoUrl, 'video', 360)]);
         } catch (e) { ultimo = e; }
         if (respaldo) {
             try {

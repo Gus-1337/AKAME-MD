@@ -6,7 +6,7 @@ import axios from 'axios';
  * Si todas fallan, se registra en consola el motivo de cada una.
  */
 
-const MAX_BYTES = 100 * 1024 * 1024; // 100 MB
+const MAX_BYTES = 400 * 1024 * 1024; // 400 MB
 const UA = { 'User-Agent': 'Mozilla/5.0' };
 const YOSOYYO_URL = 'https://api-yosoyyo-api-ofc.onrender.com';
 const YOSOYYO_KEY = process.env.YOSOYYO_KEY || 'Akame-proyet';
@@ -85,7 +85,7 @@ const desdeYosoyyoVideo = async (videoUrl: string) => {
     const lista = (data?.result?.results || [])
         .filter((r: any) => r?.type === 'video' && r?.extension === 'mp4' && typeof r?.download === 'string' && r.download.startsWith('http'))
         .sort((a: any, b: any) => {
-            const ea = altura(a) <= 720 ? 0 : 1, eb = altura(b) <= 720 ? 0 : 1;
+            const ea = altura(a) <= 360 ? 0 : 1, eb = altura(b) <= 360 ? 0 : 1;
             return ea !== eb ? ea - eb : (ea === 0 ? altura(b) - altura(a) : altura(a) - altura(b));
         })
         .slice(0, 4);
@@ -130,12 +130,12 @@ export const getAudioBuffer = (videoUrl: string): Promise<Buffer> => {
     ]);
 };
 
-/** Video MP4 completo de un video de YouTube (hasta 720p). */
+/** Video MP4 completo de un video de YouTube (360p). */
 export const getVideoBuffer = (videoUrl: string): Promise<Buffer> => {
     const e = encodeURIComponent(videoUrl);
     return enParalelo('VIDEO', [
         ['delirius', () => desdeApi(`https://api.delirius.online/download/ytmp4?url=${e}`, descargarVideo, 45000)],
         ['yosoyyo', () => desdeYosoyyoVideo(videoUrl)],
-        ['dorratz', () => desdeDorratz(videoUrl, 'video', 720, descargarVideo)]
+        ['dorratz', () => desdeDorratz(videoUrl, 'video', 360, descargarVideo)]
     ]);
 };

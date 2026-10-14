@@ -1,7 +1,7 @@
 import yts from 'yt-search';
 import axios from 'axios';
 
-const MAX_BYTES = 100 * 1024 * 1024;   // 100 MB (canciones largas, ej. 20 min)
+const MAX_BYTES = 400 * 1024 * 1024;   // 400 MB (canciones largas, ej. 20 min)
 const MIN_BYTES = 20 * 1024;           // menos de 20 KB = respuesta basura
 const DOC_BYTES = 16 * 1024 * 1024;    // por encima de esto se manda como documento
 const TIMEOUT_DESCARGA = 120000;
