@@ -1,8 +1,10 @@
 import axios from 'axios'
 import { UserJid } from '#simple'
+import config from '#config'
 
 const STELLAR_KEY = 'proyectsV2'
 const TIEMPO_RECLAMO = 60000
+const coinName = (config as any)?.coin || 'coins'
 
 // Rarezas del gacha: probabilidad, valor en yenes e icono
 const RAREZAS = [
@@ -79,7 +81,7 @@ export default {
                 caption:
                     `˚₊· ͟͟͞͞➳❥ *Waifu #${id}*\n\n` +
                     `> Personaje encontrado.\n\n` +
-                    `✧ Valor › *${rareza.valor.toLocaleString('es-PE')}* yenes\n` +
+                    `✧ Valor › *${rareza.valor.toLocaleString('es-PE')}* ${coinName}\n` +
                     `✦ Serie › *Anime*\n` +
                     `✩ Género › *Femenino*\n` +
                     `❖ Estado › *Libre*\n\n` +

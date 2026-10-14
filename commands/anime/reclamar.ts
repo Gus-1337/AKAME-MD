@@ -1,8 +1,11 @@
 import { UserJid } from '#simple'
 import { saveDB } from '#db'
+import config from '#config'
 
+const coinName = (config as any)?.coin || 'coins'
 const pendientes: Map<string, any> = (global as any).waifuPendientes || ((global as any).waifuPendientes = new Map())
 const normalize = (x: string) => String(x).split('@')[0].split(':').pop()?.replace(/[^\d]/g, '') || ''
+const fmt = (n: number) => n.toLocaleString('es-PE')
 
 export default {
     command: ['reclamar', 'claim', 'c'],
@@ -19,9 +22,6 @@ export default {
         // Solo quien encontró la waifu puede reclamarla. A los demás se les ignora.
         if (normalize(jid) !== pendiente.dueno) return
 
-        clearTimeout(pendiente.timeout)
-        pendientes.delete(chat)
-
         const db = (global as any).db?.data
         if (!db.chats) db.chats = {}
         if (!db.chats[chat]) db.chats[chat] = {}
@@ -30,14 +30,41 @@ export default {
         const usuario = db.chats[chat].users[jid]
         if (!Array.isArray(usuario.characters)) usuario.characters = []
 
+        const valor = pendiente.rareza.valor
+        const efectivo = Number(usuario.coins) || 0
+        const banco = Number(usuario.bank) || 0
+        const total = efectivo + banco
+
+        // Mismo saldo que muestra .bal (efectivo + banco)
+        if (total < valor) {
+            return sock.sendMessage(chat, {
+                text:
+                    `˚₊· ͟͟͞͞➳❥ *Saldo insuficiente*\n\n` +
+                    `> No te alcanza para reclamarla.\n\n` +
+                    `✧ Valor › *${fmt(valor)}* ${coinName}\n` +
+                    `✦ Tu saldo › *${fmt(total)}* ${coinName}\n` +
+                    `✩ Te faltan › *${fmt(valor - total)}* ${coinName}\n\n` +
+                    `✐ Revisa tu saldo con *.bal*`,
+                mentions: [jid]
+            }, { quoted: m })
+        }
+
         if (usuario.characters.some((c: any) => c.id === pendiente.id)) {
             return sock.sendMessage(chat, { text: `💖 Ya tienes la waifu *#${pendiente.id}* en tu harem` }, { quoted: m })
         }
 
+        clearTimeout(pendiente.timeout)
+        pendientes.delete(chat)
+
+        // Descuenta primero del efectivo y lo que falte, del banco
+        const deEfectivo = Math.min(efectivo, valor)
+        usuario.coins = efectivo - deEfectivo
+        usuario.bank = banco - (valor - deEfectivo)
+
         usuario.characters.push({
             id: pendiente.id,
             rareza: pendiente.rareza.nombre,
-            valor: pendiente.rareza.valor,
+            valor,
             image: pendiente.image,
             fecha: Date.now()
         })
@@ -47,10 +74,11 @@ export default {
             text:
                 `˚₊· ͟͟͞͞➳❥ *Waifu reclamada*\n\n` +
                 `> ¡Felicidades, ya es tuya!\n\n` +
-                `✧ Valor › *${pendiente.rareza.valor.toLocaleString('es-PE')}* yenes\n` +
+                `✧ Pagaste › *${fmt(valor)}* ${coinName}\n` +
                 `✦ Serie › *Anime*\n` +
                 `✩ Género › *Femenino*\n` +
                 `❖ Estado › *Reclamada*\n` +
+                `✿ Saldo › *${fmt(usuario.coins + usuario.bank)}* ${coinName}\n` +
                 `✿ Harem › *${usuario.characters.length}* personajes`,
             mentions: [jid]
         }, { quoted: m })
