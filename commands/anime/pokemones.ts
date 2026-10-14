@@ -16,7 +16,7 @@ export default {
 
         if (!lista.length) {
             return sock.sendMessage(chat, {
-                text: `🌿 Aún no tienes Pokémon\n> Usa *.pk* para encontrar uno y *.cpk* para atraparlo`,
+                text: `🌿 Aún no tienes Pokémon\n> Usa *.pokemon* para encontrar uno y *.cpk* para atraparlo`,
                 mentions: [jid]
             }, { quoted: m })
         }

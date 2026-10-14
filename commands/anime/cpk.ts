@@ -9,12 +9,12 @@ const fmt = (n: number) => n.toLocaleString('es-PE')
 
 export default {
     command: ['cpk', 'atrapar', 'reclamarpk'],
-    description: 'Atrapa el Pokémon que apareció con .pk',
+    description: 'Atrapa el Pokémon que apareció con .pokemon',
     category: 'gacha',
     run: async ({ chat, m, sock, sender }: any) => {
         const pendiente = pokePendientes.get(chat)
         if (!pendiente) {
-            return sock.sendMessage(chat, { text: '✿ No hay ningún Pokémon para atrapar ahora\n> Usa *.pk* para buscar uno' }, { quoted: m })
+            return sock.sendMessage(chat, { text: '✿ No hay ningún Pokémon para atrapar ahora\n> Usa *.pokemon* para buscar uno' }, { quoted: m })
         }
 
         // UserJid es síncrona: devuelve el JID real del usuario

@@ -40,7 +40,7 @@ export function nombreEs(species: any, fallback: string): string {
 }
 
 export default {
-    command: ['pk', 'pokemon', 'rp'],
+    command: ['pokemon', 'pk', 'rp'],
     description: 'Encuentra un Pokémon salvaje (luego usa .cpk para atraparlo)',
     category: 'gacha',
     run: async ({ chat, m, sock, sender }: any) => {
