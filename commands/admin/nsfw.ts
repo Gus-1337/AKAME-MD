@@ -27,7 +27,10 @@ export default {
             if (!dbData.chats[chat]) dbData.chats[chat] = {};
 
             const chatDb = dbData.chats[chat];
-            const input = args[0]?.toLowerCase()?.trim();
+            // .nsfwon y .nsfwoff son atajos: activan o desactivan sin necesidad de escribir "on"/"off"
+            const usado = String(ctx.command || '').toLowerCase().replace(/^[^a-z]+/, '');
+            const atajo = usado === 'nsfwon' ? 'on' : usado === 'nsfwoff' ? 'off' : undefined;
+            const input = atajo ?? args[0]?.toLowerCase()?.trim();
 
             const lista =
                 `✿ Comandos de la categoría NSFW 💋\n` +
