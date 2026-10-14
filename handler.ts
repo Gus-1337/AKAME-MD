@@ -95,6 +95,19 @@ function getAdminSet(participants: any[]): Set<string> {
     return adminSet;
 }
 
+// ¿El texto es un comando de la categoría subbot (.code, .reactivar, ...)?
+// Esos sí se atienden en privado; el resto de comandos solo en grupos.
+function esComandoSubbot(texto: string): boolean {
+    syncCommandMapIfNeeded();
+    const rawGlobal: any = (global as any).db?.data?.settings?.globalPrefix ?? (config as any)?.prefix ?? '.';
+    const prefijos: string[] = (Array.isArray(rawGlobal) ? rawGlobal : [rawGlobal])
+        .filter((p: any) => typeof p === 'string' && p.length > 0);
+    const prefijo = prefijos.find((p) => texto.startsWith(p));
+    if (!prefijo) return false;
+    const nombre = texto.slice(prefijo.length).trim().split(/\s+/)[0]?.toLowerCase() || '';
+    return commandMap.get(nombre)?.category === 'subbot';
+}
+
 function syncCommandMapIfNeeded(): void {
     const currentPlugins = (global as any).plugins;
     if (currentPlugins === lastPluginsRef) return;
@@ -255,6 +268,9 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
         msg.body = nativeText;
         msg.text = nativeText;
     }
+
+    // Solo se atiende lo que llega en grupos. En privado únicamente los comandos de subbots.
+    if (!isGroup && !esComandoSubbot(String(msg.body || msg.text || '').trim())) return;
 
     try {
         syncCommandMapIfNeeded();
