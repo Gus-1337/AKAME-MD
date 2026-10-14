@@ -1,11 +1,11 @@
 import config from '#config';
 
-const ord = ['main', 'owner', 'info', 'download', 'profile', 'admin', 'stickers', 'tools', 'ia', 'utils', 'fun', 'game', 'economy', 'gacha', 'anime', 'nsfw', 'otros', 'logo'];
+const ord = ['main', 'owner', 'info', 'download', 'profile', 'admin', 'stickers', 'tools', 'ia', 'utils', 'fun', 'game', 'economy', 'gacha', 'subbot', 'anime', 'nsfw', 'otros', 'logo'];
 const idx = new Map(ord.map((c, i) => [c, i]));
 const emojis: any = {
     'main': '🌸', 'owner': '👑', 'info': '💮', 'download': '🎀', 'profile': '💖',
     'admin': '🛡️', 'stickers': '✨', 'tools': '🌷', 'ia': '🤖', 'utils': '🍓',
-    'fun': '💕', 'game': '🎮', 'economy': '💸', 'gacha': '🪭',
+    'fun': '💕', 'game': '🎮', 'economy': '💸', 'gacha': '🪭', 'subbot': '🧩',
     'anime': '🦋', 'nsfw': '💋', 'otros': '🌺', 'logo': '🎨'
 };
 

@@ -24,6 +24,7 @@ import { handler, invalidateGroupCache } from '#handler';
 import printMessageLog from './lib/printlog.ts';
 import { handleGroupAlerts, handleGroupParticipants } from '#alertas';
 import { avisarReinicio } from './commands/owner/restart.ts';
+import { restaurarSubbots } from './lib/subbots.ts';
 import { leerPrefijo } from './lib/prefijo.ts';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -276,6 +277,7 @@ async function startBot() {
             console.log(chalk.bold.cyan(`\n✿ ${globalThis.botName} conectado y listo ✰\n`));
             broadcast('bot_status', { status: 'connected', botName: globalThis.botName });
             avisarReinicio(sock);
+            restaurarSubbots();
         }
 
         if (connection === 'close') {
