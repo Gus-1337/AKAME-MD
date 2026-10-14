@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer';
 import config from '#config';
+import { UserJid } from '#simple';
 
 const API_BASE = ((global as any).APIs?.delirius?.url || 'https://api.delirius.online').replace(/\/+$/, '');
 const UA = 'Mozilla/5.0 (Linux; Android 15; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36';
@@ -305,6 +306,29 @@ export const sendNsfwMedia = async (ctx: any, endpoint: NsfwEndpoint, label?: st
  * Descarga y envía una reaction al chat.
  * Devuelve true si se envió, false si falló (ya se avisó al chat en ese caso).
  */
+/** Persona a la que va dirigida la reacción: la respondida, la mencionada o un número en args. */
+export const resolverObjetivoNsfw = async (ctx: any): Promise<string | null> => {
+    const { sock, chat, m, args = [] } = ctx;
+    const sender = ctx.sender || m?.sender;
+    const quoted = m?.message?.extendedTextMessage?.contextInfo;
+    const mencion = quoted?.mentionedJid?.[0] || quoted?.participant;
+    let crudo: string | null = null;
+    if (mencion && (mencion.endsWith('@s.whatsapp.net') || mencion.endsWith('@lid'))) {
+        crudo = mencion;
+    } else if (args[0]) {
+        const numero = String(args[0]).replace(/[^0-9]/g, '');
+        if (numero.length >= 7) crudo = numero + '@s.whatsapp.net';
+    }
+    if (!crudo) return null;
+    try {
+        const jid = await UserJid(sock, chat, crudo);
+        if (!jid || jid === sender || !/^\d+@(s\.whatsapp\.net|lid)$/.test(jid)) return null;
+        return jid;
+    } catch {
+        return null;
+    }
+};
+
 export const sendReactionMedia = async (
     ctx: any,
     reaction: ReactionEndpoint,
@@ -327,7 +351,14 @@ export const sendReactionMedia = async (
             return false;
         }
 
+        const objetivo = await resolverObjetivoNsfw(ctx);
+        const remitente = ctx.sender || m?.sender;
+        const cabecera = objetivo && remitente
+            ? `@${remitente.split('@')[0]} le manda *${label || reaction}* a @${objetivo.split('@')[0]} ♡\n\n`
+            : '';
+
         const caption =
+            cabecera +
             `♡ AKAME-MD - NSFW ♡\n\n` +
             `✿ *Categoría:* ${label || reaction}\n` +
             `✿ *Peso:* ${formatBytes(media.bytes)}\n\n` +
@@ -335,9 +366,10 @@ export const sendReactionMedia = async (
             (extraCommand && extraCommand !== reaction ? ` o *${p}${reaction}*` : '') +
             `\n✿ Made by *${(config as any).devName || 'AKAME-MD'}* ♡`;
 
+        const mentions = cabecera && remitente && objetivo ? [remitente, objetivo] : undefined;
         const payload: any = media.kind === 'video'
-            ? { video: media.buffer, caption, gifPlayback: false, mimetype: media.mime }
-            : { image: media.buffer, caption, mimetype: media.mime };
+            ? { video: media.buffer, caption, gifPlayback: false, mimetype: media.mime, ...(mentions && { mentions }) }
+            : { image: media.buffer, caption, mimetype: media.mime, ...(mentions && { mentions }) };
 
         await sock.sendMessage(chat, payload, { quoted: m });
         await sock.sendMessage(chat, { react: { text: '👉', key: m.key } }).catch(() => null);
