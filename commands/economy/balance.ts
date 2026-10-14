@@ -37,7 +37,7 @@ export default {
             } else if (participant) {
                 const r = await UserJid(sock, chat, participant);
                 targetJid = r; targetNumber = normalizeNumber(r);
-            } else if (q &&!q.startsWith('@')) {
+            } else if (q && !q.startsWith('@')) {
                 const clean = q.replace(/[^0-9]/g, '');
                 if (clean) { targetJid = clean + '@s.whatsapp.net'; targetNumber = clean; }
                 else { targetJid = realSender; targetNumber = normalizeNumber(realSender); }
@@ -56,12 +56,20 @@ export default {
             if (!userInChat) return await sock.sendMessage(chat, { text: 'ꕤ El usuario no tiene cuenta de economía en este grupo (｡•́︿•̀｡)' }, { quoted: m });
 
             const coinName = (config as any)?.coin || '¥enes';
-            const coins = userInChat.coins || 0;
-            const bank = userInChat.bank || 0;
+            const coins = Number(userInChat.coins) || 0;
+            const bank = Number(userInChat.bank) || 0;
             const total = coins + bank;
-            const fmt = (n: number) => `${n.toLocaleString()} ${coinName}`;
+            const fmt = (n: number) => n.toLocaleString('es-PE');
 
-            const caption = `⋋⁠✿⁠ ⁠⁰⁠ ⁠o⁠ ⁠⁰⁠ ⁠✿⁠⋌\n♡ *— BALANCE AKAME —* ♡\nꕤ Usuario » @${targetJid.split('@')[0]}\nꕤ Efectivo » *${fmt(coins)}*\nꕤ Banco » *${fmt(bank)}*\nꕤ Total » *${fmt(total)}*\n⋋⁠✿⁠ ⁠⁰⁠ ⁠o⁠ ⁠⁰⁠ ⁠✿⁠⋌`;
+            const caption =
+`˚₊· ͟͟͞͞➳❥ *BALANCE* ✦
+     ✧ Usuario › @${targetJid.split('@')[0]}
+
+ ✩ Efectivo › *${fmt(coins)}* ${coinName}
+ ✩ Banco › *${fmt(bank)}* ${coinName}
+ ✩ Total › *${fmt(total)}* ${coinName}
+
+_Usa .dep o .with para mover tu dinero_`;
 
             await sock.sendMessage(chat, { text: caption, mentions: [targetJid] }, { quoted: m });
 
