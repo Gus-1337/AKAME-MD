@@ -1,3 +1,4 @@
+import { GANANCIA_BASE } from '#shop';
 import { UserJid } from '#simple';
 import { activeEffectsLine, luckBoost, softenPenalty, titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin } from '#shop';
 import config from '#config';
@@ -42,6 +43,7 @@ export default {
                 historia = 'Caminaste por horas y no encontraste nada';
             }
 
+            if (cambio > 0) cambio *= GANANCIA_BASE;
             const antes = user.coins || 0;
             user.coins = Math.max(0, antes + cambio);
             user.lastMazmorra = Date.now();

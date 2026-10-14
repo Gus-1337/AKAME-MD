@@ -1,3 +1,4 @@
+import { GANANCIA_BASE } from '#shop';
 import { UserJid } from '#simple';
 import { activeEffectsLine, coinMultiplier, effectiveCooldown, luckBoost, softenPenalty, titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin } from '#shop';
 import { saveDB } from '#db';
@@ -64,7 +65,7 @@ export default {
                 );
             }
 
-            const ganancia = (Math.floor(Math.random() * 15000) + 3000) * coinMultiplier(user);
+            const ganancia = (Math.floor(Math.random() * 15000) + 3000) * coinMultiplier(user) * GANANCIA_BASE;
             user.coins = (user.coins || 0) + ganancia;
             saveDB(chat, jid);
 

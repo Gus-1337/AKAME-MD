@@ -31,6 +31,8 @@ export const COINBOOST_BONUS = 2;
 export const ENERGY_CD_FACTOR = 0.5;
 export const LUCK_BONUS = 0.15;
 export const CRIME_PENALTY_FACTOR = 0.5;
+/** Multiplicador base de TODAS las ganancias de economía (2 = el doble). Cámbialo aquí. */
+export const GANANCIA_BASE = 2;
 
 export const SHOP_ITEMS: ShopItem[] = [
     {

@@ -1,3 +1,4 @@
+import { GANANCIA_BASE } from '#shop';
 import { UserJid } from '#simple';
 import { activeEffectsLine, coinMultiplier, effectiveCooldown, titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin } from '#shop';
 import config from '#config';
@@ -32,7 +33,7 @@ export default {
             }
 
             const base = Math.floor(Math.random() * 2001) + 500; // 500 a 2500, igual que antes
-            const ganancia = base * coinMultiplier(user);
+            const ganancia = base * coinMultiplier(user) * GANANCIA_BASE;
             const mineral = base < 1000 ? MINERALES[0] : base < 1600 ? MINERALES[1] : base < 2200 ? MINERALES[2] : MINERALES[3];
 
             user.coins = (user.coins || 0) + ganancia;

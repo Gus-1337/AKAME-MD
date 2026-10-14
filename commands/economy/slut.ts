@@ -1,3 +1,4 @@
+import { GANANCIA_BASE } from '#shop';
 import { UserJid } from '#simple';
 import { activeEffectsLine, titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin } from '#shop';
 import { saveDB } from '#db';
@@ -58,7 +59,7 @@ export default {
                 );
             }
 
-            const ganancia = Math.floor(Math.random() * 10000) + 1000;
+            const ganancia = (Math.floor(Math.random() * 10000) + 1000) * GANANCIA_BASE;
             user.coins = (user.coins || 0) + ganancia;
             saveDB(chat, jid);
             return reply(

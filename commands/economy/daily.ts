@@ -1,3 +1,4 @@
+import { GANANCIA_BASE } from '#shop';
 import { UserJid } from '#simple';
 import { coinMultiplier, titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin } from '#shop';
 import { saveDB } from '#db';
@@ -38,8 +39,8 @@ export default {
 
             const perdioRacha = last > 0 && diff > 2 * DIA;
             const streak = (perdioRacha ? 0 : (user.streak || 0)) + 1;
-            const premio = (BASE + (streak - 1) * PASO) * coinMultiplier(user);
-            const siguiente = BASE + streak * PASO;
+            const premio = (BASE + (streak - 1) * PASO) * coinMultiplier(user) * GANANCIA_BASE;
+            const siguiente = (BASE + streak * PASO) * GANANCIA_BASE;
 
             user.coins = (user.coins || 0) + premio;
             user.streak = streak;

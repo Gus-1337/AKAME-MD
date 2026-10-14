@@ -1,3 +1,4 @@
+import { GANANCIA_BASE } from '#shop';
 import { UserJid } from '#simple';
 import { titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin, activeEffectsLine } from '#shop';
 import config from '#config';
@@ -41,7 +42,7 @@ export default {
             }
 
             const rareza = sacarRareza();
-            const premio = Math.floor(Math.random() * (rareza.max - rareza.min + 1)) + rareza.min;
+            const premio = (Math.floor(Math.random() * (rareza.max - rareza.min + 1)) + rareza.min) * GANANCIA_BASE;
 
             user.coins = (user.coins || 0) + premio;
             user.lastCofre = Date.now();

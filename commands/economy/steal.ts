@@ -1,3 +1,4 @@
+import { GANANCIA_BASE } from '#shop';
 import { UserJid } from '#simple';
 import { buffRemaining, formatDuration, hasRobShield, luckBoost, softenPenalty, titulo, money, ecoUser, bloqueadoPorAdmin } from '#shop';
 import { saveDB } from '#db';
@@ -73,14 +74,15 @@ export default {
             if (exitoso) {
                 const porcentaje = Math.random() * 0.3 + 0.1;
                 const robado = Math.min(Math.floor(saldoVictima * porcentaje), saldoVictima);
-                user.coins = (user.coins || 0) + robado;
+                const botin = robado * GANANCIA_BASE;
+                user.coins = (user.coins || 0) + botin;
                 victima.coins = saldoVictima - robado;
                 saveDB(chat, realSender);
                 saveDB(chat, victimaKey);
                 return reply(
                     `${titulo('ROBO')}\n\n` +
                     `   ¡Le robaste a *${nombreVictima}*!\n\n` +
-                    `✩ Ganaste › *+${money(robado)}* ${coin}\n` +
+                    `✩ Ganaste › *+${money(botin)}* ${coin}\n` +
                     `✩ Saldo › *${money(user.coins)}* ${coin}`
                 );
             }

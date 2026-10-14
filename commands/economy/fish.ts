@@ -1,3 +1,4 @@
+import { GANANCIA_BASE } from '#shop';
 import { UserJid } from '#simple';
 import { activeEffectsLine, coinMultiplier, effectiveCooldown, titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin } from '#shop';
 import config from '#config';
@@ -41,7 +42,7 @@ export default {
             }
 
             const pez = sacarPez();
-            const ganancia = pez.coins * coinMultiplier(user);
+            const ganancia = pez.coins * coinMultiplier(user) * GANANCIA_BASE;
 
             user.coins = (user.coins || 0) + ganancia;
             user.lastFish = Date.now();

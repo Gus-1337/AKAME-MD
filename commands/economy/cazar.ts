@@ -1,3 +1,4 @@
+import { GANANCIA_BASE } from '#shop';
 import { UserJid } from '#simple';
 import { activeEffectsLine, coinMultiplier, effectiveCooldown, titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin } from '#shop';
 import config from '#config';
@@ -43,7 +44,7 @@ export default {
             }
 
             const animal = sacarAnimal();
-            const ganancia = (animal.coins + Math.floor(Math.random() * 300)) * coinMultiplier(user);
+            const ganancia = (animal.coins + Math.floor(Math.random() * 300)) * coinMultiplier(user) * GANANCIA_BASE;
 
             user.coins = (user.coins || 0) + ganancia;
             user.lastCazar = Date.now();
