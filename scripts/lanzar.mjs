@@ -49,8 +49,19 @@ if (flags.length > 0 && process.env.AKAME_DEBUG === '1') {
     console.log(`[lanzador] Node ${process.versions.node} -> node ${flags.join(' ')} index.ts`);
 }
 
-const hijo = spawn(process.execPath, args, { cwd: ROOT, stdio: 'inherit' });
+// Código de reinicio: el comando .restart sale con 42 y el bot vuelve a arrancar solo.
+const CODIGO_REINICIO = 42;
 
-hijo.on('exit', (code, signal) => {
-    process.exit(signal ? 1 : code ?? 0);
-});
+const arrancar = () => {
+    const hijo = spawn(process.execPath, args, { cwd: ROOT, stdio: 'inherit' });
+
+    hijo.on('exit', (code, signal) => {
+        if (!signal && code === CODIGO_REINICIO) {
+            console.log('\n[lanzador] Reiniciando AKAME-MD...\n');
+            return arrancar();
+        }
+        process.exit(signal ? 1 : code ?? 0);
+    });
+};
+
+arrancar();
