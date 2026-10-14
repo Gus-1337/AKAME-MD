@@ -1,38 +1,9 @@
 import yts from 'yt-search';
-import axios from 'axios';
-import fs from 'fs';
-import path from 'path';
+import { getVideoBuffer } from '#ytdl';
 
-const tmpDir = path.resolve(process.cwd(), 'tmp')
-if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true })
+const YT_REGEX = /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/;
 
-const extractDownloadUrl = (data) => {
-    const candidate = data?.data?.download || data?.download || data?.dl || data?.data?.dl_url ||
-                      data?.data?.download?.url || data?.result?.download ||
-                      data?.result?.url || data?.result?.link || data?.url || data?.link;
-    return (typeof candidate === 'string' && candidate.startsWith('http'))? candidate : '';
-};
-
-const fetchApiUrl = (apiUrl) => {
-    return axios.get(apiUrl, { timeout: 30000, headers: { 'User-Agent': 'Mozilla/5.0' } }).then(res => {
-        const dlUrl = extractDownloadUrl(res.data);
-        if (!dlUrl) throw new Error('Sin URL');
-        return dlUrl;
-    });
-};
-
-const getVideoUrl = (videoUrl) => {
-    const encoded = encodeURIComponent(videoUrl);
-    return fetchApiUrl(`https://api.delirius.online/download/ytmp4?url=${encoded}`)
-     .catch(() => fetchApiUrl(`https://api.starlights.uk/api/download/ytmp4?url=${encoded}`));
-};
-
-const downloadToTmp = async (url, ext) => {
-    const tmpPath = path.join(tmpDir, `yt-${Date.now()}.${ext}`)
-    const { data } = await axios.get(url, { responseType: 'arraybuffer', timeout: 120000 })
-    fs.writeFileSync(tmpPath, data)
-    return tmpPath
-}
+const limpiarNombre = (t) => (String(t || 'video')).replace(/[\\\\/:*?\"<>|]/g, '').trim().slice(0, 80) || 'video';
 
 export default {
     command: ['play2', 'mp4', 'playvid', 'playvideo'],
@@ -41,69 +12,61 @@ export default {
     group: true,
     run: async (ctx) => {
         const { sock, msg, chat, args } = ctx;
-        const query = args.join(" ").trim();
-        let tmpFile = null
+        const query = args.join(' ').trim();
 
-        if (!query) return sock.sendMessage(chat, { text: `🎬 Ingresa nombre o link\nEj:.play2 Bad Bunny` }, { quoted: msg });
+        if (!query) return sock.sendMessage(chat, { text: `🎬 Ingresa nombre o link\nEj: .play2 Bad Bunny` }, { quoted: msg });
 
         try {
-            await sock.sendMessage(chat, { react: { text: "🎬", key: msg.key } });
+            await sock.sendMessage(chat, { react: { text: '🎬', key: msg.key } });
 
-            let videoUrl = query;
-            let videoData = null;
-
-            const urlMatch = query.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/);
-            if (!urlMatch) {
+            // Link directo o búsqueda por nombre
+            let videoId;
+            const m = query.match(YT_REGEX);
+            if (m) {
+                videoId = m[1];
+            } else {
                 const search = await yts(query);
-                if (!search?.videos?.length) throw new Error('No results');
-                videoData = search.videos[0];
-                videoUrl = `https://youtu.be/${videoData.videoId}`;
-            } else {
-                const search = await yts(`https://youtu.be/${urlMatch[1]}`);
-                videoData = search.videos[0];
+                const first = search?.videos?.[0];
+                if (!first) throw new Error('sin resultados');
+                videoId = first.videoId;
             }
+            const videoUrl = `https://youtu.be/${videoId}`;
 
-            if (videoData) {
-                const info = `🎬 *${videoData.title}*\n\n` +
-                             `✿ Canal: ${videoData.author?.name || 'Desconocido'}\n` +
-                             `✿ Duración: ${videoData.timestamp || '??'}\n` +
-                             `✿ Vistas: ${videoData.views?.toLocaleString() || '??'}\n\n` +
-                             `_Descargando video..._`;
+            // Datos para la tarjeta (si falla, seguimos sin ella)
+            let info: any = null;
+            try { info = await yts({ videoId }); } catch {}
+            const titulo = limpiarNombre(info?.title);
+
+            await sock.sendMessage(chat, {
+                image: { url: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg` },
+                caption: `🎬 *${info?.title || 'Video'}*\n\n✿ Canal: ${info?.author?.name || 'Desconocido'}\n✿ Duración: ${info?.timestamp || '??'}\n✿ Vistas: ${info?.views?.toLocaleString?.() || '??'}\n\n_Descargando video..._`
+            }, { quoted: msg }).catch(() => null);
+
+            const buffer = await getVideoBuffer(videoUrl);
+            const mb = (buffer.length / (1024 * 1024)).toFixed(1);
+
+            if (buffer.length > 64 * 1024 * 1024) {
+                // Muy pesado para video: como documento
                 await sock.sendMessage(chat, {
-                    image: { url: `https://i.ytimg.com/vi/${videoData.videoId}/mqdefault.jpg` },
-                    caption: info
-                }, { quoted: msg });
-            }
-
-            const dlUrl = await getVideoUrl(videoUrl);
-            tmpFile = await downloadToTmp(dlUrl, 'mp4');
-
-            const stats = fs.statSync(tmpFile);
-            const sizeMB = stats.size / (1024 * 1024);
-
-            if (sizeMB > 100) {
-                await sock.sendMessage(chat, {
-                    document: fs.readFileSync(tmpFile),
-                    mimetype: "video/mp4",
-                    fileName: `${videoData?.title || 'video'}.mp4`,
-                    caption: `🎬 ${videoData?.title || ''}\n✿ ${(sizeMB).toFixed(2)} MB - enviado como documento`
+                    document: buffer,
+                    mimetype: 'video/mp4',
+                    fileName: `${titulo}.mp4`,
+                    caption: `🎬 ${titulo}\n✿ ${mb} MB - enviado como documento`
                 }, { quoted: msg });
             } else {
                 await sock.sendMessage(chat, {
-                    video: fs.readFileSync(tmpFile),
-                    mimetype: "video/mp4",
-                    fileName: `${videoData?.title || 'video'}.mp4`,
-                    caption: `🎬 ${videoData?.title || ''}`
+                    video: buffer,
+                    mimetype: 'video/mp4',
+                    fileName: `${titulo}.mp4`,
+                    caption: `🎬 ${titulo}`
                 }, { quoted: msg });
             }
 
-            await sock.sendMessage(chat, { react: { text: "✅", key: msg.key } });
-
+            await sock.sendMessage(chat, { react: { text: '✅', key: msg.key } });
         } catch (e) {
-            await sock.sendMessage(chat, { react: { text: "❌", key: msg.key } });
-            return sock.sendMessage(chat, { text: `ෆ⁠╹⁠ lo siento ocurrido algo al descargar ෆ⁠╹⁠` }, { quoted: msg });
-        } finally {
-            if (tmpFile && fs.existsSync(tmpFile)) try { fs.unlinkSync(tmpFile) } catch {}
+            console.log('[PLAY2 ERROR]', e?.message);
+            await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } });
+            await sock.sendMessage(chat, { text: `❌ No pude descargar el video, intenta de nuevo` }, { quoted: msg });
         }
     }
 };

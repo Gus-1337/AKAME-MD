@@ -17,6 +17,7 @@
     "#anime": "./lib/anime.ts",
     "#nsfw": "./lib/nsfw.ts",
     "#shop": "./lib/shop.ts",
+    "#ytdl": "./lib/ytdl.ts",
     "#logomaker": "./lib/logomaker.ts",
     "#handler": "./handler.ts",
     "#index": "./index.ts",
