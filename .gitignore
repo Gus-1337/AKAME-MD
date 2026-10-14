@@ -23,3 +23,6 @@ temp/
 cache/
 restart-pendiente.json
 prefijo-guardado.json
+
+# Sesiones de subbots (credenciales de WhatsApp, nunca subir)
+subbots/
