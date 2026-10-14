@@ -107,7 +107,8 @@ export default {
 │ ✧ Creador: GUS
 │ ✧ Hora: ${hora}
 │ ✧ Total: ${tot} cmds
-│ ✧ Prefijo: ( ${p} )
+│ ✧ Prefijo: ( ${p} )${(config as any).subbotsWeb ? `
+│ ✧ Subbots: ${(config as any).subbotsWeb}` : ''}
 │ ✧ By GUS
 ╰───────────────
 > Selecciona una categoría abajo`;

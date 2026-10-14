@@ -36,6 +36,9 @@ export const config = {
     icon: 'https://cdn.dix.lat/me/q2se_20261008-r2x1-0f9o-f489.jpg',
     coin: 'coins',
 
+    // Enlace de la web para vincular subbots (vacío = no aparece en el menú)
+    subbotsWeb: process.env.SUBBOTS_WEB_URL || '',
+
     // API Principal 
     api: {
       url: 'https://api.stellarwa.xyz',
