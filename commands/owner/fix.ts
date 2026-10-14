@@ -36,11 +36,12 @@ export default {
             const { stdout: despues } = await execPromise('git rev-parse HEAD');
             const rootDir = path.join(process.cwd(), 'commands');
 
-            if (!(global as any).plugins) {
-                (global as any).plugins = {};
-            }
+            // Se arma una lista NUEVA completa y solo al final se reemplaza.
+            // El handler reconstruye sus comandos cuando cambia esa referencia; si se
+            // vaciaba y se llenaba el mismo objeto, los comandos podían desaparecer.
+            const nuevos: Record<string, any> = {};
 
-            const reload = async (dir: string) => {
+            const reload = async (dir: string): Promise<void> => {
                 const files = fs.readdirSync(dir);
                 for (const file of files) {
                     const fullPath = path.join(dir, file);
@@ -48,23 +49,24 @@ export default {
 
                     if (stat.isDirectory()) {
                         await reload(fullPath);
-                    } else if (file.endsWith('.ts') && !file.startsWith('_')) {
+                    } else if ((file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts') && !file.startsWith('_')) {
                         try {
                             const fileUrl = pathToFileURL(fullPath).href + `?update=${Date.now()}`;
-                            const module = await import(fileUrl);
-                            const cmd = module.default || module;
-
-                            if (cmd) {
-                                const pluginKey = path.relative(rootDir, fullPath).replace(/\\/g, '/');
-                                (global as any).plugins[pluginKey] = cmd;
-                            }
-                        } catch (e) {}
+                            const module: any = await import(fileUrl);
+                            const cmd = module.default?.default || module.default || module;
+                            if (cmd) nuevos[path.basename(fullPath)] = cmd;
+                        } catch (e: any) {
+                            console.error(`[ FIX ] No se pudo cargar ${file}:`, e?.message || e);
+                        }
                     }
                 }
             };
 
-            (global as any).plugins = {};
             await reload(rootDir);
+
+            if (Object.keys(nuevos).length > 0) {
+                (global as any).plugins = nuevos;
+            }
 
             const inicio = antes.trim();
             const fin = despues.trim();
