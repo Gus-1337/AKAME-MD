@@ -10,7 +10,7 @@ const fmt = (n: number) => n.toLocaleString('es-PE')
 export default {
     command: ['cpk', 'atrapar', 'reclamarpk'],
     description: 'Atrapa el Pokémon que apareció con .pk',
-    category: 'anime',
+    category: 'gacha',
     run: async ({ chat, m, sock, sender }: any) => {
         const pendiente = pokePendientes.get(chat)
         if (!pendiente) {

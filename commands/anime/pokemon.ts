@@ -42,7 +42,7 @@ export function nombreEs(species: any, fallback: string): string {
 export default {
     command: ['pk', 'pokemon', 'rp'],
     description: 'Encuentra un Pokémon salvaje (luego usa .cpk para atraparlo)',
-    category: 'anime',
+    category: 'gacha',
     run: async ({ chat, m, sock, sender }: any) => {
         const jid = UserJid(sock, chat, sender || m.sender) || sender || m.sender
         const dueno = normalize(jid)

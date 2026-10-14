@@ -10,7 +10,7 @@ const fmt = (n: number) => n.toLocaleString('es-PE')
 export default {
     command: ['reclamar', 'claim', 'c'],
     description: 'Reclama la waifu que acabas de encontrar con .rw',
-    category: 'anime',
+    category: 'gacha',
     run: async ({ chat, m, sock, sender }: any) => {
         const pendiente = pendientes.get(chat)
         if (!pendiente) {

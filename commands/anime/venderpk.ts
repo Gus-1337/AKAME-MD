@@ -8,7 +8,7 @@ const fmt = (n: number) => n.toLocaleString('es-PE')
 export default {
     command: ['venderpk', 'liberarpk', 'soltarpk'],
     description: 'Vende o libera un Pokémon de tu colección (recibes la mitad del valor)',
-    category: 'anime',
+    category: 'gacha',
     run: async ({ chat, m, sock, sender, args }: any) => {
         const jid = UserJid(sock, chat, sender || m.sender) || sender || m.sender
         const numero = Number(String(args[0] || '').replace('#', ''))

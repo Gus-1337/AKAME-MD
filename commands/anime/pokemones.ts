@@ -8,7 +8,7 @@ const iconos: Record<string, string> = { 'Común': '⚪', 'Rara': '🔵', 'Épic
 export default {
     command: ['pokemones', 'pokes', 'mispokemon'],
     description: 'Muestra tu colección de Pokémon en este chat',
-    category: 'anime',
+    category: 'gacha',
     run: async ({ chat, m, sock, sender }: any) => {
         const jid = UserJid(sock, chat, sender || m.sender) || sender || m.sender
         const usuario = (global as any).db?.data?.chats?.[chat]?.users?.[jid]

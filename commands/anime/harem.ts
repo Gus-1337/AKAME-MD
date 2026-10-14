@@ -16,7 +16,7 @@ const fecha = (ms: number) =>
 export default {
     command: ['harem', 'mywaifus', 'misswaifus'],
     description: 'Muestra las waifus que has reclamado en este chat',
-    category: 'anime',
+    category: 'gacha',
     run: async ({ chat, m, sock, sender }: any) => {
         const reply = (text: string, mentions?: string[]) =>
             sock.sendMessage(chat, mentions ? { text, mentions } : { text }, { quoted: m })

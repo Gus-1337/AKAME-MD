@@ -43,7 +43,7 @@ async function waifuDelirius(): Promise<{ id: any; image: string } | null> {
 export default {
     command: ['waifu', 'waifus', 'rw'],
     description: 'Tira una waifu del gacha (luego usa .reclamar)',
-    category: 'anime',
+    category: 'gacha',
     run: async ({ chat, m, sock, sender }: any) => {
         // UserJid es síncrona: devuelve el JID real del usuario
         const jid = UserJid(sock, chat, sender || m.sender) || sender || m.sender
