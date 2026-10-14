@@ -43,9 +43,9 @@ export default {
     command: ['waifu', 'waifus'],
     description: 'Tira una waifu del gacha (luego usa .reclamar)',
     category: 'anime',
-    group: true,
     run: async ({ chat, m, sock, sender }: any) => {
-        const jid = await UserJid(sock, chat, sender || m.sender).catch(() => sender || m.sender)
+        // UserJid es síncrona: devuelve el JID real del usuario
+        const jid = UserJid(sock, chat, sender || m.sender) || sender || m.sender
         const dueno = normalize(jid)
 
         const activa = pendientes.get(chat)

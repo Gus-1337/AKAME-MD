@@ -10,14 +10,14 @@ export default {
     command: ['reclamar', 'claim'],
     description: 'Reclama la waifu que acabas de encontrar con .waifu',
     category: 'anime',
-    group: true,
     run: async ({ chat, m, sock, sender }: any) => {
         const pendiente = pendientes.get(chat)
         if (!pendiente) {
             return sock.sendMessage(chat, { text: '✿ No hay ninguna waifu para reclamar ahora\n> Usa *.waifu* para buscar una' }, { quoted: m })
         }
 
-        const jid = await UserJid(sock, chat, sender || m.sender).catch(() => sender || m.sender)
+        // UserJid es síncrona: devuelve el JID real del usuario
+        const jid = UserJid(sock, chat, sender || m.sender) || sender || m.sender
         // Solo quien encontró la waifu puede reclamarla. A los demás se les ignora.
         if (normalize(jid) !== pendiente.dueno) return
 
