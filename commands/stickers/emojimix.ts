@@ -1,4 +1,7 @@
-// Combina dos emojis con Google Emoji Kitchen (sin clave). Todo el código vive en este archivo.
+// Combina dos emojis con Google Emoji Kitchen (sin clave) y responde como sticker.
+import fs from 'fs';
+import { writeExif } from '#sticker';
+
 const FECHAS = [
     '20201001', '20210218', '20210521', '20210831', '20211115', '20220110', '20220203', '20220406',
     '20220506', '20220815', '20220823', '20221101', '20221107', '20230118', '20230126', '20230127',
@@ -65,11 +68,15 @@ export default {
                     text: `✿ No existe una mezcla de ${a} + ${b}. Prueba con otros emojis.`
                 }, { quoted: m });
             }
+            const ruta = await writeExif({ data: png, mimetype: 'image/png' }, {
+                packname: 'EMOJIMIX',
+                author: 'AKAME-MD',
+                categories: [a, b]
+            });
+            const sticker = fs.readFileSync(ruta);
+            fs.unlink(ruta, () => {});
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } }).catch(() => {});
-            return sock.sendMessage(chat, {
-                image: png,
-                caption: `˚₊· ͟͟͞͞➳❥ *EMOJIMIX*\n───────────────\n${a} + ${b}\n───────────────`
-            }, { quoted: m });
+            return sock.sendMessage(chat, { sticker }, { quoted: m });
         } catch (e: any) {
             return sock.sendMessage(chat, { text: `✿ No pude mezclar esos emojis.\n> ${e.message}` }, { quoted: m });
         }
