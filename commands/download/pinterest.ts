@@ -46,8 +46,11 @@ export default {
 
             await sock.relayMessage(targetJid, opener.message, { messageId: opener.key.id });
 
-            const sendPromises = images.map(async (url, i) => {
-                const caption = i === 0 ? 
+            // Una por una con pausa: enviar 15 a la vez hace que WhatsApp responda "rate-overlimit"
+            const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
+            for (let i = 0; i < images.length; i++) {
+                const url = images[i];
+                const caption = i === 0 ?
 `☬ *PINTEREST* ☬
 
 ♡ *Búsqueda:* ${q}
@@ -55,20 +58,28 @@ export default {
 
 ☬ *AKAME-MD* ♡` : '';
 
-                const child = await generateWAMessage(targetJid, {
-                    image: { url },
-                    caption
-                }, { upload: sock.waUploadToServer });
+                let enviada = false;
+                for (let intento = 1; intento <= 4 && !enviada; intento++) {
+                    try {
+                        const child = await generateWAMessage(targetJid, {
+                            image: { url },
+                            caption
+                        }, { upload: sock.waUploadToServer });
 
-                child.message.messageContextInfo = {
-                    messageSecret: crypto.randomBytes(32),
-                    messageAssociation: { associationType: 1, parentMessageKey: opener.key }
-                };
+                        child.message.messageContextInfo = {
+                            messageSecret: crypto.randomBytes(32),
+                            messageAssociation: { associationType: 1, parentMessageKey: opener.key }
+                        };
 
-                await sock.relayMessage(targetJid, child.message, { messageId: child.key.id });
-            });
-
-            await Promise.all(sendPromises);
+                        await sock.relayMessage(targetJid, child.message, { messageId: child.key.id });
+                        enviada = true;
+                    } catch (e: any) {
+                        if (!String(e?.message || '').includes('rate-overlimit')) break;
+                        await esperar(2000 * intento);
+                    }
+                }
+                await esperar(700);
+            }
 
         } catch (e) {
             console.log(e);
