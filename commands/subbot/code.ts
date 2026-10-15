@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { crearSubbot, buscarSubbot, borrarSubbot, esperaCodigo } from '../../lib/subbots.ts';
 
 const caja = (titulo: string, lineas: string[]) =>
@@ -86,7 +87,9 @@ export default {
                 '✿ Ingresa el *código* de vinculación.'
             ].join('\n');
             try {
-                await sock.sendMessage(chat, { image: { url: IMAGEN_CODIGO }, caption: instrucciones }, { quoted: msg });
+                // Se descarga primero y se manda el archivo, sin depender de que WhatsApp baje la URL
+                const { data } = await axios.get(IMAGEN_CODIGO, { responseType: 'arraybuffer', timeout: 20000 });
+                await sock.sendMessage(chat, { image: Buffer.from(data), caption: instrucciones }, { quoted: msg });
             } catch (e: any) {
                 console.log('[CODE] imagen no enviada, se manda solo texto:', e?.message);
                 await responder(instrucciones);
