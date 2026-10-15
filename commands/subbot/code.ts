@@ -37,7 +37,7 @@ const MSG_ESPERA = (seg: number) => caja('ESPERA', [
 ]);
 
 export default {
-    command: ['code', 'vincular'],
+    command: ['code', 'vincular', 'jadibot'],
     description: 'Crea tu subbot y te envía el código de vinculación',
     category: 'subbot',
     run: async (ctx: any) => {
