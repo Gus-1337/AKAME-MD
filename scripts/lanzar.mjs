@@ -43,7 +43,9 @@ if (!sqlitePorDefecto) flags.push('--experimental-sqlite');
 
 if (process.argv.includes('--dev')) flags.push('--watch');
 
-const args = [...flags, '--disable-warning=ExperimentalWarning', path.join(ROOT, 'index.ts')];
+// Argumentos extra (--qr, code) se pasan a index.ts; --dev es solo del lanzador.
+const extra = process.argv.slice(2).filter((a) => a !== '--dev');
+const args = [...flags, '--disable-warning=ExperimentalWarning', path.join(ROOT, 'index.ts'), ...extra];
 
 if (flags.length > 0 && process.env.AKAME_DEBUG === '1') {
     console.log(`[lanzador] Node ${process.versions.node} -> node ${flags.join(' ')} index.ts`);
