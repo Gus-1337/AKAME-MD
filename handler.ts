@@ -397,6 +397,8 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
             });
         }
         queueMicrotask(() => { broadcast('command_executing', { command: rawCommand, chat, sender: cleanSender }); });
+        // Reacción inmediata: el usuario ve que el bot lo recibió, sin esperar a que termine el comando
+        if (rawMsg?.key) sock.sendMessage(chat, { react: { text: '⏳', key: rawMsg.key } }).catch(() => null);
         try {
             const result = await cmd._exec(ctx);
             queueMicrotask(() => { broadcast('command_executed', { command: rawCommand, chat, sender: cleanSender, executionTimeMs: Date.now() - startTime }); });
