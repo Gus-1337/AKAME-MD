@@ -23,7 +23,8 @@
     "#index": "./index.ts",
     "#alertas": "./lib/alertas.ts",
     "#ia": "./lib/ia.ts",
-    "#popcat": "./lib/popcat.ts"
+    "#popcat": "./lib/popcat.ts",
+    "#animales": "./lib/animales.ts"
   },
   "dependencies": {
     "@hapi/boom": "^10.0.1",
