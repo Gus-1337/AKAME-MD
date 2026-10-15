@@ -46,11 +46,8 @@ export default {
 
             await sock.relayMessage(targetJid, opener.message, { messageId: opener.key.id });
 
-            // Una por una con pausa: enviar 15 a la vez hace que WhatsApp responda "rate-overlimit"
             const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
-            for (let i = 0; i < images.length; i++) {
-                const url = images[i];
-                const caption = i === 0 ?
+            const pie = (i: number) => i === 0 ?
 `☬ *PINTEREST* ☬
 
 ♡ *Búsqueda:* ${q}
@@ -58,27 +55,32 @@ export default {
 
 ☬ *AKAME-MD* ♡` : '';
 
-                let enviada = false;
-                for (let intento = 1; intento <= 4 && !enviada; intento++) {
+            // 1) Se preparan todas en paralelo (lo lento es subir las imágenes)
+            const preparadas: any[] = new Array(images.length);
+            for (let i = 0; i < images.length; i += 5) {
+                await Promise.all(images.slice(i, i + 5).map(async (url, j) => {
+                    const child = await generateWAMessage(targetJid, { image: { url }, caption: pie(i + j) }, { upload: sock.waUploadToServer });
+                    child.message.messageContextInfo = {
+                        messageSecret: crypto.randomBytes(32),
+                        messageAssociation: { associationType: 1, parentMessageKey: opener.key }
+                    };
+                    preparadas[i + j] = child;
+                }).map((p) => p.catch(() => null)));
+            }
+
+            // 2) Se envían seguidas con pausa corta; si WhatsApp pone límite, se reintenta esa imagen
+            for (const child of preparadas) {
+                if (!child) continue;
+                for (let intento = 1; intento <= 4; intento++) {
                     try {
-                        const child = await generateWAMessage(targetJid, {
-                            image: { url },
-                            caption
-                        }, { upload: sock.waUploadToServer });
-
-                        child.message.messageContextInfo = {
-                            messageSecret: crypto.randomBytes(32),
-                            messageAssociation: { associationType: 1, parentMessageKey: opener.key }
-                        };
-
                         await sock.relayMessage(targetJid, child.message, { messageId: child.key.id });
-                        enviada = true;
+                        break;
                     } catch (e: any) {
-                        if (!String(e?.message || '').includes('rate-overlimit')) break;
-                        await esperar(2000 * intento);
+                        if (!String(e?.message || '').includes('rate-overlimit') || intento === 4) break;
+                        await esperar(1000 * intento);
                     }
                 }
-                await esperar(700);
+                await esperar(200);
             }
 
         } catch (e) {
