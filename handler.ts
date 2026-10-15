@@ -4,6 +4,7 @@ import config from '#config';
 import chalk from 'chalk';
 import { broadcast } from '#index';
 import { LRUCache } from 'lru-cache';
+import { obtenerPrimario } from '#primario';
 
 const handlerConfig = (config as any)?.handler || {};
 const metaTtlMs = handlerConfig.metaTtl || 300000;
@@ -329,6 +330,14 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
     if (!rawCommand) return;
     syncCommandMapIfNeeded();
     const cmd = commandMap.get(rawCommand.toLowerCase()) || commandMap.get(normalizeString(rawCommand));
+
+    // Bot primario del grupo: si hay uno asignado con .setprimary, solo ese bot responde comandos ahí.
+    // .setprimary siempre pasa, para poder cambiarlo o quitarlo.
+    const esSetPrimary = Array.isArray(cmd?.command) ? cmd.command.includes('setprimary') : cmd?.command === 'setprimary';
+    if (isGroup && !esSetPrimary) {
+        const primario = obtenerPrimario(chat);
+        if (primario && primario !== normalizeNumber(sock.user?.id || '')) return;
+    }
 
     // --- MENSAJE PERSONALIZADO CON REACT ---
     if (!cmd) {
