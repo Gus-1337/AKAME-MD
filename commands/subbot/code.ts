@@ -21,6 +21,8 @@ const numeroDelRemitente = (ctx: any): string => {
     return '';
 };
 
+const IMAGEN_CODIGO = 'https://d0mwa043ankuvadx.public.blob.vercel-storage.com/nyx/r3hUDf8.jpeg';
+
 const ESTADOS: Record<string, string> = {
     emparejando: '⏳ esperando vinculación',
     conectado: '✅ conectado',
@@ -70,17 +72,25 @@ export default {
             await sock.sendMessage(chat, { react: { text: '⏳', key: msg.key } }).catch(() => {});
             const { codigo } = await crearSubbot(numero, chat);
 
-            // Mismo chat donde se pidió. Primero las instrucciones y después el código solo,
+            // Mismo chat donde se pidió. Primero la imagen con las instrucciones y después el código solo,
             // en su propio mensaje, para que se pueda copiar con una pulsación.
-            await responder(caja('TU CÓDIGO', [
-                '✦ Vence » en 90 segundos',
+            const instrucciones = [
+                '> 𝗩𝗶𝗻𝗰𝘂𝗹𝗮𝗰𝗶𝗼́𝗻 vía 𝗖𝗼𝗱𝗲',
                 '',
-                '*Pasos:*',
-                '1. Abre WhatsApp en tu teléfono',
-                '2. Toca ⋮ → Dispositivos vinculados',
-                '3. Vincular con número de teléfono',
-                '4. Copia el código del mensaje siguiente y pégalo'
-            ]));
+                '✿ Usa este *código* para ser un *Sub-Bot temporal.*',
+                '',
+                '✿ *Pasos:*',
+                '✿ Abre los *tres puntos* arriba a la derecha',
+                '✿ Toca *Dispositivos vinculados*',
+                '✿ Selecciona *Vincular con número de teléfono*',
+                '✿ Ingresa el *código* de vinculación.'
+            ].join('\n');
+            try {
+                await sock.sendMessage(chat, { image: { url: IMAGEN_CODIGO }, caption: instrucciones }, { quoted: msg });
+            } catch (e: any) {
+                console.log('[CODE] imagen no enviada, se manda solo texto:', e?.message);
+                await responder(instrucciones);
+            }
             await sock.sendMessage(chat, { text: codigo });
             await sock.sendMessage(chat, { react: { text: '✅', key: msg.key } }).catch(() => {});
         } catch (e: any) {
