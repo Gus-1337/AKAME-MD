@@ -40,7 +40,7 @@ const subirCatbox = async (buf: Buffer, mime: string): Promise<string> => {
 };
 
 export default {
-    command: ['tourl', 'url', 'link'],
+    command: ['tourl', 'url'],
     description: 'Convierte una imagen en un enlace permanente.',
     category: 'tools',
     run: async ({ chat, m, sock }: any) => {
