@@ -1,4 +1,16 @@
+import fs from 'fs';
+import path from 'path';
 import { listarSubbots, getCupo } from '../../lib/subbots.ts';
+
+/** Nombre que el dueño puso con .setname (si no tiene, se muestra un número de orden). */
+const nombreDe = (id: string, n: number): string => {
+    try {
+        const perfil = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'subbots', id, 'perfil.json'), 'utf8'));
+        const nombre = String(perfil?.nombre || '').trim();
+        if (nombre && nombre !== 'AKAME Subbot') return nombre;
+    } catch {}
+    return `Subbot #${n}`;
+};
 
 const caja = (titulo: string, lineas: string[]) =>
     `˚₊· ͟͟͞͞➳❥ *${titulo}*\n───────────────\n${lineas.join('\n')}\n───────────────\n> AKAME-MD 🌸`;
@@ -31,6 +43,8 @@ export default {
             '',
             `✩ Subbots conectados » *${conectados}/${cupo}*`,
         ];
+        const conectadosLista = lista.filter((s) => s.estado === 'conectado');
+        conectadosLista.forEach((s, i) => lineas.push(`   ꒰ ${i + 1} ꒱ ${nombreDe(s.id, i + 1)}`));
         if (vinculando) lineas.push(`✦ Vinculando » ${vinculando}`);
         if (pausados) lineas.push(`✦ Pausados » ${pausados}`);
         if (caidos) lineas.push(`✦ Caídos » ${caidos}`);
