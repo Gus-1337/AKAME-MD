@@ -1,5 +1,6 @@
 import { asignarPrimario, quitarPrimario } from '#primario';
 import { listarSubbots } from '../../lib/subbots.ts';
+import { UserJid } from '#simple';
 
 const caja = (titulo: string, lineas: string[]) =>
     `˚₊· ͟͟͞͞➳❥ *${titulo}*\n───────────────\n${lineas.join('\n')}\n───────────────\n> AKAME-MD 🌸`;
@@ -40,8 +41,22 @@ export default {
         }
 
         // Asignar: cada bot compara el número con el suyo; solo el elegido confirma
-        const objetivo = String(args[0]).replace(/\D/g, '');
-        if (!objetivo) return;
+        // Puede venir como mención (@bot) o como número. La mención real trae el JID en mentionedJid;
+        // el texto "@AKAME" no sirve, por eso se lee de ahí.
+        const m = ctx.m ?? msg;
+        const mencion = m?.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0] || m?.mentionedJid?.[0];
+        let objetivo = String(args[0]).replace(/\D/g, '');
+        if (mencion) {
+            try {
+                objetivo = soloDigitos(await UserJid(sock, chat, mencion)) || soloDigitos(mencion);
+            } catch {
+                objetivo = soloDigitos(mencion);
+            }
+        }
+        if (!objetivo) {
+            if (esSubbot) return;
+            return responder(caja('BOT PRIMARIO', ['✧ Menciona al bot o escribe su número.', `✦ Ejemplo: *${usedPrefix}setprimary @bot*`]));
+        }
 
         const soyElegido = yo === objetivo;
         const esSubbotConectado = listarSubbots().some((s) => s.estado === 'conectado' && s.numero === objetivo);
