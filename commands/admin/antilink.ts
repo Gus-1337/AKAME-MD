@@ -1,9 +1,17 @@
 import { saveDB } from '#db';
-import config from '#config';
+
+// Advertencias antes de expulsar: al llegar a este número, la persona sale del grupo
+const MAX_ADVERTENCIAS = 3;
+
+// Links de WhatsApp: grupos y canales
+const LINK_WHATSAPP = /(chat\.whatsapp\.com\/[A-Za-z0-9]+|whatsapp\.com\/channel\/[A-Za-z0-9]+)/i;
+
+const caja = (titulo: string, lineas: string[]) =>
+    `˚₊· ͟͟͞͞➳❥ *${titulo}*\n───────────────\n${lineas.join('\n')}\n───────────────\n> AKAME-MD 🌸`;
 
 export default {
     command: ['antilink', 'antilinks'],
-    description: 'Activa o desactiva la protección antienlaces en el grupo',
+    description: 'Borra links de grupos y canales de WhatsApp; expulsa tras 3 advertencias',
     category: 'admin',
     group: true,
     admin: true,
@@ -11,7 +19,7 @@ export default {
 
     run: async (ctx) => {
         const { chat, m, args, usedPrefix, command } = ctx;
-        const reply = (txt) => m.reply? m.reply(txt) : ctx.sock.sendMessage(chat, { text: txt }, { quoted: m });
+        const reply = (txt) => m.reply ? m.reply(txt) : ctx.sock.sendMessage(chat, { text: txt }, { quoted: m });
 
         if (!global.db?.data) return reply('✿ Error: DB no inicializada.');
         if (!global.db.data.chats) global.db.data.chats = {};
@@ -19,72 +27,83 @@ export default {
 
         const chatDb = global.db.data.chats[chat];
         const input = args[0]?.toLowerCase();
-        const estado = chatDb.antilinks? 'Activado ✓' : 'Desactivado ✗';
+        const estado = chatDb.antilinks ? 'Activado ✓' : 'Desactivado ✗';
 
         if (!input) {
-            return reply(
-                `*— ANTILINK PRO —*\n\n` +
-                `✐ Activar » *${usedPrefix + command} on*\n` +
-                `✐ Desactivar » *${usedPrefix + command} off*\n\n` +
-                `✦ Estado: *${estado}*\n` +
-                `> El bot eliminará y expulsará a quien mande links.`
-            );
+            return reply(caja('ANTILINK', [
+                `✧ Activar » *${usedPrefix + command} on*`,
+                `✧ Desactivar » *${usedPrefix + command} off*`,
+                `✦ Estado » *${estado}*`,
+                `✦ Borra links de grupos y canales de WhatsApp.`,
+                `✦ ${MAX_ADVERTENCIAS} advertencias y se expulsa.`
+            ]));
         }
 
-        if (['on','1','enable','activar'].includes(input)) {
+        if (['on', '1', 'enable', 'activar'].includes(input)) {
             chatDb.antilinks = true;
             saveDB(chat);
-            return reply(`✓ *Antilink ACTIVADO*\n> Admins que manden link: te salvaste porque eres admin (solo borro)`);
+            return reply(caja('ANTILINK', ['✓ Activado.', `✦ ${MAX_ADVERTENCIAS} advertencias y se expulsa.`]));
         }
 
-        if (['off','0','disable','desactivar'].includes(input)) {
+        if (['off', '0', 'disable', 'desactivar'].includes(input)) {
             chatDb.antilinks = false;
             saveDB(chat);
-            return reply(`✗ *Antilink DESACTIVADO*`);
+            return reply(caja('ANTILINK', ['✗ Desactivado.']));
         }
     },
 
-    // DETECTOR TODO EN UNO
-    // OJO con la firma: el handler llama `plug.before(beforeCtx)` con UN solo
-    // argumento. Esto tenía dos parámetros, así que el segundo llegaba undefined,
-    // el destructure tiraba TypeError y el `catch {}` del handler lo ocultaba:
-    // el filtro no corrió nunca.
-    before: async function(ctx: any) {
+    before: async function (ctx: any) {
         const { sock, m, isGroup, isAdmin, isBotAdmin, isOwner } = ctx;
         if (!isGroup) return false;
 
         const chatDb = global.db?.data?.chats?.[m.chat];
         if (!chatDb?.antilinks) return false;
 
-        const text = (m.text || m.caption || m.body || '').toString().toLowerCase();
-        if (!text) return false;
+        const text = (m.text || m.caption || m.body || '').toString();
+        if (!text || !LINK_WHATSAPP.test(text)) return false;
 
-        const isLink = /chat\.whatsapp\.com|wa\.me|https?:\/\/|www\./i.test(text);
-        if (!isLink) return false;
-
+        // Sin permisos de admin el bot no puede borrar ni expulsar
         if (!isBotAdmin) return false;
+
+        const quien = m.sender;
+        const etiqueta = `@${quien.split('@')[0]}`;
 
         try {
             await sock.sendMessage(m.chat, { delete: m.key });
 
-            // SI ES ADMIN U OWNER -> se salva
-            if (isAdmin || isOwner) {
+            // Admins y dueño: solo se borra el mensaje, sin advertencia
+            if (isAdmin || isOwner) return true;
+
+            chatDb.advertencias = chatDb.advertencias || {};
+            const total = (chatDb.advertencias[quien] || 0) + 1;
+
+            // Tercera advertencia: se expulsa y se reinicia el contador
+            if (total >= MAX_ADVERTENCIAS) {
+                delete chatDb.advertencias[quien];
+                saveDB(m.chat);
                 await sock.sendMessage(m.chat, {
-                    text: `😏 *@${m.sender.split('@')[0]} te salvaste porque eres admin*`,
-                    mentions: [m.sender]
+                    text: caja('ANTILINK', [
+                        `✧ ${etiqueta} llegó a ${MAX_ADVERTENCIAS}/${MAX_ADVERTENCIAS} advertencias.`,
+                        '✦ Sale del grupo por enviar links de WhatsApp.'
+                    ]),
+                    mentions: [quien]
                 });
+                await sock.groupParticipantsUpdate(m.chat, [quien], 'remove');
                 return true;
             }
 
-            // SI NO ES ADMIN -> fuera
+            chatDb.advertencias[quien] = total;
+            saveDB(m.chat);
+            const restantes = MAX_ADVERTENCIAS - total;
             await sock.sendMessage(m.chat, {
-                text: `*ANTI-LINK* @${m.sender.split('@')[0]} fuera por mandar link`,
-                mentions: [m.sender]
+                text: caja('ADVERTENCIA', [
+                    `✧ ${etiqueta} no envíes links de WhatsApp.`,
+                    `✦ Advertencia » *${total}/${MAX_ADVERTENCIAS}*`,
+                    `✦ Te quedan ${restantes} ${restantes === 1 ? 'advertencia' : 'advertencias'} antes de salir.`
+                ]),
+                mentions: [quien]
             });
-
-            await sock.groupParticipantsUpdate(m.chat, [m.sender], 'remove');
             return true;
-
         } catch (e) {
             console.log('[ANTILINK] Error:', e);
             return false;
