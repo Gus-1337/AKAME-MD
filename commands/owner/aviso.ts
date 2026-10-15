@@ -1,8 +1,18 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import P from 'pino';
 
-// Canal donde también se publica el aviso
-const CANAL = '120363411107378790@newsletter';
+// Canal donde también se publica el aviso: se identifica por su código de invitación
+// (el link https://whatsapp.com/channel/<código>). WhatsApp devuelve el ID interno al consultarlo.
+const CANAL_INVITACION = '0029VbDPchgEAKWO4mMYtC1Q';
+let canalId: string | null = null;
+
+const obtenerCanal = async (sock: any): Promise<string> => {
+    if (canalId) return canalId;
+    const meta = await sock.newsletterMetadata('invite', CANAL_INVITACION);
+    if (!meta?.id) throw new Error('No encontré el canal con ese link');
+    canalId = meta.id;
+    return canalId as string;
+};
 const PAUSA_GRUPO_MS = 1500;
 
 /** Saca el contenido a enviar: el mensaje citado (si respondes a uno) o lo que escribiste tú. */
@@ -73,7 +83,7 @@ export default {
 
             let canal = true;
             try {
-                await enviar(CANAL);
+                await enviar(await obtenerCanal(sock));
             } catch (e: any) {
                 canal = false;
                 console.log('[AVISO] canal:', e?.message);
