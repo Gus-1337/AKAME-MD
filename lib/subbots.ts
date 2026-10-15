@@ -36,6 +36,7 @@ export interface Subbot {
     id: string;
     numero: string;
     estado: EstadoSubbot;
+    codigo?: string;
     creado: string;
     chat?: string; // chat donde se pidió el código (aquí se avisa cuando se conecta)
 }
@@ -130,6 +131,16 @@ const notificarConexion = (entrada: Subbot) => {
     sock.sendMessage(entrada.chat, { text: texto }).catch(() => {});
 };
 
+/** Código de vinculación personalizado: AKAMEMD + 1 letra (8 caracteres, sin I L O U). */
+const PREFIJO_CODIGO = 'AKAMEMD';
+const LETRAS_CODIGO = 'VWXYZABCDEFGHJKMNPQRST';
+const elegirCodigo = (lista: any[]): string => {
+    const usados = new Set(lista.map((s) => s.codigo).filter(Boolean));
+    const libre = [...LETRAS_CODIGO].find((l) => !usados.has(PREFIJO_CODIGO + l));
+    if (!libre) throw new Error('No hay códigos disponibles en este momento, intenta más tarde');
+    return PREFIJO_CODIGO + libre;
+};
+
 const lanzarWorker = (id: string, modo: 'vincular' | 'restaurar'): ChildProcess => {
     const proc = fork(ENTRADA, [], {
         execArgv: EXEC_ARGV,
@@ -139,6 +150,7 @@ const lanzarWorker = (id: string, modo: 'vincular' | 'restaurar'): ChildProcess 
             ...process.env,
             AKAME_SUBBOT_ID: id,
             AKAME_SUBBOT_MODO: modo,
+            AKAME_SUBBOT_CODIGO: leerRegistro().find((s) => s.id === id)?.codigo || '',
             AKAME_DB_PATH: path.join(RAIZ, id, 'database.db')
         }
     });
@@ -263,6 +275,7 @@ export const crearSubbot = async (numero: string, chat?: string): Promise<{ id: 
     if (lista.some((s) => s.numero === num)) throw new Error('Ese número ya tiene un subbot');
     if (lista.length >= getCupo()) throw new Error(`No hay cupo disponible (${getCupo()} subbots)`);
 
+    const codigo = elegirCodigo(lista);
     const id = `sb-${Date.now().toString(36)}`;
     const carpeta = path.join(RAIZ, id);
     fs.mkdirSync(carpeta, { recursive: true });
@@ -271,7 +284,7 @@ export const crearSubbot = async (numero: string, chat?: string): Promise<{ id: 
         nombre: 'AKAME Subbot',
         banner: ''
     }, null, 2));
-    guardarRegistro([...lista, { id, numero: num, estado: 'emparejando', creado: new Date().toISOString(), chat }]);
+    guardarRegistro([...lista, { id, numero: num, estado: 'emparejando', creado: new Date().toISOString(), chat, codigo }]);
 
     return new Promise((resolver, rechazar) => {
         const proc = lanzarWorker(id, 'vincular');

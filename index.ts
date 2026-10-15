@@ -306,8 +306,10 @@ async function startBot() {
             // Esperamos a que el socket esté abierto; si se cierra antes, la siguiente conexión lo reintenta
             setTimeout(async () => {
                 try {
-                    const raw: string = await sock.requestPairingCode(leerPerfil().numero);
-                    const codigo = raw?.match(/.{1,4}/g)?.join('-') ?? raw;
+                    // Código personalizado (AKAMEMD+letra) si lo asignó el bot; si no, uno aleatorio
+                    const personalizado = process.env.AKAME_SUBBOT_CODIGO || '';
+                    const raw: string = await sock.requestPairingCode(leerPerfil().numero, personalizado.length === 8 ? personalizado : undefined);
+                    const codigo = personalizado.length === 8 ? raw : (raw?.match(/.{1,4}/g)?.join('-') ?? raw);
                     intentosCodigoSubbot = 0;
                     reportar({ tipo: 'codigo', codigo });
                 } catch (err: any) {
