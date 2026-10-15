@@ -241,7 +241,11 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
         const rawBotJid = sock.user?.id || sock.user?.jid || '';
         const botBase = normalizeNumber(rawBotJid);
         const altBot = botBase.startsWith('521')? botBase.replace(/^521/, '52') : (botBase.startsWith('52')? botBase.replace(/^52/, '521') : botBase);
-        isBotAdmins = adminSet.has(botBase) || adminSet.has(altBot) || adminSet.has(stripMexOne(botBase)) || adminSet.has(rawBotJid);
+        // El bot también puede aparecer en el grupo por su @lid (sobre todo en subbots): se revisa ese ID tambien
+        const rawBotLid = (sock.user as any)?.lid || '';
+        const botLid = normalizeNumber(rawBotLid);
+        isBotAdmins = adminSet.has(botBase) || adminSet.has(altBot) || adminSet.has(stripMexOne(botBase)) || adminSet.has(rawBotJid)
+            || (!!botLid && (adminSet.has(botLid) || adminSet.has(stripMexOne(botLid)))) || (!!rawBotLid && adminSet.has(rawBotLid));
     }
     const dbData = (global as any).db?.data;
     const currentChatDb = dbData?.chats?.[chat] || {};
