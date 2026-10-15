@@ -3,22 +3,44 @@ import axios from 'axios';
 const DELIRIUS = ((global as any).APIs?.delirius?.url || 'https://api.delirius.online').replace(/\/+$/, '');
 
 const esPinterest = (url: string) => /^https?:\/\/(www\.|[a-z]{2}\.)?(pinterest\.[a-z.]+|pin\.it)\//i.test(url);
+const esLink = (texto: string) => /^https?:\/\//i.test(texto);
+
+/** Busca un pin con video por nombre y devuelve su link de pin. */
+async function buscarPin(query: string): Promise<string | null> {
+    const { data } = await axios.get(`${DELIRIUS}/search/pinterestvideo`, {
+        params: { query },
+        timeout: 30000,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const id = data?.data?.id;
+    return id ? `https://www.pinterest.com/pin/${id}/` : null;
+}
+
+/** Saca el video MP4 y los datos de un pin. */
+async function obtenerVideo(pinUrl: string) {
+    const { data } = await axios.get(`${DELIRIUS}/download/pinterestdl`, {
+        params: { url: pinUrl },
+        timeout: 30000,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    return { ok: !!data?.status, pin: data?.data, media: data?.data?.download };
+}
 
 export default {
     command: ['pinvid'],
     category: 'download',
-    description: 'Descarga el video de un pin de Pinterest',
+    description: 'Descarga un video de Pinterest por link o por nombre',
     run: async (ctx) => {
         const { sock, msg, chat, args, usedPrefix } = ctx;
-        const url = (args?.[0] || '').trim();
+        const entrada = (args || []).join(' ').trim();
 
-        if (!url) {
+        if (!entrada) {
             return sock.sendMessage(chat, {
-                text: `☬ *AKAME - PINVID* ☬\n\n♡ *Usa:*\n> ${usedPrefix}pinvid <link del pin>\n\n♡ *Ejemplo:*\n> ${usedPrefix}pinvid https://pin.it/xxxxx`
+                text: `☬ *AKAME - PINVID* ☬\n\n♡ *Usa:*\n> ${usedPrefix}pinvid <link del pin>\n> ${usedPrefix}pinvid <nombre>\n\n♡ *Ejemplos:*\n> ${usedPrefix}pinvid https://pin.it/xxxxx\n> ${usedPrefix}pinvid gatos bailando`
             }, { quoted: msg });
         }
 
-        if (!esPinterest(url)) {
+        if (esLink(entrada) && !esPinterest(entrada)) {
             return sock.sendMessage(chat, {
                 text: `☬ *AKAME-MD* ☬\n\n♡ Ese link no es de Pinterest.`
             }, { quoted: msg });
@@ -27,15 +49,20 @@ export default {
         try {
             await sock.sendMessage(chat, { react: { text: '⏳', key: msg.key } }).catch(() => {});
 
-            const { data } = await axios.get(`${DELIRIUS}/download/pinterestdl`, {
-                params: { url },
-                timeout: 30000,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
-            });
+            let pinUrl = entrada;
+            if (!esLink(entrada)) {
+                pinUrl = await buscarPin(entrada);
+                if (!pinUrl) {
+                    await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => {});
+                    return sock.sendMessage(chat, {
+                        text: `☬ *AKAME-MD* ☬\n\n♡ No encontré videos de Pinterest para: *${entrada}*`
+                    }, { quoted: msg });
+                }
+            }
 
-            const pin = data?.data;
-            const media = pin?.download;
-            if (!data?.status || !media?.url) throw new Error('No encontré el pin');
+            const { ok, pin, media } = await obtenerVideo(pinUrl);
+            if (!ok || !media?.url) throw new Error('No encontré el pin');
+
             if (media.type !== 'video') {
                 await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => {});
                 return sock.sendMessage(chat, {
@@ -54,7 +81,7 @@ export default {
             console.log('[PINVID ERROR]', e.message);
             await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => {});
             await sock.sendMessage(chat, {
-                text: `☬ *AKAME-MD* ☬\n\n♡ No pude descargar ese video. Revisa que el link sea de un pin con video.`
+                text: `☬ *AKAME-MD* ☬\n\n♡ No pude descargar ese video. Prueba con otro link o nombre.`
             }, { quoted: msg });
         }
     }
