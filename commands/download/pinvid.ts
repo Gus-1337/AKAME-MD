@@ -1,4 +1,9 @@
 import axios from 'axios';
+import { execFile } from 'child_process';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { randomBytes } from 'crypto';
 
 const DELIRIUS = ((global as any).APIs?.delirius?.url || 'https://api.delirius.online').replace(/\/+$/, '');
 
@@ -14,6 +19,27 @@ async function buscarPin(query: string): Promise<string | null> {
     });
     const id = data?.data?.id;
     return id ? `https://www.pinterest.com/pin/${id}/` : null;
+}
+
+/** Descarga el MP4 y cambia el audio a AAC-LC para que WhatsApp lo reproduzca. Si ffmpeg falla, devuelve el original. */
+async function arreglarVideo(url: string): Promise<Buffer> {
+    const original = Buffer.from((await axios.get(url, { responseType: 'arraybuffer', timeout: 60000 })).data);
+    const id = randomBytes(6).toString('hex');
+    const tmpIn = path.join(os.tmpdir(), `pinvid-${id}-in.mp4`);
+    const tmpOut = path.join(os.tmpdir(), `pinvid-${id}-out.mp4`);
+    try {
+        fs.writeFileSync(tmpIn, original);
+        await new Promise<void>((resolve, reject) => {
+            execFile('ffmpeg', ['-y', '-v', 'error', '-i', tmpIn, '-c:v', 'copy', '-c:a', 'aac', '-profile:a', 'aac_low', '-b:a', '128k', '-ac', '2', '-movflags', '+faststart', tmpOut],
+                { timeout: 120000 }, (err) => err ? reject(err) : resolve());
+        });
+        return fs.readFileSync(tmpOut);
+    } catch (e) {
+        console.log('[PINVID] ffmpeg falló, se envía el original:', e.message);
+        return original;
+    } finally {
+        for (const f of [tmpIn, tmpOut]) { try { fs.unlinkSync(f); } catch {} }
+    }
 }
 
 /** Saca el video MP4 y los datos de un pin. */
@@ -70,8 +96,10 @@ export default {
                 }, { quoted: msg });
             }
 
+            const video = await arreglarVideo(media.url);
+
             await sock.sendMessage(chat, {
-                video: { url: media.url },
+                video,
                 mimetype: 'video/mp4',
                 caption: `☬ *PINTEREST VIDEO* ☬\n\n♡ *Título:* ${pin.title || 'Sin título'}\n♡ *Autor:* ${pin.author_name || pin.username || 'Desconocido'}\n\n☬ *AKAME-MD* ♡`
             }, { quoted: msg });
