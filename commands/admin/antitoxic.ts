@@ -3,12 +3,43 @@ import { saveDB } from '#db';
 // Palabras que se borran. Se comparan en minúsculas, sin acentos y con letras repetidas reducidas
 // (así "PUUUTA" cuenta como "puta"). Se puede ampliar la lista aquí.
 const PALABRAS = [
-    'puta', 'puto', 'putas', 'putos', 'putazo', 'hdp', 'putamadre', 'putamadres', 'hijueputa', 'hijoputa', 'hijodeputa',
-    'mierda', 'mierdas', 'carajo', 'carajos', 'verga', 'vergas', 'pendejo', 'pendeja', 'pendejos', 'pendejas',
-    'cabron', 'cabrona', 'cabrones', 'chingar', 'chingada', 'chingado', 'chingon', 'chinga', 'pinche', 'pinches',
-    'culero', 'culera', 'cojudo', 'cojuda', 'boludo', 'boluda', 'gilipollas', 'mamon', 'mamona',
-    'zorra', 'zorras', 'perra', 'perras', 'conchatumare', 'conchatumadre', 'ctm', 'csm', 'mrd',
-    'maricon', 'maricones', 'marica', 'joder', 'jodete', 'imbecil', 'imbeciles'
+    // Español general
+    'puta', 'puto', 'putas', 'putos', 'putazo', 'putada', 'putamadre', 'putamadres', 'putita', 'putito',
+    'hdp', 'hijueputa', 'hijueputas', 'hijoputa', 'hijoputas', 'hijodeputa', 'hijaputa', 'hijoeputa', 'hijueperra',
+    'mierda', 'mierdas', 'mierdero', 'carajo', 'carajos', 'carajeada', 'mrd', 'ctm', 'csm', 'conchatumare', 'conchatumadre', 'conchetumare', 'conchetumadre', 'conchesumadre',
+    'verga', 'vergas', 'vergudo', 'vergazo', 'pendejo', 'pendeja', 'pendejos', 'pendejas', 'pendejada', 'pendejadas', 'pendejito',
+    'cabron', 'cabrona', 'cabrones', 'cabronazo', 'chingar', 'chingado', 'chingada', 'chingados', 'chingadas', 'chingon', 'chingona', 'chingones',
+    'chinga', 'chingas', 'chingadera', 'chingaderas', 'pinche', 'pinches', 'pinchi', 'pinshi',
+    'culero', 'culera', 'culeros', 'culeras', 'culo', 'culos', 'culazo', 'cojudo', 'cojuda', 'cojudos', 'cojudez',
+    'joder', 'jodete', 'jodido', 'jodida', 'imbecil', 'imbeciles', 'idiota', 'idiotas', 'estupido', 'estupida', 'estupidos',
+    'maricon', 'maricones', 'marica', 'mariconazo', 'puñal', 'puñeta', 'puñetero', 'puñetera', 'pinchepuñal',
+    'gilipollas', 'gilipolla', 'capullo', 'capulla', 'coñazo', 'coñeta',
+    'zorra', 'zorras', 'zorron', 'perra', 'perras', 'malparido', 'malparida', 'malparidos',
+    'mamon', 'mamona', 'mamones', 'mamonazo', 'mamada', 'mamadas', 'mames', 'mamaguevo', 'mamagüevo',
+    'guevon', 'guevona', 'guevón', 'guevones', 'huevon', 'huevona', 'huevones', 'webon', 'weon', 'weona', 'weones', 'weá', 'weta', 'wevon',
+    'pelotudo', 'pelotudos', 'pelotudez', 'boludo', 'boluda', 'boludos', 'boludez', 'forro', 'forros', 'forra',
+    'pija', 'pijas', 'conchuda',
+    'culiao', 'culiado', 'culiaos', 'culiadas', 'qliao', 'culiá', 'chupame', 'chupamela', 'chupapolla', 'chupamedias', 'chupamepija',
+    'gonorrea', 'gonorreas', 'pirobo', 'piroba', 'pirobos', 'ojete', 'ojetes', 'joto', 'jotos', 'puñete',
+    'tarado', 'tarada', 'baboso', 'pendejazo', 'mames', 'mamés', 'panocha', 'panochas', 'cagon', 'cagona', 'cabronada',
+    'putazos',
+    'imbecil', 'retrasado', 'retrasada', 'pinche', 'pendeja',
+    // Argentina, Uruguay, Paraguay
+    'forro', 'chota', 'chotas', 'cagon', 'boludazo', // Chile
+    'culiaaa', 'conchetumadre', 'weon', 'weona', 'weones', 'hueon', 'hueona', 'culiao', // Colombia, Venezuela, Ecuador, Centroamérica
+    'hijueputa', 'malparido', 'marica', 'gonorrea', 'berraco', 'hp', 'careverga', 'carepicha', 'carepinga', 'marico', 'maricon', 'mamaguevo', 'guevon', 'coñoemadre', 'pendejo', 'pendeja', 'mamagallo', 'mamahuevo', 'mamon',
+    // Inglés
+    'fuck', 'fucks', 'fucked', 'fucker', 'fuckers', 'fucking', 'fuckin', 'fck', 'fuk', 'fukin', 'motherfucker', 'motherfuckers', 'mf', 'shit', 'shits', 'shitty', 'bullshit', 'bitch', 'bitches', 'bitchy',
+    'bastard', 'bastards', 'asshole', 'assholes', 'dick', 'dicks', 'dickhead', 'cocks', 'cocksucker', 'pussy', 'pussies', 'cunt', 'cunts', 'whore', 'whores', 'slut', 'sluts',
+    'dumbass', 'retard', 'retarded', 'nigga', 'niggas', 'nigger', 'niggers', 'faggot', 'faggots', 'fag', 'fags', 'wanker', 'twat', 'prick', 'skank', 'bollocks', 'tits', 'jerkoff', 'jackass', 'douche', 'douchebag', 'scumbag', 'tranny', // Portugués (Brasil y Portugal)
+    'caralho', 'caralha', 'foda', 'fodase', 'foder', 'fodido', 'fodida', 'merda', 'buceta', 'bosta', 'viado', 'viados', 'veado', 'otario', 'otaria', 'arrombado', 'arrombada',
+    'puta', 'punheta', 'cuzao', 'cuzão', 'filhodaputa', 'babaca', 'piranha', 'safada',
+    // Francés
+    'merde', 'putain', 'connard', 'connasse', 'salope', 'enculé', 'encule', 'pute', 'putes', 'nique', 'niquer', 'batard', 'batarde', // Italiano
+    'cazzo', 'cazzi', 'stronzo', 'stronza', 'vaffanculo', 'coglione', 'coglioni', 'minchia', 'troia', 'puttana', // Alemán
+    'scheisse', 'scheiße', 'arschloch', 'fick', 'ficken', 'hurensohn', 'wichser', 'schlampe', 'fotze', 'bastard',
+    // Ruso (transliterado)
+    'blyat', 'blyad', 'suka', 'pizda', 'pizdec', 'ebat', 'nahui', 'mudak'
 ];
 
 /** Quita acentos, pasa a minúsculas y reduce letras repetidas (3 o más seguidas -> 1). */
@@ -18,12 +49,16 @@ const normalizar = (t: string) => t
     .replace(/(.)\1{2,}/g, '$1');
 
 // La lista también se normaliza, para que compare igual que el texto
-const CONJUNTO = new Set(PALABRAS.map(normalizar));
+const LISTA = PALABRAS.map(normalizar);
+const CONJUNTO = new Set(LISTA.filter((p) => !p.includes(' ')));
+const FRASES = LISTA.filter((p) => p.includes(' '));
 
-/** ¿El texto trae alguna palabra de la lista? */
+/** ¿El texto trae alguna palabra o frase de la lista? */
 export const tieneGrosería = (texto: string): boolean => {
-    const palabras = normalizar(texto).split(/[^a-z]+/).filter(Boolean);
-    return palabras.some((p) => CONJUNTO.has(p));
+    const palabras = normalizar(texto).split(/[^a-z ]+/).join(' ').split(/\s+/).filter(Boolean);
+    if (palabras.some((p) => CONJUNTO.has(p))) return true;
+    const unido = ' ' + palabras.join(' ') + ' ';
+    return FRASES.some((f) => unido.includes(' ' + f + ' '));
 };
 
 export default {
