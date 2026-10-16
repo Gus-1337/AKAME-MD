@@ -4,7 +4,7 @@ import path from 'path'
 
 // Subreddits en español/latino. meme-api devuelve hasta 50 memes por pedido,
 // así que se juntan varios subs para tener un grupo grande donde elegir.
-const SUBS = ['memesespanol', 'MemesEspanol', 'MemesLatinos', 'latinmemes', 'MemesMexicanos', 'MemesEnEspanol']
+const SUBS = ['memesespanol', 'MemesEspanol', 'MemesMexicanos', 'MemesEnEspanol']
 const LINEA = '┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄'
 const IMG = /\.(jpe?g|png|webp)(\?.*)?$/i
 const HISTORIAL_MAX = 300
