@@ -21,7 +21,7 @@ export const promptCompleto = (pregunta: string) =>
  */
 /** Respuestas de negativa ("soy un modelo de lenguaje...") que no sirven al usuario. */
 export const esNegativa = (t: string) =>
-    t.length < 400 && /soy un modelo de lenguaje|fuera de mis capacidades|capacidades programadas|solo genero texto|no puedo (ayudarte|ayudar|responder|cumplir|hacer)|no tengo (esa )?capacidad/i.test(t);
+    t.length < 600 && /modelo de lengu[aá]je|lenguage|no me han (dise[nñ]ado|programado|creado)|fui (dise[nñ]ado|programado)|fuera de mis capacidades|capacidades programadas|solo genero texto|no puedo (ayudarte|ayudar|responder|cumplir|hacer|resolver|proporcionar)|no tengo (esa )?capacidad|como (una )?inteligencia artificial|como ia\b/i.test(t);
 
 export async function preguntarIA(proveedores: Proveedor[], prompt: string, limiteMs = 35000): Promise<{ texto: string; fuente: string }> {
     let timer: ReturnType<typeof setTimeout> | undefined;

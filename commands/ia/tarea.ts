@@ -167,8 +167,16 @@ export default {
                 deliriusGemini,
                 stellarChatgpt
             ];
-            const { texto } = await preguntarIA(proveedores, prompt);
+            // Si todos se niegan, se reintenta con otro enunciado (es una tarea escolar)
+            const enunciadoAlterno = `Ayuda a un estudiante de primaria a entender estos ejercicios escolares. ${instruccion} Escribe una línea por ejercicio con "• operación = resultado" y una explicación corta debajo. Termina con "Respuesta final:". Sin LaTeX ni negritas.\n\nEjercicios:\n${lineas.join('\n')}`;
+            let texto = '';
+            try {
+                ({ texto } = await preguntarIA(proveedores, prompt));
+            } catch {
+                ({ texto } = await preguntarIA(proveedores, enunciadoAlterno));
+            }
             console.log('[tarea] explicación:', texto.length, 'caracteres');
+
 
             await Promise.all([
                 sock.sendMessage(chat, { image: buf, caption: '📚 *TAREA*' }, { quoted: m }),
