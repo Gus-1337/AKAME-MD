@@ -70,10 +70,11 @@ export default {
         // Cada bot que recibe el comando guarda lo mismo (es idempotente); solo el elegido confirma
         asignarPrimario(chat, objetivo);
         if (soyElegido) {
-            return responder(caja('BOT PRIMARIO', [
-                '✧ Ahora soy el bot primario de este grupo.',
-                '✦ Solo yo responderé comandos aquí.'
-            ]));
+            const jid = `${yo}@s.whatsapp.net`;
+            return sock.sendMessage(chat, {
+                text: `ꕥ Se ha establecido a @${yo} como bot primario de este grupo.\n\n> Ahora todos los comandos de este grupo serán ejecutados por @${yo}.`,
+                mentions: [jid]
+            }, { quoted: msg });
         }
     }
 };
