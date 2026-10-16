@@ -7,6 +7,21 @@ const limpio = (v: any) => {
     return t && t !== 'N/A' ? t : null;
 };
 
+/** Traduce a español con Stellar. Si falla, devuelve el texto original. */
+const aEspanol = async (texto: string | null): Promise<string | null> => {
+    if (!texto) return null;
+    try {
+        const { data } = await axios.get('https://api.stellarwa.xyz/tools/translate', {
+            params: { text: texto, to: 'es', key: 'proyectsV2' },
+            timeout: 20000
+        });
+        const t = data?.status && data?.translated ? String(data.translated).trim() : '';
+        return t || texto;
+    } catch {
+        return texto;
+    }
+};
+
 export default {
     command: ['pelicula', 'peli', 'imdb'],
     description: 'Busca información de una película',
@@ -32,10 +47,15 @@ export default {
             const rating = (info.ratings || []).find((r: any) => r.source === 'Internet Movie Database')?.value
                 || (limpio(info.rating) ? `${info.rating}/10` : null);
 
+            const [generos, sinopsis] = await Promise.all([
+                aEspanol(limpio(info.genres)),
+                aEspanol(limpio(info.plot))
+            ]);
+
             const lineas = [
                 `🎬 *${info.title}*${limpio(info.year) ? ` (${info.year})` : ''}`,
                 '',
-                limpio(info.genres) && `✧ *Género:* ${info.genres}`,
+                generos && `✧ *Género:* ${generos}`,
                 limpio(info.runtime) && `✧ *Duración:* ${info.runtime}`,
                 limpio(info.rated) && `✧ *Clasificación:* ${info.rated}`,
                 limpio(info.director) && `✧ *Director:* ${info.director}`,
@@ -43,7 +63,7 @@ export default {
                 rating && `✧ *IMDb:* ${rating}`,
                 limpio(info.country) && `✧ *País:* ${info.country}`,
                 limpio(info.boxoffice) && `✧ *Taquilla:* ${info.boxoffice}`,
-                limpio(info.plot) && `\n📖 ${info.plot}`,
+                sinopsis && `\n📖 ${sinopsis}`,
                 limpio(info.imdburl) && `\n🔗 ${info.imdburl}`,
                 '',
                 '> AKAME-MD 🌸'
