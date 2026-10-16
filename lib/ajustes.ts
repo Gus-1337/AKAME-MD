@@ -101,6 +101,16 @@ export const crearToggle = (f: FuncionGrupo) => ({
     }
 });
 
+/** Funciones que ya existían como comandos propios; el panel sólo lee su estado. */
+const EXISTENTES: { nombre: string; cmd: string; activa: (db: any) => boolean }[] = [
+    { nombre: 'NSFW', cmd: 'nsfw', activa: (db) => !!db.nsfw },
+    { nombre: 'AntiLink', cmd: 'antilink', activa: (db) => !!db.antilinks },
+    { nombre: 'AntiToxic', cmd: 'antitoxic', activa: (db) => !!db.antitoxic },
+    { nombre: 'AntiSpam', cmd: 'antispam', activa: (db) => !!db.antiSpam },
+    { nombre: 'Bienvenida', cmd: 'welcome', activa: (db) => !!db.welcome },
+    { nombre: 'Despedida', cmd: 'bye', activa: (db) => !!db.bye },
+];
+
 /** Panel con el estado de todas las funciones del grupo. */
 export const panelAjustes = {
     command: ['ajustes', 'funciones', 'estadogrupo'],
@@ -112,14 +122,13 @@ export const panelAjustes = {
     run: async ({ chat, m, sock, usedPrefix }: any) => {
         const chatDb = global.db?.data?.chats?.[chat] || {};
         const p = usedPrefix || '.';
-        const lineas = FUNCIONES_GRUPO.map((f) => {
-            const on = estaActiva(chatDb, f.key);
-            return `✐ ${f.nombre} › ${on ? '✓ Activado' : '✘ Desactivado'}`;
-        });
+        const linea = (nombre: string, on: boolean) => `✐ ${nombre} › ${on ? '✓ Activado' : '✘ Desactivado'}`;
+        const nuevas = FUNCIONES_GRUPO.map((f) => linea(f.nombre, estaActiva(chatDb, f.key)));
+        const viejas = EXISTENTES.map((f) => linea(f.nombre, f.activa(chatDb)));
         const texto =
             `✦ *AJUSTES DEL GRUPO* ✦\n\n` +
-            lineas.join('\n') +
-            `\n\n✧ Cambiar: *${p}antidelete on/off*, *${p}antiver on/off*, *${p}antibot on/off*, *${p}economia on/off*, *${p}gacha on/off*`;
+            [...nuevas, ...viejas].join('\n') +
+            `\n\n✧ Cambiar: *${p}antidelete on/off*, *${p}antiver on/off*, *${p}antibot on/off*, *${p}economia on/off*, *${p}gacha on/off*, *${p}nsfw on/off*, *${p}antilink on/off*, *${p}antitoxic on/off*, *${p}antispam*, *${p}welcome on/off*, *${p}bye on/off*`;
         return sock.sendMessage(chat, { text: texto }, { quoted: m });
     }
 };
