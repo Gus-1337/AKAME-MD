@@ -1,7 +1,8 @@
 import axios from 'axios';
 import config from '#config';
 
-const MAX_BYTES = 80 * 1024 * 1024; // 80 MB (límite para enviar por WhatsApp sin problemas)
+const MAX_BYTES = 200 * 1024 * 1024; // 200 MB: tope de descarga
+const MAX_VIDEO_BYTES = 80 * 1024 * 1024; // más de esto se manda como documento
 const MIN_BYTES = 30 * 1024;        // menos de 30 KB = respuesta basura
 const MAX_SEGUNDOS = 900;           // 15 min
 
@@ -50,7 +51,7 @@ const esVideo = (buf: Buffer) =>
 const descargar = async (url: string): Promise<Buffer> => {
     const res = await axios.get(url, {
         responseType: 'arraybuffer',
-        timeout: 45000,
+        timeout: 180000,
         maxContentLength: MAX_BYTES,
         maxBodyLength: MAX_BYTES,
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Referer': 'https://www.tiktok.com/' }
@@ -74,7 +75,7 @@ const intentar = async (f: typeof FUENTES[number], e: string) => {
         } catch (err: any) {
             const msg = String(err?.message || '');
             ultimo = /maxContentLength|maxBodyLength/i.test(msg)
-                ? `${f.nombre}: el video pesa más de 80 MB`
+                ? `${f.nombre}: el video pesa más de 200 MB`
                 : `${f.nombre}: ${msg}`;
         }
     }
@@ -172,12 +173,22 @@ export default {
 
             global.broadcast?.('cmd_progress', { id: msgId, step: 'sending_video', fuente });
 
-            await sock.sendMessage(chat, {
-                video: buffer,
-                mimetype: 'video/mp4',
-                caption,
-                gifPlayback: false
-            }, { quoted: m });
+            if (buffer.length > MAX_VIDEO_BYTES) {
+                // Videos grandes: se mandan como documento para que WhatsApp no los rechace.
+                await sock.sendMessage(chat, {
+                    document: buffer,
+                    mimetype: 'video/mp4',
+                    fileName: `tiktok-${Date.now()}.mp4`,
+                    caption
+                }, { quoted: m });
+            } else {
+                await sock.sendMessage(chat, {
+                    video: buffer,
+                    mimetype: 'video/mp4',
+                    caption,
+                    gifPlayback: false
+                }, { quoted: m });
+            }
 
             global.broadcast?.('cmd_progress', { id: msgId, step: 'completed' });
             await sock.sendMessage(chat, { react: { text: '♡', key: m.key } });
