@@ -2,7 +2,7 @@ import { Jimp, loadFont, measureText } from 'jimp';
 import { SANS_32_WHITE, SANS_64_WHITE } from 'jimp/fonts';
 import { avatarRespaldo, descargarFoto } from '../../lib/ship-collage.ts';
 
-// Portada: la foto de perfil con filtro arcoíris, franja oscura abajo y el porcentaje.
+// Portada circular: la foto de perfil con borde arcoíris, fondo oscuro y el porcentaje.
 const LADO = 800;
 const FRANJA_Y = 620;
 const ARCOIRIS = [
@@ -46,30 +46,63 @@ function nivelDe(p: number): { nivel: string; frase: string } {
     return { nivel: '100% gay, ya sal del closet.', frase: elegir(frasesMax) };
 }
 
-/** Dibuja la portada: foto con filtro arcoíris, franja oscura y el porcentaje. */
+/** Dibuja la portada: foto circular con borde arcoíris degradado, fondo oscuro y textos abajo. */
 async function crearPortada(foto: any, porcentaje: number, nombre: string): Promise<Buffer> {
-    const lienzo = foto.clone().cover({ w: LADO, h: LADO });
+    const N = LADO;
+    const CX = N / 2;
+    const CY = 330;                 // centro del círculo
+    const R = 230;                  // radio de la foto
+    const GROSOR = 22;              // grosor del borde arcoíris
+
+    const lienzo = new Jimp({ width: N, height: N, color: 0xffffffff });
     const d = lienzo.bitmap.data;
 
-    // Filtro arcoíris: franjas horizontales mezcladas con la foto (28%)
-    const franja = LADO / ARCOIRIS.length;
-    for (let y = 0; y < LADO; y++) {
-        const [r, g, b] = ARCOIRIS[Math.min(ARCOIRIS.length - 1, Math.floor(y / franja))];
-        for (let x = 0; x < LADO; x++) {
-            const i = (y * LADO + x) * 4;
-            d[i] = d[i] * 0.72 + r * 0.28;
-            d[i + 1] = d[i + 1] * 0.72 + g * 0.28;
-            d[i + 2] = d[i + 2] * 0.72 + b * 0.28;
+    // Fondo: degradado vertical de morado oscuro
+    for (let y = 0; y < N; y++) {
+        const t = y / N;
+        for (let x = 0; x < N; x++) {
+            const i = (y * N + x) * 4;
+            d[i] = 22 + (60 - 22) * t;
+            d[i + 1] = 16 + (18 - 16) * t;
+            d[i + 2] = 40 + (78 - 40) * t;
+            d[i + 3] = 255;
         }
     }
 
-    // Franja oscura abajo para que se lea el texto
-    for (let y = FRANJA_Y; y < LADO; y++) {
-        for (let x = 0; x < LADO; x++) {
-            const i = (y * LADO + x) * 4;
-            d[i] = d[i] * 0.3;
-            d[i + 1] = d[i + 1] * 0.3;
-            d[i + 2] = d[i + 2] * 0.3;
+    // Foto recortada en el centro del círculo
+    const dim = R * 2;
+    const f = foto.clone().cover({ w: dim, h: dim });
+    const fd = f.bitmap.data;
+
+    for (let y = CY - R - GROSOR; y <= CY + R + GROSOR; y++) {
+        for (let x = CX - R - GROSOR; x <= CX + R + GROSOR; x++) {
+            if (x < 0 || y < 0 || x >= N || y >= N) continue;
+            const dx = x + 0.5 - CX;
+            const dy = y + 0.5 - CY;
+            const dist = Math.hypot(dx, dy);
+            const i = (y * N + x) * 4;
+
+            if (dist <= R) {
+                // Dentro del círculo: la foto
+                const fx = Math.min(dim - 1, Math.max(0, Math.floor(x - (CX - R))));
+                const fy = Math.min(dim - 1, Math.max(0, Math.floor(y - (CY - R))));
+                const j = (fy * dim + fx) * 4;
+                d[i] = fd[j];
+                d[i + 1] = fd[j + 1];
+                d[i + 2] = fd[j + 2];
+            } else if (dist <= R + GROSOR) {
+                // Borde: arcoíris que gira alrededor del círculo
+                const ang = (Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI); // 0..1
+                const pos = ang * ARCOIRIS.length;
+                const a = Math.floor(pos) % ARCOIRIS.length;
+                const b = (a + 1) % ARCOIRIS.length;
+                const k = pos - Math.floor(pos);
+                const c1 = ARCOIRIS[a];
+                const c2 = ARCOIRIS[b];
+                d[i] = c1[0] + (c2[0] - c1[0]) * k;
+                d[i + 1] = c1[1] + (c2[1] - c1[1]) * k;
+                d[i + 2] = c1[2] + (c2[2] - c1[2]) * k;
+            }
         }
     }
 
@@ -78,15 +111,15 @@ async function crearPortada(foto: any, porcentaje: number, nombre: string): Prom
 
     const titulo = 'MEDIDOR GAY';
     const tw = measureText(fuenteChica, titulo);
-    lienzo.print({ font: fuenteChica, x: Math.round((LADO - tw) / 2), y: FRANJA_Y + 12, text: titulo });
+    lienzo.print({ font: fuenteChica, x: Math.round((N - tw) / 2), y: CY + R + GROSOR + 26, text: titulo });
 
     const pct = `${porcentaje}%`;
     const pw = measureText(fuenteGrande, pct);
-    lienzo.print({ font: fuenteGrande, x: Math.round((LADO - pw) / 2), y: FRANJA_Y + 50, text: pct });
+    lienzo.print({ font: fuenteGrande, x: Math.round((N - pw) / 2), y: CY + R + GROSOR + 62, text: pct });
 
     const nombreCorto = nombre.length > 28 ? nombre.slice(0, 27) + '…' : nombre;
     const nw = measureText(fuenteChica, nombreCorto);
-    lienzo.print({ font: fuenteChica, x: Math.round((LADO - nw) / 2), y: LADO - 48, text: nombreCorto });
+    lienzo.print({ font: fuenteChica, x: Math.round((N - nw) / 2), y: N - 52, text: nombreCorto });
 
     return await lienzo.getBuffer('image/png');
 }
