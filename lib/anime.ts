@@ -143,18 +143,31 @@ export function animeMaker(options: AnimeOptions) {
 
                 global.broadcast?.('cmd_progress', { id: msgId, step: 'fetching_anime' });
 
-                const response = await axios.get(`https://api.stellarwa.xyz/sfw/interaction?inter=${options.api || cmdList[0]}&key=Midnight`, {
-                    timeout: 15000,
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 7) AppleWebKit/537.36',
-                        'Accept': 'application/json, */*'
-                    },
-                    responseType: 'arraybuffer'
-                });
+                // Stellar a veces responde JSON de error o vacío: se reintenta con la otra clave.
+                const inter = options.api || cmdList[0];
+                let mediaBuffer: Buffer | null = null;
+                for (const key of ['Midnight', 'proyectsV2', 'Midnight']) {
+                    try {
+                        const response = await axios.get(`https://api.stellarwa.xyz/sfw/interaction?inter=${inter}&key=${key}`, {
+                            timeout: 15000,
+                            headers: {
+                                'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 7) AppleWebKit/537.36',
+                                'Accept': 'application/json, */*'
+                            },
+                            responseType: 'arraybuffer'
+                        });
+                        const buf = Buffer.from(response.data);
+                        if (buf.length >= 1000 && buf[0] !== 0x7b) { // 0x7b = '{' (JSON de error)
+                            mediaBuffer = buf;
+                            break;
+                        }
+                    } catch {
+                        // se intenta con la siguiente clave
+                    }
+                    await new Promise((r) => setTimeout(r, 800));
+                }
 
-                const mediaBuffer = Buffer.from(response.data);
-
-                if (!mediaBuffer || mediaBuffer.length < 1000) {
+                if (!mediaBuffer) {
                     throw new Error('No se pudo obtener el GIF de interacción');
                 }
 
