@@ -1,13 +1,4 @@
-import { Jimp, loadFont, measureText } from 'jimp';
-import { SANS_32_WHITE, SANS_64_WHITE } from 'jimp/fonts';
-import { avatarRespaldo, descargarFoto } from '../../lib/ship-collage.ts';
-
-// Portada circular: la foto de perfil con borde arcoíris, fondo oscuro y el porcentaje.
-const LADO = 800;
-const FRANJA_Y = 620;
-const ARCOIRIS = [
-    [228, 3, 3], [255, 140, 0], [255, 237, 0], [0, 128, 38], [0, 77, 255], [117, 7, 135]
-];
+import { ARCOIRIS, PALETAS_ROSA, crearPortadaMedidor, fotoDePerfil } from '../../lib/medidor.ts';
 
 const frasesBajo = [
     'Na, es poquito, casi ni se nota. Por ahora estás safe 😅',
@@ -35,17 +26,9 @@ const frasesMax = [
     'Con ese % ya pide tu membresía premium, acéptalo bro 👹'
 ];
 
-// Fondos rosas con varios colores (se elige uno al azar en cada medidor)
-const PALETAS: number[][][] = [
-    [[255, 126, 185], [255, 101, 163], [200, 109, 215]],
-    [[255, 150, 200], [255, 105, 180], [150, 120, 255], [120, 200, 255]],
-    [[255, 140, 190], [255, 190, 120], [255, 110, 170]],
-    [[255, 120, 180], [190, 110, 255], [100, 190, 255]]
-];
-
 const elegir = (lista: string[]) => lista[Math.floor(Math.random() * lista.length)];
 
-/** Nivel y frase según el porcentaje (mismos textos de siempre). */
+/** Nivel y frase según el porcentaje. */
 function nivelDe(p: number): { nivel: string; frase: string } {
     if (p <= 20) return { nivel: 'Bajo, casi hetero.', frase: elegir(frasesBajo) };
     if (p <= 40) return { nivel: 'Altamente detectado.', frase: elegir(frasesMedioBajo) };
@@ -54,94 +37,11 @@ function nivelDe(p: number): { nivel: string; frase: string } {
     return { nivel: '100% gay, ya sal del closet.', frase: elegir(frasesMax) };
 }
 
-/** Dibuja la portada: foto circular con borde arcoíris degradado, fondo oscuro y textos abajo. */
-async function crearPortada(foto: any, porcentaje: number, nombre: string): Promise<Buffer> {
-    const N = LADO;
-    const CX = N / 2;
-    const CY = 330;                 // centro del círculo
-    const R = 230;                  // radio de la foto
-    const GROSOR = 22;              // grosor del borde arcoíris
-
-    const lienzo = new Jimp({ width: N, height: N, color: 0xffffffff });
-    const d = lienzo.bitmap.data;
-
-    // Fondo: degradado rosa con varios colores; cada vez sale una combinación distinta
-    const paleta = PALETAS[Math.floor(Math.random() * PALETAS.length)];
-    for (let y = 0; y < N; y++) {
-        for (let x = 0; x < N; x++) {
-            const t = (x + y) / (2 * N);
-            const pos = t * (paleta.length - 1);
-            const a = Math.floor(pos);
-            const b = Math.min(paleta.length - 1, a + 1);
-            const k = pos - a;
-            const i = (y * N + x) * 4;
-            d[i] = paleta[a][0] + (paleta[b][0] - paleta[a][0]) * k;
-            d[i + 1] = paleta[a][1] + (paleta[b][1] - paleta[a][1]) * k;
-            d[i + 2] = paleta[a][2] + (paleta[b][2] - paleta[a][2]) * k;
-            d[i + 3] = 255;
-        }
-    }
-
-    // Foto recortada en el centro del círculo
-    const dim = R * 2;
-    const f = foto.clone().cover({ w: dim, h: dim });
-    const fd = f.bitmap.data;
-
-    for (let y = CY - R - GROSOR; y <= CY + R + GROSOR; y++) {
-        for (let x = CX - R - GROSOR; x <= CX + R + GROSOR; x++) {
-            if (x < 0 || y < 0 || x >= N || y >= N) continue;
-            const dx = x + 0.5 - CX;
-            const dy = y + 0.5 - CY;
-            const dist = Math.hypot(dx, dy);
-            const i = (y * N + x) * 4;
-
-            if (dist <= R) {
-                // Dentro del círculo: la foto
-                const fx = Math.min(dim - 1, Math.max(0, Math.floor(x - (CX - R))));
-                const fy = Math.min(dim - 1, Math.max(0, Math.floor(y - (CY - R))));
-                const j = (fy * dim + fx) * 4;
-                d[i] = fd[j];
-                d[i + 1] = fd[j + 1];
-                d[i + 2] = fd[j + 2];
-            } else if (dist <= R + GROSOR) {
-                // Borde: arcoíris que gira alrededor del círculo
-                const ang = (Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI); // 0..1
-                const pos = ang * ARCOIRIS.length;
-                const a = Math.floor(pos) % ARCOIRIS.length;
-                const b = (a + 1) % ARCOIRIS.length;
-                const k = pos - Math.floor(pos);
-                const c1 = ARCOIRIS[a];
-                const c2 = ARCOIRIS[b];
-                d[i] = c1[0] + (c2[0] - c1[0]) * k;
-                d[i + 1] = c1[1] + (c2[1] - c1[1]) * k;
-                d[i + 2] = c1[2] + (c2[2] - c1[2]) * k;
-            }
-        }
-    }
-
-    const fuenteGrande = await loadFont(SANS_64_WHITE);
-    const fuenteChica = await loadFont(SANS_32_WHITE);
-
-    const titulo = 'MEDIDOR GAY';
-    const tw = measureText(fuenteChica, titulo);
-    lienzo.print({ font: fuenteChica, x: Math.round((N - tw) / 2), y: CY + R + GROSOR + 26, text: titulo });
-
-    const pct = `${porcentaje}%`;
-    const pw = measureText(fuenteGrande, pct);
-    lienzo.print({ font: fuenteGrande, x: Math.round((N - pw) / 2), y: CY + R + GROSOR + 62, text: pct });
-
-    const nombreCorto = nombre.length > 28 ? nombre.slice(0, 27) + '…' : nombre;
-    const nw = measureText(fuenteChica, nombreCorto);
-    lienzo.print({ font: fuenteChica, x: Math.round((N - nw) / 2), y: N - 52, text: nombreCorto });
-
-    return await lienzo.getBuffer('image/png');
-}
-
 export default {
     command: ['gay', 'medidor', 'gaymeter'],
-    description: 'Medidor gay con portada arcoíris',
+    description: 'Medidor gay con portada circular',
     category: 'fun',
-    run: async ({ chat, m, sock, args }: any) => {
+    run: async ({ chat, m, sock }: any) => {
         const msgId = m?.id || m?.key?.id;
         try {
             global.broadcast?.('cmd_progress', { id: msgId, step: 'ai_thinking', query: 'gay' });
@@ -153,14 +53,7 @@ export default {
             const porcentaje = Math.floor(Math.random() * 101);
             const { nivel, frase } = nivelDe(porcentaje);
 
-            // Foto de perfil; si no tiene, avatar de respaldo
-            let foto: any = null;
-            try {
-                const url = await sock.profilePictureUrl(who, 'image');
-                if (url) foto = await descargarFoto(url);
-            } catch { /* sin foto */ }
-            if (!foto) foto = avatarRespaldo(numero);
-
+            const foto = await fotoDePerfil(sock, who);
             const texto = [
                 '╭─────────────────╮',
                 '  🌈 *EL MEDIDOR INVISIBLE* 🌈',
@@ -179,7 +72,11 @@ export default {
 
             let imagen: Buffer | null = null;
             try {
-                imagen = await crearPortada(foto, porcentaje, `@${numero}`);
+                imagen = await crearPortadaMedidor(foto, porcentaje, `@${numero}`, {
+                    titulo: 'MEDIDOR GAY',
+                    borde: ARCOIRIS,
+                    paletas: PALETAS_ROSA
+                });
             } catch (e: any) {
                 console.error('[GAY PORTADA]', e?.message);
             }

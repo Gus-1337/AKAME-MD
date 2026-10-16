@@ -1,5 +1,5 @@
 export default {
-    command: ['lesbiana', 'pansexual', 'hetero', 'trans', 'bi', 'bisexual'],
+    command: ['pansexual', 'hetero', 'trans', 'bi', 'bisexual'],
     description: 'Medidores LGBT',
     category: 'fun',
     run: async ({ chat, m, sock, args }) => {
@@ -21,15 +21,7 @@ export default {
             let nivel = ''
             let frase = ''
 
-            if (cmd === 'lesbiana') {
-                titulo = '🌈 EL MEDIDOR LESBIANA'
-                if (porcentaje <= 20) { nivel = 'Baja, hetero curiosa.'; frase = 'Na bro, esa no es tortillera, tranquila.' }
-                else if (porcentaje <= 40) { nivel = 'Algo se le nota.'; frase = 'Ya le gustan las amigas un poquito, acéptalo sis.' }
-                else if (porcentaje <= 60) { nivel = 'Bi-curious.'; frase = 'Mitad y mitad, le gustan ambos bandos.' }
-                else if (porcentaje <= 80) { nivel = 'Tortillera de closet.'; frase = 'Ya no lo niegues mami, acéptalo.' }
-                else { nivel = '100% Lesbiana.'; frase = 'Confirmadísima, solo le gustan las bichotas.' }
-
-            } else if (cmd === 'pansexual') {
+            if (cmd === 'pansexual') {
                 titulo = '💖 EL MEDIDOR PANSEXUAL'
                 if (porcentaje <= 20) { nivel = 'Bajo, muy selectivo.'; frase = 'Na, tu solo miras uno, estás safe.' }
                 else if (porcentaje <= 40) { nivel = 'Curioso.'; frase = 'Algo hay ahí, te gusta lo que sea con que respire.' }
