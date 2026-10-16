@@ -1,7 +1,7 @@
 import { delineBytes } from '../../lib/deline.ts';
 
 export default {
-    command: ['attp'],
+    command: ['textoanimado'],
     description: 'Crea un sticker animado con texto',
     category: 'stickers',
     run: async (ctx: any) => {
@@ -9,7 +9,7 @@ export default {
         const p = usedPrefix || '.';
         const texto = (args || []).join(' ').trim();
         if (!texto) {
-            return sock.sendMessage(chat, { text: `✧ Usa: *${p}attp <texto>*\n✦ Ejemplo: *${p}attp hola*` }, { quoted: msg });
+            return sock.sendMessage(chat, { text: `✧ Usa: *${p}textoanimado <texto>*\n✦ Ejemplo: *${p}textoanimado hola*` }, { quoted: msg });
         }
         try {
             await sock.sendMessage(chat, { react: { text: '🎨', key: msg.key } }).catch(() => null);
