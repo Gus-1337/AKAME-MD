@@ -47,8 +47,10 @@ export default {
             const rating = (info.ratings || []).find((r: any) => r.source === 'Internet Movie Database')?.value
                 || (limpio(info.rating) ? `${info.rating}/10` : null);
 
-            const [generos, sinopsis] = await Promise.all([
+            const [generos, duracion, pais, sinopsis] = await Promise.all([
                 aEspanol(limpio(info.genres)),
+                aEspanol(limpio(info.runtime)),
+                aEspanol(limpio(info.country)),
                 aEspanol(limpio(info.plot))
             ]);
 
@@ -56,12 +58,12 @@ export default {
                 `🎬 *${info.title}*${limpio(info.year) ? ` (${info.year})` : ''}`,
                 '',
                 generos && `✧ *Género:* ${generos}`,
-                limpio(info.runtime) && `✧ *Duración:* ${info.runtime}`,
+                duracion && `✧ *Duración:* ${duracion}`,
                 limpio(info.rated) && `✧ *Clasificación:* ${info.rated}`,
                 limpio(info.director) && `✧ *Director:* ${info.director}`,
                 limpio(info.actors) && `✧ *Actores:* ${info.actors}`,
                 rating && `✧ *IMDb:* ${rating}`,
-                limpio(info.country) && `✧ *País:* ${info.country}`,
+                pais && `✧ *País:* ${pais}`,
                 limpio(info.boxoffice) && `✧ *Taquilla:* ${info.boxoffice}`,
                 sinopsis && `\n📖 ${sinopsis}`,
                 limpio(info.imdburl) && `\n🔗 ${info.imdburl}`,
