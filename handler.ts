@@ -5,6 +5,10 @@ import chalk from 'chalk';
 import { broadcast } from '#index';
 import { LRUCache } from 'lru-cache';
 import { obtenerPrimario } from '#primario';
+import { estaActiva } from './lib/ajustes.ts';
+
+// Comandos de gacha (waifus y Pokémon): se apagan con `.gacha off`.
+const COMANDOS_GACHA = ['harem', 'mywaifus', 'misswaifus', 'reclamar', 'claim', 'c', 'venderpk', 'liberarpk', 'soltarpk', 'pokemon', 'pk', 'rp', 'pokemones', 'pokes', 'mispokemon', 'waifu', 'waifus', 'rw', 'cpk', 'atrapar', 'reclamarpk'];
 
 const handlerConfig = (config as any)?.handler || {};
 const metaTtlMs = handlerConfig.metaTtl || 300000;
@@ -376,6 +380,18 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
             return msg.reply(
                 'ׅ ׄ ✿ La categoría *NSFW 💋* está desactivada en este grupo.\n' +
                 '> Un administrador puede activarla con *' + (matchedPrefix?? prefix) + 'nsfw on*'
+            );
+        }
+    }
+    if (isGroup &&!isOwner && currentChatDb) {
+        const nombres: string[] = Array.isArray(cmd.command) ? cmd.command : [cmd.command];
+        const esEconomia = cmd.category === 'economy' && !estaActiva(currentChatDb, 'economia');
+        const esGacha = nombres.some((n) => COMANDOS_GACHA.includes(n)) && !estaActiva(currentChatDb, 'gacha');
+        if (esEconomia || esGacha) {
+            const quien = esEconomia ? 'economia' : 'gacha';
+            return msg.reply(
+                '✿ Esta función está desactivada en este grupo.\n' +
+                '> Un admin puede activarla con *' + (matchedPrefix ?? prefix) + quien + ' on*'
             );
         }
     }

@@ -25,6 +25,8 @@ import printMessageLog from './lib/printlog.ts';
 import { handleGroupAlerts, handleGroupParticipants } from '#alertas';
 import { avisarReinicio } from './commands/owner/restart.ts';
 import { restaurarSubbots } from './lib/subbots.ts';
+import { guardarParaAntidelete, procesarRevocacion, procesarVerUnaVez } from './lib/antidelete.ts';
+import { revisarIngreso, recordarNombre } from './lib/antibot.ts';
 import { leerPrefijo } from './lib/prefijo.ts';
 import { esSubbot, SUBBOT_MODO, CARPETA_SUBBOT, aplicarPerfil, leerPerfil, manejarPersonal, bienvenidaSubbot, reportar } from './lib/subbot-mode.ts';
 
@@ -292,6 +294,7 @@ async function startBot() {
         broadcast('group_updated', { chatId: id, action });
         await bienvenidaSubbot(sock, update);
         await handleGroupParticipants(sock, update);
+        revisarIngreso(sock, update).catch(() => {});
     });
 
     sock.ev.on('groups.update', async (updates) => {
@@ -384,6 +387,17 @@ async function startBot() {
 
             if (mStore.has(mId)) continue;
             mStore.set(mId, true);
+
+            // Grupos: AntiDelete (reenvía lo borrado), AntiVer (reenvía "ver una vez")
+            if (jid.endsWith('@g.us')) {
+                if (rawMsg.message.protocolMessage) {
+                    procesarRevocacion(sock, rawMsg).catch(() => {});
+                    continue;
+                }
+                guardarParaAntidelete(rawMsg);
+                recordarNombre(rawMsg);
+                procesarVerUnaVez(sock, rawMsg).catch(() => {});
+            }
 
             // Subbot: primero sus comandos de personalización (.setnombre, .perfil, ...)
             if (esSubbot && rawMsg.key.fromMe && enviadosPorBot.has(mId)) continue;
