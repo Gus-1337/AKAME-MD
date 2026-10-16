@@ -3,7 +3,7 @@ import { delineJson } from '../../lib/deline.ts';
 const nf = (n: number) => Number(n || 0).toLocaleString('es-PE');
 
 export default {
-    command: ['ttstalk', 'tiktokstalk'],
+    command: ['perfiltiktok'],
     description: 'Muestra el perfil de un usuario de TikTok',
     category: 'tools',
     run: async (ctx: any) => {
@@ -11,7 +11,7 @@ export default {
         const p = usedPrefix || '.';
         const usuario = (args || []).join('').replace(/^@/, '').trim();
         if (!usuario) {
-            return sock.sendMessage(chat, { text: `✧ Usa: *${p}ttstalk <usuario>*\n✦ Ejemplo: *${p}ttstalk khaby.lame*` }, { quoted: msg });
+            return sock.sendMessage(chat, { text: `✧ Usa: *${p}perfiltiktok <usuario>*\n✦ Ejemplo: *${p}perfiltiktok khaby.lame*` }, { quoted: msg });
         }
         try {
             await sock.sendMessage(chat, { react: { text: '🔎', key: msg.key } }).catch(() => null);

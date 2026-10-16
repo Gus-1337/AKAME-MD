@@ -1,7 +1,7 @@
 import { delineBytes } from '../../lib/deline.ts';
 
 export default {
-    command: ['ttp'],
+    command: ['textoimagen'],
     description: 'Crea una imagen de texto estilo sticker',
     category: 'stickers',
     run: async (ctx: any) => {
@@ -9,7 +9,7 @@ export default {
         const p = usedPrefix || '.';
         const texto = (args || []).join(' ').trim();
         if (!texto) {
-            return sock.sendMessage(chat, { text: `✧ Usa: *${p}ttp <texto>*\n✦ Ejemplo: *${p}ttp hola amigos*` }, { quoted: msg });
+            return sock.sendMessage(chat, { text: `✧ Usa: *${p}textoimagen <texto>*\n✦ Ejemplo: *${p}textoimagen hola amigos*` }, { quoted: msg });
         }
         try {
             await sock.sendMessage(chat, { react: { text: '🎨', key: msg.key } }).catch(() => null);

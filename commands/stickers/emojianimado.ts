@@ -2,7 +2,7 @@ import axios from 'axios';
 import { delineJson } from '../../lib/deline.ts';
 
 export default {
-    command: ['emojigif'],
+    command: ['emojianimado'],
     description: 'Convierte un emoji en sticker animado',
     category: 'stickers',
     run: async (ctx: any) => {
@@ -10,7 +10,7 @@ export default {
         const p = usedPrefix || '.';
         const emoji = (args || [])[0] || '';
         if (!emoji) {
-            return sock.sendMessage(chat, { text: `✧ Usa: *${p}emojigif <emoji>*\n✦ Ejemplo: *${p}emojigif 😀*` }, { quoted: msg });
+            return sock.sendMessage(chat, { text: `✧ Usa: *${p}emojianimado <emoji>*\n✦ Ejemplo: *${p}emojianimado 😀*` }, { quoted: msg });
         }
         try {
             await sock.sendMessage(chat, { react: { text: '🎨', key: msg.key } }).catch(() => null);

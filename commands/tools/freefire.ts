@@ -1,7 +1,7 @@
 import { delineJson } from '../../lib/deline.ts';
 
 export default {
-    command: ['ffstalk', 'freefire', 'stalkff'],
+    command: ['freefire'],
     description: 'Muestra la cuenta de Free Fire por su ID',
     category: 'tools',
     run: async (ctx: any) => {
@@ -9,7 +9,7 @@ export default {
         const p = usedPrefix || '.';
         const id = (args || [])[0] || '';
         if (!/^\d{5,20}$/.test(id)) {
-            return sock.sendMessage(chat, { text: `✧ Usa: *${p}ffstalk <ID>*\n✦ Ejemplo: *${p}ffstalk 123456789*\n✦ El ID es el número de tu cuenta de Free Fire.` }, { quoted: msg });
+            return sock.sendMessage(chat, { text: `✧ Usa: *${p}freefire <ID>*\n✦ Ejemplo: *${p}freefire 123456789*\n✦ El ID es el número de tu cuenta de Free Fire.` }, { quoted: msg });
         }
         try {
             await sock.sendMessage(chat, { react: { text: '🔎', key: msg.key } }).catch(() => null);
