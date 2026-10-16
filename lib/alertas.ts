@@ -1,3 +1,5 @@
+import axios from 'axios';
+import { generarTarjetaBienvenida } from './tarjeta-bienvenida.ts';
 import { UserJid } from '#simple';
 import config from '#config';
 
@@ -212,11 +214,30 @@ ${finalMsg}
         const imageUrl = userPic || groupProfilePic || global.icono;
         const fkontak = buildLocationQuoted(groupName);
 
-        const messageContent = {
-            image: typeof imageUrl === 'string'? { url: imageUrl } : imageUrl,
-            caption: message,
-            mentions: mentions
-        };
+        // Tarjeta con canvas: foto circular + fondo de Akame. Si falla, se usa la imagen de siempre.
+        let tarjeta: Buffer | null = null;
+        try {
+            const fotoBuffer = userPic ? await axios.get(userPic, { responseType: 'arraybuffer', timeout: 5000 })
+                .then((r) => Buffer.from(r.data)).catch(() => null) : null;
+            const numero = (mentions[0] || '').split('@')[0];
+            tarjeta = await generarTarjetaBienvenida({
+                tipo: action === 'add' ? 'add' : 'remove',
+                nombre: numero ? `+${numero}` : 'Nuevo miembro',
+                grupo: groupName,
+                miembros: totalMembers,
+                foto: fotoBuffer
+            });
+        } catch (err: any) {
+            console.error('[TARJETA] falló, se usa la imagen normal:', err?.message);
+        }
+
+        const messageContent = tarjeta
+            ? { image: tarjeta, caption: message, mentions: mentions }
+            : {
+                image: typeof imageUrl === 'string'? { url: imageUrl } : imageUrl,
+                caption: message,
+                mentions: mentions
+            };
 
         await sock.sendMessage(chatJid, messageContent, { quoted: fkontak }).catch(() => {
             return sock.sendMessage(chatJid, {
