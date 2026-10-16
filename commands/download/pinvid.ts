@@ -10,15 +10,33 @@ const DELIRIUS = ((global as any).APIs?.delirius?.url || 'https://api.delirius.o
 const esPinterest = (url: string) => /^https?:\/\/(www\.|[a-z]{2}\.)?(pinterest\.[a-z.]+|pin\.it)\//i.test(url);
 const esLink = (texto: string) => /^https?:\/\//i.test(texto);
 
-/** Busca un pin con video por nombre y devuelve su link de pin. */
-async function buscarPin(query: string): Promise<string | null> {
+/** Busca un video por nombre. Devuelve la fuente (MP4 o HLS m3u8) y los datos del pin. */
+async function buscarVideo(query: string): Promise<{ fuente: string; hls: boolean; pin: any } | null> {
     const { data } = await axios.get(`${DELIRIUS}/search/pinterestvideo`, {
         params: { query },
         timeout: 30000,
         headers: { 'User-Agent': 'Mozilla/5.0' }
     });
-    const id = data?.data?.id;
-    return id ? `https://www.pinterest.com/pin/${id}/` : null;
+    const pin = data?.data;
+    if (!data?.status || !pin) return null;
+    if (pin.video) return { fuente: pin.video, hls: false, pin };
+    if (pin.m3u8) return { fuente: pin.m3u8, hls: true, pin };
+    return null;
+}
+
+/** Convierte un HLS (m3u8) a MP4 con video H.264 y audio AAC-LC. */
+async function hlsAMp4(m3u8: string): Promise<Buffer> {
+    const id = randomBytes(6).toString('hex');
+    const tmpOut = path.join(os.tmpdir(), `pinvid-${id}-hls.mp4`);
+    try {
+        await new Promise<void>((resolve, reject) => {
+            execFile('ffmpeg', ['-y', '-v', 'error', '-i', m3u8, '-c:v', 'copy', '-c:a', 'aac', '-profile:a', 'aac_low', '-b:a', '128k', '-ac', '2', '-movflags', '+faststart', tmpOut],
+                { timeout: 180000 }, (err) => err ? reject(err) : resolve());
+        });
+        return fs.readFileSync(tmpOut);
+    } finally {
+        try { fs.unlinkSync(tmpOut); } catch {}
+    }
 }
 
 /** Descarga el MP4 y cambia el audio a AAC-LC para que WhatsApp lo reproduzca. Si ffmpeg falla, devuelve el original. */
@@ -35,7 +53,7 @@ async function arreglarVideo(url: string): Promise<Buffer> {
         });
         return fs.readFileSync(tmpOut);
     } catch (e) {
-        console.log('[PINVID] ffmpeg falló, se envía el original:', e.message);
+        console.log("[PINVID] ffmpeg falló, se envía el original:", (e as any)?.message);
         return original;
     } finally {
         for (const f of [tmpIn, tmpOut]) { try { fs.unlinkSync(f); } catch {} }
@@ -56,7 +74,7 @@ export default {
     command: ['pinvid'],
     category: 'download',
     description: 'Descarga un video de Pinterest por link o por nombre',
-    run: async (ctx) => {
+    run: async (ctx: any) => {
         const { sock, msg, chat, args, usedPrefix } = ctx;
         const entrada = (args || []).join(' ').trim();
 
@@ -75,28 +93,30 @@ export default {
         try {
             await sock.sendMessage(chat, { react: { text: '⏳', key: msg.key } }).catch(() => {});
 
-            let pinUrl = entrada;
-            if (!esLink(entrada)) {
-                pinUrl = await buscarPin(entrada);
-                if (!pinUrl) {
+            let video: Buffer;
+            let pin: any;
+            if (esLink(entrada)) {
+                const r = await obtenerVideo(entrada);
+                if (!r.ok || !r.media?.url) throw new Error('No encontré el pin');
+                if (r.media.type !== 'video') {
+                    await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => {});
+                    return sock.sendMessage(chat, {
+                        text: `☬ *AKAME-MD* ☬\n\n♡ Ese pin no tiene video, solo imagen.`
+                    }, { quoted: msg });
+                }
+                pin = r.pin;
+                video = await arreglarVideo(r.media.url);
+            } else {
+                const r = await buscarVideo(entrada);
+                if (!r) {
                     await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => {});
                     return sock.sendMessage(chat, {
                         text: `☬ *AKAME-MD* ☬\n\n♡ No encontré videos de Pinterest para: *${entrada}*`
                     }, { quoted: msg });
                 }
+                pin = r.pin;
+                video = r.hls ? await hlsAMp4(r.fuente) : await arreglarVideo(r.fuente);
             }
-
-            const { ok, pin, media } = await obtenerVideo(pinUrl);
-            if (!ok || !media?.url) throw new Error('No encontré el pin');
-
-            if (media.type !== 'video') {
-                await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => {});
-                return sock.sendMessage(chat, {
-                    text: `☬ *AKAME-MD* ☬\n\n♡ Ese pin no tiene video, solo imagen.`
-                }, { quoted: msg });
-            }
-
-            const video = await arreglarVideo(media.url);
 
             await sock.sendMessage(chat, {
                 video,
@@ -106,7 +126,7 @@ export default {
 
             await sock.sendMessage(chat, { react: { text: '✅', key: msg.key } }).catch(() => {});
         } catch (e) {
-            console.log('[PINVID ERROR]', e.message);
+            console.log("[PINVID ERROR]", (e as any)?.message);
             await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => {});
             await sock.sendMessage(chat, {
                 text: `☬ *AKAME-MD* ☬\n\n♡ No pude descargar ese video. Prueba con otro link o nombre.`
