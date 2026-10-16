@@ -1,4 +1,8 @@
 import { Buffer } from 'node:buffer';
+import { execFile } from 'node:child_process';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import config from '#config';
 import { UserJid } from '#simple';
 
@@ -334,6 +338,46 @@ export const resolverObjetivoNsfw = async (ctx: any): Promise<string | null> => 
     }
 };
 
+/**
+ * WhatsApp no reproduce GIF enviados como imagen: el mensaje sale vacío.
+ * Se convierte a MP4 (sin audio) y se manda como video con gifPlayback.
+ * Si ffmpeg falla, devuelve null y se usa el archivo original.
+ */
+const gifAMp4 = (buffer: Buffer): Promise<Buffer | null> =>
+    new Promise((resolve) => {
+        const dir = mkdtempSync(join(tmpdir(), 'akame-gif-'));
+        const inFile = join(dir, 'in.gif');
+        const outFile = join(dir, 'out.mp4');
+        const limpiar = () => { try { rmSync(dir, { recursive: true, force: true }); } catch {} };
+        try {
+            writeFileSync(inFile, buffer);
+        } catch {
+            limpiar();
+            return resolve(null);
+        }
+        execFile(
+            'ffmpeg',
+            ['-y', '-v', 'error', '-i', inFile, '-movflags', '+faststart', '-pix_fmt', 'yuv420p',
+             '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', outFile],
+            { timeout: 120000 },
+            (err) => {
+                if (err) {
+                    console.log('[NSFW] ffmpeg falló, se envía el GIF original:', err.message);
+                    limpiar();
+                    return resolve(null);
+                }
+                try {
+                    const mp4 = readFileSync(outFile);
+                    limpiar();
+                    resolve(mp4.length > 2048 ? mp4 : null);
+                } catch {
+                    limpiar();
+                    resolve(null);
+                }
+            }
+        );
+    });
+
 export const sendReactionMedia = async (
     ctx: any,
     reaction: ReactionEndpoint,
@@ -349,6 +393,16 @@ export const sendReactionMedia = async (
         await sock.sendMessage(chat, { react: { text: '⏳', key: m.key } }).catch(() => null);
 
         const media = await fetchReactionMedia(reaction);
+        if (media.mime === 'image/gif') {
+            const mp4 = await gifAMp4(media.buffer);
+            if (mp4) {
+                media.buffer = mp4;
+                media.bytes = mp4.length;
+                media.kind = 'video';
+                media.mime = 'video/mp4';
+                media.ext = 'mp4';
+            }
+        }
 
         if (media.bytes > MAX_MEDIA_BYTES) {
             await sock.sendMessage(chat, { react: { text: '⚠️', key: m.key } }).catch(() => null);
