@@ -24,7 +24,8 @@ global.APIs = {
   siputzx: { url: 'https://api.siputzx.my.id', key: null },
   evogb: { url: 'https://api.evogb.org', key: process.env.EVOGB_KEY || 'putostodos' },
   yosoyyo: { url: 'https://api-yosoyyo-api-ofc.onrender.com', key: process.env.YOSOYYO_KEY || null },
-  starlights: { url: 'https://apis-starlights-team.koyeb.app/starlight', key: null }
+  starlights: { url: 'https://apis-starlights-team.koyeb.app/starlight', key: null },
+  popcat: { url: 'https://api.popcat.xyz/v2', key: null }
 }
 
 export const config = {
