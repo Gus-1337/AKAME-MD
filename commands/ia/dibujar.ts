@@ -38,7 +38,7 @@ async function generar(prompt: string): Promise<Buffer> {
 }
 
 export default {
-    command: ['imagen'],
+    command: ['dibujar'],
     description: 'Genera una imagen con IA a partir de texto',
     category: 'ia',
     run: async (ctx: any) => {
@@ -46,7 +46,7 @@ export default {
         const p = usedPrefix || '.';
         const prompt = (args || []).join(' ').trim();
         if (!prompt) {
-            return sock.sendMessage(chat, { text: `✧ Usa: *${p}imagen <descripción>*\n✦ Ejemplo: *${p}imagen un gato astronauta en la luna*` }, { quoted: msg });
+            return sock.sendMessage(chat, { text: `✧ Usa: *${p}dibujar <descripción>*\n✦ Ejemplo: *${p}dibujar un gato astronauta en la luna*` }, { quoted: msg });
         }
         if (pendientes >= MAX_COLA) {
             return sock.sendMessage(chat, { text: '✧ Hay muchas imágenes en cola. Intenta de nuevo en unos minutos.' }, { quoted: msg });
