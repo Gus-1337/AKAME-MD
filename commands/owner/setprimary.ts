@@ -11,9 +11,9 @@ const soloDigitos = (texto: string) => String(texto || '').split('@')[0].split('
 export default {
     command: ['setprimary'],
     description: 'Elige qué bot responde comandos en este grupo (si hay varios bots)',
-    category: 'admin',
+    category: 'owner',
     group: true,
-    admin: true,
+    owner: true,
     run: async (ctx: any) => {
         const { sock, msg, chat, args, usedPrefix } = ctx;
         const responder = (texto: string) => sock.sendMessage(chat, { text: texto }, { quoted: msg });
