@@ -130,3 +130,93 @@ export async function crearPortadaMedidor(foto: any, porcentaje: number, nombre:
 
     return await lienzo.getBuffer('image/png');
 }
+
+/** Bandera pansexual (rosa, amarillo, azul). */
+export const PANSEXUAL = [[255, 33, 140], [255, 216, 0], [33, 177, 255]];
+/** Bandera trans (celeste, rosa, blanco). */
+export const TRANS = [[91, 206, 250], [245, 169, 184], [255, 255, 255], [245, 169, 184], [91, 206, 250]];
+/** Bandera bi (azul, morado, rosa). */
+export const BI = [[0, 56, 168], [155, 79, 150], [214, 2, 112]];
+/** Colores neutros para el medidor hetero (azul y blanco). */
+export const HETERO = [[0, 102, 204], [255, 255, 255], [0, 60, 130]];
+
+export const PALETAS_PANSEXUAL: number[][][] = [
+    [[255, 33, 140], [255, 120, 180], [33, 177, 255]],
+    [[255, 216, 0], [255, 120, 180], [33, 177, 255]],
+    [[33, 177, 255], [255, 33, 140], [255, 216, 0]]
+];
+export const PALETAS_TRANS: number[][][] = [
+    [[91, 206, 250], [245, 169, 184], [255, 255, 255]],
+    [[245, 169, 184], [255, 255, 255], [91, 206, 250]],
+    [[160, 220, 255], [255, 200, 215], [255, 255, 255]]
+];
+export const PALETAS_BI: number[][][] = [
+    [[0, 56, 168], [155, 79, 150], [214, 2, 112]],
+    [[155, 79, 150], [214, 2, 112], [0, 56, 168]],
+    [[120, 80, 220], [214, 2, 112], [0, 90, 200]]
+];
+export const PALETAS_HETERO: number[][][] = [
+    [[0, 102, 204], [120, 170, 240], [255, 255, 255]],
+    [[40, 60, 120], [0, 102, 204], [200, 220, 255]],
+    [[0, 60, 130], [70, 130, 210], [255, 255, 255]]
+];
+
+export type Nivel = { hasta: number; nivel: string; frase: string };
+
+const elegirFrase = (lista: string[]) => lista[Math.floor(Math.random() * lista.length)];
+
+/** Ejecuta un medidor: elige porcentaje, arma el texto y manda la portada circular. */
+export async function correrMedidor(
+    ctx: any,
+    cfg: { id: string; titulo: string; encabezado: string; borde: number[][]; paletas: number[][][]; niveles: Array<{ hasta: number; nivel: string; frases: string[] }> }
+) {
+    const { chat, m, sock } = ctx;
+    const msgId = m?.id || m?.key?.id;
+    try {
+        global.broadcast?.('cmd_progress', { id: msgId, step: 'ai_thinking', query: cfg.id });
+
+        const who: string = m.mentionedJid?.[0] || m.quoted?.sender || m.sender;
+        const numero = who.split('@')[0];
+        const porcentaje = Math.floor(Math.random() * 101);
+        const nv = cfg.niveles.find((n) => porcentaje <= n.hasta) || cfg.niveles[cfg.niveles.length - 1];
+        const frase = elegirFrase(nv.frases);
+
+        const foto = await fotoDePerfil(sock, who);
+        const texto = [
+            '╭─────────────────╮',
+            `  ${cfg.encabezado}`,
+            '╰─────────────────╯',
+            '',
+            `✧ *Escaneado:* @${numero}`,
+            `✦ *Resultado:* ${porcentaje}%`,
+            `✦ *Nivel:* ${nv.nivel}`,
+            '',
+            `_${frase}_`,
+            '',
+            '> AKAME-MD 🌸'
+        ].join('\n');
+
+        global.broadcast?.('cmd_progress', { id: msgId, step: 'ai_response_ready' });
+
+        let imagen: Buffer | null = null;
+        try {
+            imagen = await crearPortadaMedidor(foto, porcentaje, `@${numero}`, {
+                titulo: cfg.titulo,
+                borde: cfg.borde,
+                paletas: cfg.paletas
+            });
+        } catch (e: any) {
+            console.error(`[${cfg.id.toUpperCase()} PORTADA]`, e?.message);
+        }
+
+        const result = imagen
+            ? await sock.sendMessage(chat, { image: imagen, caption: texto, mentions: [who] }, { quoted: m })
+            : await sock.sendMessage(chat, { text: texto, mentions: [who] }, { quoted: m });
+
+        global.broadcast?.('cmd_progress', { id: msgId, step: 'completed' });
+        return result;
+    } catch (e: any) {
+        global.broadcast?.('cmd_progress', { id: msgId, step: 'error', error: e?.message });
+        return sock.sendMessage(chat, { text: '✿ No pude hacer el medidor ahora, prueba otra vez.' }, { quoted: m });
+    }
+}
