@@ -171,7 +171,11 @@ export default {
             const { texto } = await preguntarIA(proveedores, prompt);
             console.log('[tarea] explicación:', texto.length, 'caracteres');
 
-            await enviarRespuesta(sock, chat, m, '📝 *Explicación*', limpiarExplicacion(texto));
+            await Promise.all([
+                sock.sendMessage(chat, { image: buf, caption: '📚 *TAREA*' }, { quoted: m }),
+                enviarRespuesta(sock, chat, m, '📝 *Explicación*', limpiarExplicacion(texto))
+            ]);
+
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } }).catch(() => null);
         } catch {
             await sock.sendMessage(chat, { react: { text: '❌', key: m.key } }).catch(() => null);
