@@ -10,8 +10,19 @@ const DELIRIUS = ((global as any).APIs?.delirius?.url || 'https://api.delirius.o
 const esPinterest = (url: string) => /^https?:\/\/(www\.|[a-z]{2}\.)?(pinterest\.[a-z.]+|pin\.it)\//i.test(url);
 const esLink = (texto: string) => /^https?:\/\//i.test(texto);
 
+type Hallazgo = { fuente: string; hls: boolean; pin: any };
+
+// Búsquedas recientes: si alguien pide lo mismo, sale al instante (15 min)
+const CACHE_TTL = 15 * 60 * 1000;
+const CACHE_MAX = 50;
+const cache = new Map<string, { t: number; valor: Hallazgo }>();
+
 /** Busca un video por nombre. Devuelve la fuente (MP4 o HLS m3u8) y los datos del pin. */
-async function buscarVideo(query: string): Promise<{ fuente: string; hls: boolean; pin: any } | null> {
+async function buscarVideo(query: string): Promise<Hallazgo | null> {
+    const clave = query.trim().toLowerCase();
+    const previo = cache.get(clave);
+    if (previo && Date.now() - previo.t < CACHE_TTL) return previo.valor;
+
     const { data } = await axios.get(`${DELIRIUS}/search/pinterestvideo`, {
         params: { query },
         timeout: 30000,
@@ -19,9 +30,15 @@ async function buscarVideo(query: string): Promise<{ fuente: string; hls: boolea
     });
     const pin = data?.data;
     if (!data?.status || !pin) return null;
-    if (pin.video) return { fuente: pin.video, hls: false, pin };
-    if (pin.m3u8) return { fuente: pin.m3u8, hls: true, pin };
-    return null;
+
+    let valor: Hallazgo | null = null;
+    if (pin.video) valor = { fuente: pin.video, hls: false, pin };
+    else if (pin.m3u8) valor = { fuente: pin.m3u8, hls: true, pin };
+    if (!valor) return null;
+
+    if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value as string);
+    cache.set(clave, { t: Date.now(), valor });
+    return valor;
 }
 
 /** Convierte un HLS (m3u8) a MP4 con video H.264 y audio AAC-LC. */
@@ -30,7 +47,7 @@ async function hlsAMp4(m3u8: string): Promise<Buffer> {
     const tmpOut = path.join(os.tmpdir(), `pinvid-${id}-hls.mp4`);
     try {
         await new Promise<void>((resolve, reject) => {
-            execFile('ffmpeg', ['-y', '-v', 'error', '-i', m3u8, '-c:v', 'copy', '-c:a', 'aac', '-profile:a', 'aac_low', '-b:a', '128k', '-ac', '2', '-movflags', '+faststart', tmpOut],
+            execFile('ffmpeg', ['-y', '-v', 'error', '-i', m3u8, '-threads', '0', '-c:v', 'copy', '-c:a', 'aac', '-profile:a', 'aac_low', '-b:a', '128k', '-ac', '2', '-movflags', '+faststart', tmpOut],
                 { timeout: 180000 }, (err) => err ? reject(err) : resolve());
         });
         return fs.readFileSync(tmpOut);
