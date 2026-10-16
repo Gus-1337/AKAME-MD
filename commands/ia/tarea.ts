@@ -82,6 +82,18 @@ const paraWhatsApp = (t: string) =>
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 
+/** Deja solo la explicación: quita frases internas del prompt y resalta la respuesta final. */
+export const limpiarExplicacion = (t: string): string => {
+    const lim = paraWhatsApp(t)
+        .split('\n')
+        .filter((l) => !/resultados ya verificados|texto de la tarea|leído de la imagen|indicación del alumno/i.test(l))
+        .join('\n')
+        .replace(/^(respuesta final\s*:?)\s*/gim, '*$1* ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    return lim || 'No pude armar la explicación. Intenta de nuevo.';
+};
+
 // ---------- Comando ----------
 
 export default {
@@ -158,7 +170,7 @@ export default {
             ];
             const { texto } = await preguntarIA(proveedores, prompt);
 
-            await enviarRespuesta(sock, chat, m, '📝 *Explicación*', paraWhatsApp(texto));
+            await enviarRespuesta(sock, chat, m, '📝 *Explicación*', limpiarExplicacion(texto));
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } }).catch(() => null);
         } catch {
             await sock.sendMessage(chat, { react: { text: '❌', key: m.key } }).catch(() => null);
