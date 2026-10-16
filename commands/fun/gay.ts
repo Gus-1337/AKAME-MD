@@ -35,6 +35,14 @@ const frasesMax = [
     'Con ese % ya pide tu membresía premium, acéptalo bro 👹'
 ];
 
+// Fondos rosas con varios colores (se elige uno al azar en cada medidor)
+const PALETAS: number[][][] = [
+    [[255, 126, 185], [255, 101, 163], [200, 109, 215]],
+    [[255, 150, 200], [255, 105, 180], [150, 120, 255], [120, 200, 255]],
+    [[255, 140, 190], [255, 190, 120], [255, 110, 170]],
+    [[255, 120, 180], [190, 110, 255], [100, 190, 255]]
+];
+
 const elegir = (lista: string[]) => lista[Math.floor(Math.random() * lista.length)];
 
 /** Nivel y frase según el porcentaje (mismos textos de siempre). */
@@ -57,14 +65,19 @@ async function crearPortada(foto: any, porcentaje: number, nombre: string): Prom
     const lienzo = new Jimp({ width: N, height: N, color: 0xffffffff });
     const d = lienzo.bitmap.data;
 
-    // Fondo: degradado vertical de morado oscuro
+    // Fondo: degradado rosa con varios colores; cada vez sale una combinación distinta
+    const paleta = PALETAS[Math.floor(Math.random() * PALETAS.length)];
     for (let y = 0; y < N; y++) {
-        const t = y / N;
         for (let x = 0; x < N; x++) {
+            const t = (x + y) / (2 * N);
+            const pos = t * (paleta.length - 1);
+            const a = Math.floor(pos);
+            const b = Math.min(paleta.length - 1, a + 1);
+            const k = pos - a;
             const i = (y * N + x) * 4;
-            d[i] = 22 + (60 - 22) * t;
-            d[i + 1] = 16 + (18 - 16) * t;
-            d[i + 2] = 40 + (78 - 40) * t;
+            d[i] = paleta[a][0] + (paleta[b][0] - paleta[a][0]) * k;
+            d[i + 1] = paleta[a][1] + (paleta[b][1] - paleta[a][1]) * k;
+            d[i + 2] = paleta[a][2] + (paleta[b][2] - paleta[a][2]) * k;
             d[i + 3] = 255;
         }
     }
