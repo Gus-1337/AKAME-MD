@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['cuddle'],
+    command: ['acurrucar', 'cuddle'],
+    api: 'cuddle',
     description: 'Se acurruca solo o con alguien',
     soloPhrases: {
         global: ['se acurruca', 'se envuelve', 'se arrulla', 'se acurruca solo']

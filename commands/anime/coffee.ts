@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['coffee', 'cafe'],
+    command: ['cafe', 'coffee'],
+    api: 'coffee',
     description: 'Toma café solo o con alguien',
     soloPhrases: {
         global: ['toma café', 'disfruta de su café', 'saborea el café', 'bebe café con calma']

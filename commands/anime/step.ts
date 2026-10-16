@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['step', 'pisar'],
+    command: ['pisar', 'step'],
+    api: 'step',
     description: 'Pisa a alguien o algo accidentalmente',
     soloPhrases: {
         global: ['pisa fuerte', 'da un paso', 'camina con paso firme', 'pisa el suelo']

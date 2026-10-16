@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['bonk', 'golpeteo'],
+    command: ['golpeteo', 'bonk'],
+    api: 'bonk',
     description: 'Da un golpecito a alguien o a ti mismo',
     soloPhrases: {
         global: ['da un golpecito en la cabeza', 'se da un golpecito con la mano', 'se sonroja tras el golpecito']

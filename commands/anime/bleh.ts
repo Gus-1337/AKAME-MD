@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['bleh'],
+    command: ['sacarlengua', 'bleh'],
+    api: 'bleh',
     description: 'Hace una mueca de desagrado',
     soloPhrases: {
         global: ['saca la lengua', 'hace una mueca', 'dice "bleh"', 'pone cara de asco']

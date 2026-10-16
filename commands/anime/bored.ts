@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['bored', 'aburrido'],
+    command: ['aburrido', 'bored'],
+    api: 'bored',
     description: 'Está aburrido solo o con alguien',
     soloPhrases: {
         hombre: ['está aburrido', 'se aburre', 'bosteza de aburrimiento', 'mira al techo aburrido'],

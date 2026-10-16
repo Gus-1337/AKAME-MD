@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['handhold'],
+    command: ['tomarmano', 'handhold'],
+    api: 'handhold',
     description: 'Toma la mano de alguien o de sí mismo',
     soloPhrases: {
         global: ['se toma la mano', 'se agarra la mano', 'se da la mano', 'entrelaza sus dedos']

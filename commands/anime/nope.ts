@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['nope'],
+    command: ['negar', 'nope'],
+    api: 'nope',
     description: 'Dice "nope" o niega a alguien',
     soloPhrases: {
         global: ['dice "nope"', 'niega con la cabeza', 'se niega', 'dice que no']

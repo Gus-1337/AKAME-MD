@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['sleep'],
+    command: ['dormir', 'sleep'],
+    api: 'sleep',
     description: 'Duerme solo o con alguien',
     soloPhrases: {
         hombre: ['duerme plácidamente', 'se duerme sin preocupaciones', 'descansa profundamente', 'se queda dormido'],

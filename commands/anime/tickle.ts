@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['tickle', 'cosquillas'],
+    command: ['cosquillas', 'tickle'],
+    api: 'tickle',
     description: 'Hace cosquillas a alguien o a ti mismo',
     soloPhrases: {
         global: ['se ríe haciéndose cosquillas', 'se retuerce de la risa', 'no puede parar de reírse']

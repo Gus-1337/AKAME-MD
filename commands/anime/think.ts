@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['think'],
+    command: ['pensar', 'think'],
+    api: 'think',
     description: 'Piensa solo o en alguien',
     soloPhrases: {
         global: ['piensa', 'reflexiona', 'medita', 'está en sus pensamientos']

@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['shy', 'timido'],
+    command: ['timido', 'shy'],
+    api: 'shy',
     description: 'Está tímido solo o por alguien',
     soloPhrases: {
         global: ['está tímido', 'se sonroja', 'baja la mirada', 'se pone nervioso']

@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['angry', 'enojar', 'enojado'],
+    command: ['enojado', 'angry', 'enojar'],
+    api: 'angry',
     description: 'Muestra enojo hacia alguien o a ti mismo',
     soloPhrases: {
         hombre: ['está enojado', 'aprieta los puños con rabia', 'su cara refleja ira', 'respira hondo para calmarse'],

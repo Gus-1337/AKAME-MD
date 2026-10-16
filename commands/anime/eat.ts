@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['eat', 'comer'],
+    command: ['comer', 'eat'],
+    api: 'eat',
     description: 'Come solo o con alguien',
     soloPhrases: {
         global: ['come con gusto', 'disfruta de su comida', 'saborea cada bocado', 'come tranquilamente']

@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['pout'],
+    command: ['pucheros', 'pout'],
+    api: 'pout',
     description: 'Hace pucheros solo o por alguien',
     soloPhrases: {
         global: ['hace pucheros', 'frunciendo los labios', 'pone cara de enojo', 'pucherea']

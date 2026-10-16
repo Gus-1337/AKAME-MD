@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['sad', 'triste'],
+    command: ['triste', 'sad'],
+    api: 'sad',
     description: 'Está triste solo o por alguien',
     soloPhrases: {
         global: ['está triste', 'siente nostalgia', 'su mirada refleja tristeza', 'suspira con pesar']

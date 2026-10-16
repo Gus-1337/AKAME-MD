@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['smoke', 'fumar'],
+    command: ['fumar', 'smoke'],
+    api: 'smoke',
     description: 'Fuma solo o con alguien',
     soloPhrases: {
         global: ['fuma tranquilo', 'exhala humo', 'toma un cigarro', 'fuma en silencio']

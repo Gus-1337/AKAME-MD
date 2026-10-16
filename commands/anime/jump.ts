@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['jump'],
+    command: ['saltar', 'jump'],
+    api: 'jump',
     description: 'Salta solo o con alguien',
     soloPhrases: {
         global: ['salta con alegría', 'brinca', 'da un salto', 'salta sin parar']

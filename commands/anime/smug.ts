@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['smug', 'presumir'],
+    command: ['presumir', 'smug'],
+    api: 'smug',
     description: 'Presume con una sonrisa de suficiencia',
     soloPhrases: {
         global: ['sonríe con suficiencia', 'se cruza de brazos muy orgulloso/a', 'presume con una sonrisa']

@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['drunk'],
+    command: ['borracho', 'drunk'],
+    api: 'drunk',
     description: 'Está borracho solo o con alguien',
     soloPhrases: {
         hombre: ['está borracho', 'camina tambaleando', 'bebe sin control', 'está ebrio'],

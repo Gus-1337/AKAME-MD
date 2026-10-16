@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['slap'],
+    command: ['bofetada', 'slap'],
+    api: 'slap',
     description: 'Da una bofetada a alguien o a ti mismo',
     soloPhrases: {
         hombre: ['se da una cachetada', 'se abofetea sin piedad', 'se golpea la mejilla', 'se da una bofetada'],

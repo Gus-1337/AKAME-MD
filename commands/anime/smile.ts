@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['smile', 'sonreir'],
+    command: ['sonreir', 'smile'],
+    api: 'smile',
     description: 'Sonríe a alguien o a ti mismo',
     soloPhrases: {
         global: ['sonríe con alegría', 'muestra una sonrisa', 'sonríe sin razón', 'una sonrisa ilumina su rostro']

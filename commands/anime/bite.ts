@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['bite', 'morder'],
+    command: ['morder', 'bite'],
+    api: 'bite',
     description: 'Muerde a alguien o a ti mismo',
     soloPhrases: {
         global: ['muerde su labio', 'muerde su dedo', 'muerde una manzana', 'muerde con fuerza']

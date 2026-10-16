@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['blush'],
+    command: ['sonrojo', 'blush'],
+    api: 'blush',
     description: 'Se sonroja por alguien o por algo',
     soloPhrases: {
         global: ['se sonroja', 'sus mejillas se tiñen de rojo', 'se ruboriza', 'el rubor cubre su rostro']

@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['pat'],
+    command: ['palmadita', 'pat'],
+    api: 'pat',
     description: 'Acaricia a alguien o a sí mismo',
     soloPhrases: {
         global: ['se acaricia', 'se da una palmada', 'se toca suavemente', 'se da cariño']

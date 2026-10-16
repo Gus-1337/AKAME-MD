@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['highfive'],
+    command: ['chocar', 'highfive'],
+    api: 'highfive',
     description: 'Choca los cinco con alguien o consigo mismo',
     soloPhrases: {
         global: ['choca los cinco', 'se da una palmada', 'celebra solo', 'choca su mano']

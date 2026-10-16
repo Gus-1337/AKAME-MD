@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['love', 'amor'],
+    command: ['amor', 'love'],
+    api: 'love',
     description: 'Declara tu amor a alguien o a ti mismo',
     soloPhrases: {
         hombre: ['siente amor en su corazón', 'late por amor', 'se ama a sí mismo', 'su corazón palpita de amor'],

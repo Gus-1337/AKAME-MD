@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['lick'],
+    command: ['lamer', 'lick'],
+    api: 'lick',
     description: 'Lame a alguien o a sí mismo',
     soloPhrases: {
         global: ['se lame', 'lambe sus labios', 'se lame la mano', 'lame el aire']

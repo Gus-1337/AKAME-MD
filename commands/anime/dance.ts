@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['dance', 'bailar'],
+    command: ['bailar', 'dance'],
+    api: 'dance',
     description: 'Baila solo o con alguien',
     soloPhrases: {
         global: ['baila con alegría', 'se mueve al ritmo', 'danza sin parar', 'baila como si nadie mirara']

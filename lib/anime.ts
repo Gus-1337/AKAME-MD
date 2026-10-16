@@ -61,6 +61,8 @@ function getPhrases(phrases: any, gender: string, type: 'solo' | 'together') {
 
 interface AnimeOptions {
     command: string | string[];
+    /** Nombre que entiende la API (Stellar). Si no se pone, se usa el primer comando. */
+    api?: string;
     description: string;
     soloPhrases: {
         global?: string[];
@@ -141,7 +143,7 @@ export function animeMaker(options: AnimeOptions) {
 
                 global.broadcast?.('cmd_progress', { id: msgId, step: 'fetching_anime' });
 
-                const response = await axios.get(`https://api.stellarwa.xyz/sfw/interaction?inter=${cmdList[0]}&key=Midnight`, {
+                const response = await axios.get(`https://api.stellarwa.xyz/sfw/interaction?inter=${options.api || cmdList[0]}&key=Midnight`, {
                     timeout: 15000,
                     headers: {
                         'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 7) AppleWebKit/537.36',

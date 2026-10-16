@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['seduce', 'seducir'],
+    command: ['seducir', 'seduce'],
+    api: 'seduce',
     description: 'Intenta seducir a alguien o a sí mismo',
     soloPhrases: {
         global: ['intenta seducir', 'lanza una mirada', 'sonríe con picardía', 'se muestra atractivo']

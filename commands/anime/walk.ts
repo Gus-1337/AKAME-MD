@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['walk'],
+    command: ['caminar', 'walk'],
+    api: 'walk',
     description: 'Camina solo o con alguien',
     soloPhrases: {
         global: ['camina', 'pasea', 'da un paseo', 'camina sin rumbo']

@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['happy', 'feliz'],
+    command: ['feliz', 'happy'],
+    api: 'happy',
     description: 'Está feliz solo o con alguien',
     soloPhrases: {
         global: ['está feliz', 'sonríe de alegría', 'brinca de felicidad', 'su cara irradia felicidad']

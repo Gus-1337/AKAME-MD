@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['scared'],
+    command: ['asustado', 'scared'],
+    api: 'scared',
     description: 'Está asustado solo o por alguien',
     soloPhrases: {
         global: ['está asustado', 'tiembla de miedo', 'se esconde', 'grita de susto']

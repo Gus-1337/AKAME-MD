@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['kiss', 'muak'],
+    command: ['besar', 'kiss', 'muak'],
+    api: 'kiss',
     description: 'Envía un beso a alguien o a ti mismo',
     soloPhrases: {
         global: ['disfruta de su propio cariño', 'se envuelve en besos', 'se da un beso de ánimo', 'se besa y sonríe']

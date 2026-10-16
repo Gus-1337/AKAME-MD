@@ -1,7 +1,8 @@
 import { delineBytes } from '../../lib/deline.ts';
 
 export default {
-    command: ['blue'],
+    command: ['deprimido', 'blue'],
+    api: 'blue',
     description: 'Imagen aleatoria de Blue Archive',
     category: 'anime',
     run: async (ctx: any) => {

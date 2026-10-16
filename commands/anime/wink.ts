@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['wink'],
+    command: ['guinar', 'wink'],
+    api: 'wink',
     description: 'Guiña un ojo a alguien o a sí mismo',
     soloPhrases: {
         global: ['guinña un ojo', 'hace un guiño', 'guiña con picardía', 'un ojo se cierra']

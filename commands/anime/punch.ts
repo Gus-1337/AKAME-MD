@@ -1,7 +1,8 @@
 import { animeMaker } from '#anime';
 
 export default animeMaker({
-    command: ['punch', 'pegar'],
+    command: ['pegar', 'punch'],
+    api: 'punch',
     description: 'Golpea a alguien o a ti mismo',
     soloPhrases: {
         global: ['lanza un puñetazo al aire', 'golpea con fuerza', 'se da un golpe', 'golpea la pared']
