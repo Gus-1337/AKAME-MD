@@ -1,11 +1,15 @@
-import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
+// @napi-rs/canvas se carga sólo al generar una tarjeta: si el binario no existe
+// (p. ej. en Termux), el bot arranca igual y usa el respaldo de texto.
+type Canvas = typeof import('@napi-rs/canvas');
+let canvasMod: Canvas | null = null;
+const cargarCanvas = async (): Promise<Canvas> => (canvasMod ??= await import('@napi-rs/canvas'));
 import { join } from 'node:path';
 
 const FONTS_DIR = join(process.cwd(), 'assets', 'fonts');
 let fuenteLista = false;
 
 /** Registra DejaVu (incluida en el repo) una sola vez, para que los acentos se vean igual en cualquier servidor. */
-const cargarFuentes = () => {
+const cargarFuentes = (GlobalFonts: Canvas['GlobalFonts']) => {
     if (fuenteLista) return;
     try {
         GlobalFonts.registerFromPath(join(FONTS_DIR, 'DejaVuSans.ttf'), 'AkameSans');
@@ -60,7 +64,8 @@ export interface HoroscopoCardData {
 
 /** Genera la tarjeta del horóscopo como PNG (Buffer). */
 export const generarHoroscopoCard = async (d: HoroscopoCardData): Promise<Buffer> => {
-    cargarFuentes();
+    const { createCanvas, GlobalFonts, loadImage } = await cargarCanvas();
+    cargarFuentes(GlobalFonts);
     const W = 900;
     const H = 1100;
     const canvas = createCanvas(W, H);

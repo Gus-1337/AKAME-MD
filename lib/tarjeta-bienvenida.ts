@@ -1,4 +1,8 @@
-import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
+// @napi-rs/canvas se carga sólo al generar una tarjeta: si el binario no existe
+// (p. ej. en Termux), el bot arranca igual y usa el respaldo de texto.
+type Canvas = typeof import('@napi-rs/canvas');
+let canvasMod: Canvas | null = null;
+const cargarCanvas = async (): Promise<Canvas> => (canvasMod ??= await import('@napi-rs/canvas'));
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 
@@ -7,7 +11,7 @@ const FONTS_DIR = join(ROOT, 'assets', 'fonts');
 const BANNER = join(ROOT, 'img', 'akame-banner.png');
 
 let fuenteLista = false;
-const cargarFuentes = () => {
+const cargarFuentes = (GlobalFonts: Canvas['GlobalFonts']) => {
     if (fuenteLista) return;
     try {
         GlobalFonts.registerFromPath(join(FONTS_DIR, 'DejaVuSans.ttf'), 'AkameSans');
@@ -48,7 +52,8 @@ export interface TarjetaBienvenidaData {
 
 /** Tarjeta de bienvenida o despedida: fondo de Akame, foto circular con anillo degradado y textos de colores. */
 export const generarTarjetaBienvenida = async (d: TarjetaBienvenidaData): Promise<Buffer> => {
-    cargarFuentes();
+    const { createCanvas, GlobalFonts, loadImage } = await cargarCanvas();
+    cargarFuentes(GlobalFonts);
     const W = 1000;
     const H = 420;
     const canvas = createCanvas(W, H);

@@ -90,6 +90,13 @@ npm install
 npm start
 ```
 
+> 🛠️ **Si algo falla en Termux**
+> - Errores de `git` o de descarga de Baileys: revisa tu internet y ejecuta `pkg install git -y`, luego vuelve a correr `npm install`.
+> - Si `npm install` se corta a medias: borra la carpeta `node_modules` y repite `npm install`.
+> - Si el bot arranca pero las tarjetas de bienvenida/horóscopo salen en texto: el bot sigue funcionando; sólo falta el binario de canvas en ese equipo.
+> - Si `ffmpeg` no se encuentra: `pkg install ffmpeg -y`.
+> - Versión de Node: `node -v` debe ser 22.6 o mayor.
+
 > 💡 Para mantenerlo corriendo en segundo plano puedes usar `termux-wake-lock` o ejecutarlo dentro de una sesión de `tmux`/`screen`.
 
 ## 💻 Instalación en PC
