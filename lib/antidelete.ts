@@ -118,15 +118,17 @@ export const procesarVerUnaVez = async (sock: any, rawMsg: any): Promise<void> =
     if (!estaActiva(global.db?.data?.chats?.[chat], 'antiver')) return;
 
     const raw = rawMsg.message || {};
-    const inner = raw.viewOnceMessage?.message || raw.viewOnceMessageV2?.message || raw.viewOnceMessageV2Extension?.message;
-    if (!inner) return;
-
-    const tipo = inner.imageMessage ? 'imageMessage' : inner.videoMessage ? 'videoMessage' : inner.audioMessage ? 'audioMessage' : '';
+    // Dos formatos: envoltorio viewOnceMessage*, o la marca viewOnce:true dentro del archivo
+    const envuelto = raw.viewOnceMessage?.message || raw.viewOnceMessageV2?.message || raw.viewOnceMessageV2Extension?.message;
+    const inner = envuelto || raw;
+    const tipo = ['imageMessage', 'videoMessage', 'audioMessage'].find((t) => inner[t] && (envuelto || inner[t].viewOnce)) || '';
     if (!tipo) return;
 
     const quien = rawMsg.key.participant || rawMsg.participant || '';
     const num = quien.split('@')[0];
-    const caption = `👁 *Ver una vez de* @${num}\n${inner[tipo]?.caption ? '✧ ' + inner[tipo].caption : ''}`.trim();
+    const pie = inner[tipo]?.caption ? '\n✧ ' + inner[tipo].caption : '';
+    const caption = `👁 *Ver una vez de* @${num}${pie}`;
+    const mentions = quien ? [quien] : [];
 
     try {
         const buf = await downloadMediaMessage(
@@ -136,13 +138,14 @@ export const procesarVerUnaVez = async (sock: any, rawMsg: any): Promise<void> =
             { logger: pino({ level: 'silent' }) as any, reuploadRequest: sock.updateMediaMessage }
         ) as Buffer;
 
-        if (tipo === 'imageMessage') await sock.sendMessage(chat, { image: buf, caption, mentions: quien ? [quien] : [] });
-        else if (tipo === 'videoMessage') await sock.sendMessage(chat, { video: buf, caption, mentions: quien ? [quien] : [] });
+        if (tipo === 'imageMessage') await sock.sendMessage(chat, { image: buf, caption, mentions });
+        else if (tipo === 'videoMessage') await sock.sendMessage(chat, { video: buf, caption, mentions });
         else {
-            await sock.sendMessage(chat, { text: caption, mentions: quien ? [quien] : [] });
-            await sock.sendMessage(chat, { audio: buf, mimetype: inner.audioMessage?.mimetype || 'audio/ogg; codecs=opus', ptt: false });
+            await sock.sendMessage(chat, { text: caption, mentions });
+            await sock.sendMessage(chat, { audio: buf, mimetype: inner.audioMessage?.mimetype || 'audio/ogg; codecs=opus', ptt: !!inner.audioMessage?.ptt });
         }
+        console.log('[ANTIVER] reenviado', tipo, 'de', num);
     } catch (err: any) {
-        console.error('[ANTIVER] no se pudo reenviar:', err?.message);
+        console.error('[ANTIVER] no se pudo reenviar:', tipo, err?.message);
     }
 };
