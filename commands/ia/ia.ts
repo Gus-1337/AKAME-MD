@@ -1,5 +1,5 @@
 import config from '#config';
-import { preguntarIA, enviarRespuesta, deliriusGptPrompt, siputzx, yosoyyoDeepseek, type Proveedor } from '#ia';
+import { preguntarIA, enviarRespuesta, deliriusGptPrompt, siputzx, yosoyyoDeepseek, deliriusGemini, stellarGemini, stellarChatgpt, type Proveedor } from '#ia';
 
 const emojis = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F6D0}-\u{1F6FF}\u{1F170}-\u{1F251}]/gu;
 
@@ -25,9 +25,12 @@ export default {
             });
 
             const proveedores: Proveedor[] = [
-                deliriusGptPrompt(sistema),
+                conSistema(yosoyyoDeepseek),
                 conSistema(siputzx('gptoss120b')),
-                conSistema(yosoyyoDeepseek)
+                deliriusGptPrompt(sistema),
+                conSistema(stellarGemini),
+                conSistema(deliriusGemini),
+                conSistema(stellarChatgpt)
             ];
 
             const { texto } = await preguntarIA(proveedores, `Responde en español de forma completa: ${text}`);
@@ -37,7 +40,7 @@ export default {
         } catch {
             await sock.sendMessage(chat, { react: { text: '❌', key: m.key } });
             return sock.sendMessage(chat, {
-                text: '   ׄ  ✿  Ocurrió un error al procesar tu solicitud.'
+                text: '   ׄ  ✿  Ninguna IA respondió a tiempo. Intenta de nuevo en un momento.'
             }, { quoted: m });
         }
     }

@@ -19,15 +19,30 @@ export const promptCompleto = (pregunta: string) =>
  * Consulta todos los proveedores a la vez y devuelve la primera respuesta válida.
  * Así, si uno está caído o lento, responde otro.
  */
-export async function preguntarIA(proveedores: Proveedor[], prompt: string): Promise<{ texto: string; fuente: string }> {
-    return Promise.any(
+/** Respuestas de negativa ("soy un modelo de lenguaje...") que no sirven al usuario. */
+export const esNegativa = (t: string) =>
+    t.length < 400 && /soy un modelo de lenguaje|fuera de mis capacidades|capacidades programadas|solo genero texto|no puedo (ayudarte|ayudar|responder|cumplir|hacer)|no tengo (esa )?capacidad/i.test(t);
+
+export async function preguntarIA(proveedores: Proveedor[], prompt: string, limiteMs = 35000): Promise<{ texto: string; fuente: string }> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const carrera = Promise.any(
         proveedores.map(async (p) => {
             const crudo = await p.pedir(prompt);
             const texto = limpiarRazonamiento(String(crudo || ''));
             if (!texto) throw new Error(`${p.nombre}: respuesta vacía`);
+            if (esNegativa(texto)) throw new Error(`${p.nombre}: negativa`);
             return { texto, fuente: p.nombre };
         })
     );
+    // Límite total: si ninguno responde a tiempo, se corta en lugar de esperar 60 s.
+    const tiempo = new Promise<never>((_, rechazar) => {
+        timer = setTimeout(() => rechazar(new Error('tiempo agotado')), limiteMs);
+    });
+    try {
+        return await Promise.race([carrera, tiempo]);
+    } finally {
+        clearTimeout(timer);
+    }
 }
 
 /** Divide un texto largo en partes de hasta `max` caracteres, cortando en párrafos o frases. */
