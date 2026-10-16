@@ -1,5 +1,6 @@
 import axios from 'axios';
 import fs from 'fs';
+import path from 'path';
 import { pipeline } from 'stream/promises';
 
 // Descarga compartida (MediaFire, APK...): baja en partes en paralelo si el servidor acepta rangos.
@@ -29,6 +30,8 @@ async function bajarParte(link: string, desde: number, hasta: number, destino: s
                 responseType: 'stream', timeout: 0, headers: { ...UA, Range: `bytes=${desde}-${hasta}` }
             });
             await pipeline(res.data, fs.createWriteStream(destino));
+            // La parte tiene que pesar exactamente lo pedido; si no, se reintenta
+            if (fs.statSync(destino).size !== hasta - desde + 1) throw new Error('parte incompleta');
             return;
         } catch (e) {
             if (intento === 3) throw e;
@@ -47,28 +50,42 @@ export async function descargarArchivo(info: Info, destino: string, limite: numb
     if (total > limite) throw new Error(`El archivo pesa más de ${mb(limite)}`);
 
     const acepta = head?.headers?.['accept-ranges'] === 'bytes';
-    if (!acepta || total < MIN_PARTE) {
+    let porPartes = acepta && total >= MIN_PARTE;
+    if (porPartes) {
+        try {
+            const tam = Math.ceil(total / PARTES);
+            const partes: string[] = [];
+            const tareas: Promise<void>[] = [];
+            for (let i = 0; i < PARTES; i++) {
+                const desde = i * tam;
+                const hasta = Math.min(total - 1, desde + tam - 1);
+                if (desde > hasta) break;
+                const ruta = `${destino}.parte${i}`;
+                partes.push(ruta);
+                tareas.push(bajarParte(info.link, desde, hasta, ruta));
+            }
+            await Promise.all(tareas);
+
+            // Se unen en orden
+            fs.rmSync(destino, { force: true });
+            for (const ruta of partes) {
+                await pipeline(fs.createReadStream(ruta), fs.createWriteStream(destino, { flags: 'a' }));
+                fs.unlinkSync(ruta);
+            }
+        } catch {
+            // Si las partes fallan, se limpia y se baja de una sola vez
+            const dir = path.dirname(destino);
+            const base = path.basename(destino);
+            for (const f of fs.readdirSync(dir)) {
+                if (f.startsWith(base + '.parte')) fs.rmSync(path.join(dir, f), { force: true });
+            }
+            fs.rmSync(destino, { force: true });
+            porPartes = false;
+        }
+    }
+    if (!porPartes) {
         const res = await axios.get(info.link, { responseType: 'stream', timeout: 0, headers: UA });
         await pipeline(res.data, fs.createWriteStream(destino));
-    } else {
-        const tam = Math.ceil(total / PARTES);
-        const partes: string[] = [];
-        const tareas: Promise<void>[] = [];
-        for (let i = 0; i < PARTES; i++) {
-            const desde = i * tam;
-            const hasta = Math.min(total - 1, desde + tam - 1);
-            if (desde > hasta) break;
-            const ruta = `${destino}.parte${i}`;
-            partes.push(ruta);
-            tareas.push(bajarParte(info.link, desde, hasta, ruta));
-        }
-        await Promise.all(tareas);
-
-        // Se unen en orden
-        for (const ruta of partes) {
-            await pipeline(fs.createReadStream(ruta), fs.createWriteStream(destino, { flags: 'a' }));
-            fs.unlinkSync(ruta);
-        }
     }
 
     const real = fs.statSync(destino).size;

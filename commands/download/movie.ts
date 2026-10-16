@@ -3,12 +3,12 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { randomBytes } from 'crypto';
-import { generateWAMessageFromContent } from '@whiskeysockets/baileys';
+import { generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysockets/baileys';
 import { descargarArchivo, mb, type Info } from '../../lib/descarga.ts';
 
 // Películas completas desde Internet Archive (archive.org).
 const IA = 'https://archive.org';
-const LIMITE_PELI = 1024 * 1024 * 1024; // límite interno (no se muestra al usuario)
+const LIMITE_PELI = 700 * 1024 * 1024; // 700 MB (límite interno, no se muestra al usuario)
 const MIME_VIDEO = 'video/mp4';
 const MAX_RESULTADOS = 10;
 const MIN_MINUTOS = 40; // por debajo de esto se considera corto, no película
@@ -18,6 +18,9 @@ const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' };
 const NO_PELICULA = /trailer|tráiler|clip|promo|teaser|preview|sample|excerpt|bonus|recap|review|making of|behind the scenes|scene|intro|opening|highlights|resumen|episode|episodio|\bep\.?\s?\d|season|temporada|commercial|comercial|\bads?\b|beer|news|noticias|show|serie|capitulo|cap\.?\s?\d/i;
 
 type Peli = { id: string; titulo: string; anio: string };
+
+/** Portada de la película desde Internet Archive. */
+const portada = (id: string) => `${IA}/services/img/${encodeURIComponent(id)}`;
 
 const caja = (titulo: string, lineas: string[]) =>
     `˚₊· ͟͟͞͞➳❥ *${titulo}*\n───────────────\n${lineas.join('\n')}\n───────────────\n> AKAME-MD 🌸`;
@@ -105,6 +108,12 @@ async function enviarLista(sock: any, chat: string, quoted: any, usedPrefix: str
         'Elige la que quieres ver 🎬'
     ].join('\n');
 
+    let header: any = undefined;
+    try {
+        const media = await prepareWAMessageMedia({ image: { url: portada(pelis[0].id) } }, { upload: sock.waUploadToServer });
+        header = { hasMediaAttachment: true, imageMessage: media.imageMessage };
+    } catch { header = undefined; }
+
     const opciones: any = quoted?.message ? { quoted } : {};
     const list = generateWAMessageFromContent(chat, {
         viewOnceMessage: {
@@ -113,6 +122,7 @@ async function enviarLista(sock: any, chat: string, quoted: any, usedPrefix: str
                 interactiveMessage: {
                     body: { text: cuerpo },
                     footer: { text: 'AKAME MD • Películas' },
+                    ...(header ? { header } : {}),
                     nativeFlowMessage: {
                         buttons: [{
                             name: 'single_select',
@@ -150,6 +160,12 @@ async function enviarPeli(sock: any, m: any, chat: string, id: string) {
         const real = fs.statSync(destino).size;
 
         const titulo = limpiarNombre(archivo.titulo);
+        try {
+            await sock.sendMessage(chat, {
+                image: { url: portada(id) },
+                caption: caja('MOVIE', [`🎬 *${titulo}*`, '✦ Enviando la película, espera un momento 🍿'])
+            }, { quoted: m });
+        } catch { /* si no hay portada, se sigue con el archivo */ }
         await sock.sendMessage(chat, {
             document: { stream: fs.createReadStream(destino) },
             mimetype: MIME_VIDEO,
