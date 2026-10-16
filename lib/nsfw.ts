@@ -24,7 +24,7 @@ export type NsfwEndpoint = (typeof NSFW_ENDPOINTS)[number];
  */
 export const REACTION_CATALOG = {
     // 18+ (el enlace del CDN dice /reaction/nsfw/...)
-    anal: 'nsfw', blowjob: 'nsfw', cum: 'nsfw', fuck: 'nsfw',
+    anal: 'nsfw', blowjob: 'nsfw', cum: 'nsfw', fuck: 'nsfw', yaoi: 'nsfw',
     nekonsfw: 'nsfw', pussylick: 'nsfw', solo: 'nsfw', solo_male: 'nsfw', yuri: 'nsfw',
     // Apto para todo público (/reaction/sfw/...)
     angry: 'sfw', bite: 'sfw', blush: 'sfw', bonk: 'sfw', bully: 'sfw', confy: 'sfw',
@@ -39,7 +39,8 @@ export type ReactionEndpoint = keyof typeof REACTION_CATALOG;
 
 /** Reactions que no están en Delirius y salen de PurrBot (su JSON trae `link`). */
 const PURR_REACTIONS: Partial<Record<ReactionEndpoint, string>> = {
-    solo_male: 'https://api.purrbot.site/v2/img/nsfw/solo_male/gif'
+    solo_male: 'https://api.purrbot.site/v2/img/nsfw/solo_male/gif',
+    yaoi: 'https://api.purrbot.site/v2/img/nsfw/yaoi/gif'
 };
 
 /** Todas las reactions conocidas (41). */
