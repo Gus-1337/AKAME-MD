@@ -44,12 +44,36 @@ const aApp = (it: any): App => ({
     archivoAlt: it.file?.path_alt || undefined
 });
 
-/** Busca apps por nombre. Devuelve solo las que tienen APK descargable. */
+/**
+ * Busca apps por nombre: pide páginas hasta juntar MAX_RESULTADOS apps distintas
+ * que tengan APK descargable (sin repetir el mismo paquete).
+ * Solo la primera página puede lanzar error; las siguientes, si fallan, se omiten.
+ */
 async function buscarApps(q: string): Promise<App[]> {
-    const { data } = await axios.get(`${APTOIDE}/apps/search`, {
-        params: { query: q, limit: MAX_RESULTADOS }, timeout: 20000, headers: UA
-    });
-    return (data?.datalist?.list || []).filter((it: any) => it.file?.path).map(aApp);
+    const apps: App[] = [];
+    const vistos = new Set<string>();
+    for (let pagina = 0; pagina < 3 && apps.length < MAX_RESULTADOS; pagina++) {
+        let data: any;
+        try {
+            ({ data } = await axios.get(`${APTOIDE}/apps/search`, {
+                params: { query: q, limit: 20, offset: pagina * 20 }, timeout: 20000, headers: UA
+            }));
+        } catch (e) {
+            if (pagina === 0) throw e;
+            break;
+        }
+        const lista: any[] = data?.datalist?.list || [];
+        for (const it of lista) {
+            if (!it.file?.path) continue;
+            const clave = it.package || String(it.id);
+            if (vistos.has(clave)) continue;
+            vistos.add(clave);
+            apps.push(aApp(it));
+            if (apps.length >= MAX_RESULTADOS) break;
+        }
+        if (!lista.length || !data?.datalist?.next) break;
+    }
+    return apps;
 }
 
 /** Datos de una app por su ID (incluye los enlaces del APK). */
@@ -154,7 +178,7 @@ async function enviarLista(sock: any, chat: string, quoted: any, usedPrefix: str
                         buttons: [{
                             name: 'single_select',
                             buttonParamsJson: JSON.stringify({
-                                title: '≡ Elegir app',
+                                title: 'Elegir app',
                                 sections: [{ title: '📱 APPS ENCONTRADAS', highlight_label: 'APK', rows }]
                             })
                         }]
