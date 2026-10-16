@@ -1,12 +1,14 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 // .codefile: convierte código que pegas en el chat (o un mensaje citado) en un archivo.
 // Owner: `.codefile play` manda el archivo del comando play.
 // Usa el texto completo del mensaje (body) para conservar saltos de línea y símbolos.
 
 const MAX_CHARS = 5 * 1024 * 1024; // 5 MB de texto
-const CARPETA_COMANDOS = path.join(process.cwd(), 'commands');
+// Carpeta commands/ según la ubicación de este archivo (no depende de desde dónde se inicie el bot)
+const CARPETA_COMANDOS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const EXTENSIONES: Record<string, string> = {
     js: 'js', javascript: 'js', mjs: 'js', cjs: 'js',
