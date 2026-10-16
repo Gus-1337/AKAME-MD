@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { stellarUrl } from './stellar.ts';
 
 /** Un proveedor de IA: recibe el prompt y devuelve el texto de la respuesta. */
 export type Proveedor = { nombre: string; pedir: (prompt: string) => Promise<string> };
@@ -126,6 +127,28 @@ export const faaClaude: Proveedor = {
         const { data } = await axios.get('https://api-faa.my.id/faa/claude-ai', { params: { text: prompt }, timeout: TIMEOUT, headers: UA });
         const r = data?.result;
         if (!data?.status || typeof r !== 'string') throw new Error('sin respuesta');
+        return r;
+    }
+};
+
+/** Stellar: ai/chatgpt (parámetro text). Respaldo de .chatgpt. */
+export const stellarChatgpt: Proveedor = {
+    nombre: 'stellar-chatgpt',
+    pedir: async (prompt) => {
+        const { data } = await axios.get(stellarUrl('/ai/chatgpt', { text: prompt }), { timeout: TIMEOUT, headers: UA });
+        const r = typeof data?.result === 'string' ? data.result : '';
+        if (!data?.status || !r) throw new Error('sin respuesta');
+        return r;
+    }
+};
+
+/** Stellar: ai/gemini (parámetro text). Respaldo de .gemini. */
+export const stellarGemini: Proveedor = {
+    nombre: 'stellar-gemini',
+    pedir: async (prompt) => {
+        const { data } = await axios.get(stellarUrl('/ai/gemini', { text: prompt }), { timeout: TIMEOUT, headers: UA });
+        const r = typeof data?.response === 'string' ? data.response : '';
+        if (!data?.status || !r) throw new Error('sin respuesta');
         return r;
     }
 };

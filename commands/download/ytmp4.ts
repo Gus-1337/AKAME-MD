@@ -13,7 +13,7 @@ const YOSOYYO_KEY = process.env.YOSOYYO_KEY || 'Akame-proyet';
 /** Saca el primer enlace http que encuentre en la respuesta de una API. */
 const extraerLink = (d: any): string => {
     const candidatos = [
-        d?.data?.download, d?.download, d?.result?.download, d?.result?.url, d?.result?.download_url,
+        d?.data?.download, d?.data?.dl, d?.download, d?.result?.download, d?.result?.url, d?.result?.download_url,
         d?.resultado?.download_url, d?.data?.url, d?.url, d?.link, d?.result?.link
     ];
     for (const c of candidatos) {
@@ -39,12 +39,15 @@ const descargar = async (url: string): Promise<Buffer> => {
     return buf;
 };
 
+import { stellarUrl } from '../../lib/stellar.ts';
+
 const sources = (videoUrl: string) => {
     const e = encodeURIComponent(videoUrl);
     return {
         principales: [
             `https://api.delirius.online/download/ytmp4?url=${e}`,
-            `https://api.starlights.uk/api/download/ytmp4?url=${e}`
+            `https://api.starlights.uk/api/download/ytmp4?url=${e}`,
+            stellarUrl('/dl/ytmp4', { url: videoUrl })
         ],
         respaldo: `${YOSOYYO_URL}/api/youtube/v2?url=${e}&format=mp4&apiKey=${encodeURIComponent(YOSOYYO_KEY)}`
     };

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { stellarUrl } from '../../lib/stellar.ts';
 
 export default {
     command: ['letra', 'lyrics', 'lyric'],
@@ -16,14 +17,25 @@ export default {
         try {
             await sock.sendMessage(chat, { react: { text: "🎧", key: msg.key } });
 
-            const api = `https://api-faa.my.id/faa/lyrics?q=${encodeURIComponent(query)}`;
-            const { data } = await axios.get(api, { timeout: 15000 });
+            // Principal: faa. Si falla, respaldo: Stellar.
+            let r: any = null;
+            try {
+                const api = `https://api-faa.my.id/faa/lyrics?q=${encodeURIComponent(query)}`;
+                const { data } = await axios.get(api, { timeout: 15000 });
+                if (data?.status && data?.result?.lyrics) r = data.result;
+            } catch { /* sigue con el respaldo */ }
 
-            if (!data.status || !data.result) {
-                return sock.sendMessage(chat, { text: `❌ No encontré letra para "${query}"` }, { quoted: msg });
+            if (!r) {
+                try {
+                    const { data } = await axios.get(stellarUrl('/tools/lyrics', { query }), { timeout: 15000 });
+                    const x = data?.data?.[0];
+                    if (data?.status && x?.lyrics) r = { title: x.title, artist: x.artist, lyrics: x.lyrics };
+                } catch { /* sin letra */ }
             }
 
-            const r = data.result;
+            if (!r) {
+                return sock.sendMessage(chat, { text: `❌ No encontré letra para "${query}"` }, { quoted: msg });
+            }
             // limpiamos los [00:09.04]
             const cleanLyrics = r.lyrics.replace(/\[\d+:\d+\.\d+\]/g, '').trim();
 

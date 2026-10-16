@@ -1,4 +1,4 @@
-import { preguntarIA, promptCompleto, enviarRespuesta, deliriusGemini, siputzx, deliriusChatgpt } from '#ia';
+import { preguntarIA, promptCompleto, enviarRespuesta, deliriusGemini, stellarGemini, siputzx, deliriusChatgpt } from '#ia';
 
 export default {
     command: ['gemini'],
@@ -11,7 +11,7 @@ export default {
         }
         try {
             await sock.sendMessage(chat, { react: { text: '✨', key: m.key } });
-            const { texto } = await preguntarIA([deliriusGemini, siputzx('glm47flash'), deliriusChatgpt], promptCompleto(pregunta));
+            const { texto } = await preguntarIA([deliriusGemini, siputzx('glm47flash'), deliriusChatgpt, stellarGemini], promptCompleto(pregunta));
             await enviarRespuesta(sock, chat, m, '✨ *Gemini*', texto);
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } });
         } catch {

@@ -1,5 +1,6 @@
 import yts from 'yt-search';
 import axios from 'axios';
+import { stellarUrl } from '../../lib/stellar.ts';
 
 const MAX_BYTES = 400 * 1024 * 1024;   // 400 MB (canciones largas, ej. 20 min)
 const MIN_BYTES = 20 * 1024;           // menos de 20 KB = respuesta basura
@@ -15,7 +16,7 @@ const limpiarNombre = (t) => (String(t || 'audio')).replace(/[\\\\/:*?\"<>|]/g, 
 
 /** Saca el enlace de descarga de la respuesta de cualquier API. */
 const extraerLink = (d) => {
-    const c = d?.result?.download_url || d?.resultado?.download_url || d?.data?.download ||
+    const c = d?.result?.download_url || d?.resultado?.download_url || d?.data?.download || d?.data?.dl ||
         d?.result?.download || d?.download || d?.url || '';
     return typeof c === 'string' && c.startsWith('http') ? c : '';
 };
@@ -68,7 +69,8 @@ const getAudio = async (videoUrl) => {
         `https://api-gohan-v1.onrender.com/download/ytaudio?url=${enc}&download=true`,
         `https://api.ryuzei.xyz/download/ytmp3/v4?url=${enc}&quality=64`,
         `https://api.starlights.uk/api/download/ytmp3?url=${enc}`,
-        `https://api-gohan-v1.onrender.com/download/ytaudio?url=${enc}`
+        `https://api-gohan-v1.onrender.com/download/ytaudio?url=${enc}`,
+        stellarUrl('/dl/ytmp3', { url: videoUrl })
     ];
 
     let ultimo: any = null;

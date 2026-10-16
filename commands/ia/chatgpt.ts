@@ -1,4 +1,4 @@
-import { preguntarIA, promptCompleto, enviarRespuesta, deliriusChatgpt, siputzx, yosoyyoDeepseek } from '#ia';
+import { preguntarIA, promptCompleto, enviarRespuesta, deliriusChatgpt, stellarChatgpt, siputzx, yosoyyoDeepseek } from '#ia';
 
 export default {
     command: ['chatgpt'],
@@ -11,7 +11,7 @@ export default {
         }
         try {
             await sock.sendMessage(chat, { react: { text: '🤖', key: m.key } });
-            const { texto } = await preguntarIA([deliriusChatgpt, siputzx('gptoss120b'), yosoyyoDeepseek], promptCompleto(pregunta));
+            const { texto } = await preguntarIA([deliriusChatgpt, siputzx('gptoss120b'), yosoyyoDeepseek, stellarChatgpt], promptCompleto(pregunta));
             await enviarRespuesta(sock, chat, m, '🤖 *ChatGPT*', texto);
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } });
         } catch {

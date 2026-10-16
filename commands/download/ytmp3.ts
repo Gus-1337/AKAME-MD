@@ -1,5 +1,6 @@
 import axios from 'axios'
 import yts from 'yt-search'
+import { stellarUrl } from '../../lib/stellar.ts'
 
 const MAX_BYTES = 400 * 1024 * 1024 // 400 MB (canciones largas)
 const MIN_BYTES = 20 * 1024        // menos de 20 KB = respuesta basura
@@ -16,7 +17,7 @@ const getVideoId = (url: string) => {
 /** Saca el enlace de descarga de la respuesta de cualquier API. */
 const extraerLink = (d: any): string => {
     const candidatos = [
-        d?.data?.download, d?.download, d?.result?.download_url, d?.result?.download,
+        d?.data?.download, d?.data?.dl, d?.download, d?.result?.download_url, d?.result?.download,
         d?.result?.url, d?.data?.dl_url, d?.data?.url, d?.data?.download?.url,
         d?.resultado?.download_url, d?.url, d?.link
     ]
@@ -101,7 +102,8 @@ const getAudio = async (videoUrl: string): Promise<Buffer> => {
         `https://api.ryuzei.xyz/download/ytmp3/v4?url=${e}&quality=64`,
         `https://api.starlights.uk/api/download/ytmp3?url=${e}`,
         `https://api.starlights.uk/api/download/ytmp3v2?url=${e}`,
-        `https://api-gohan-v1.onrender.com/download/ytaudio?url=${e}`
+        `https://api-gohan-v1.onrender.com/download/ytaudio?url=${e}`,
+        stellarUrl('/dl/ytmp3', { url: videoUrl })
     ]
     let ultimo: any = null
     for (let ronda = 1; ronda <= 2; ronda++) {

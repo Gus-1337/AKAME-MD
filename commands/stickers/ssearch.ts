@@ -3,6 +3,24 @@ import config from '#config';
 import { writeExif } from '#sticker';
 import fs from 'fs';
 import { UserJid } from '#simple';
+import { stellarUrl } from '../../lib/stellar.ts';
+
+/** Respaldo: Stellar. Adapta sus campos a los que usa este comando. */
+const buscarStellar = async (query: string): Promise<any[]> => {
+    try {
+        const { data } = await axios.get(stellarUrl('/stickerly/search', { query }), { timeout: 12000 });
+        return (data?.resultados || []).map((p: any) => ({
+            ...p,
+            preview: p.preview || p.thumbnailUrl,
+            sticker_count: p.sticker_count ?? p.stickerCount,
+            view_count: p.view_count ?? p.viewCount,
+            export_count: p.export_count ?? p.exportCount
+        }));
+    } catch {
+        return [];
+    }
+};
+
 
 const usedPreviews = new Map<string, Set<string>>();
 
@@ -47,7 +65,7 @@ export default {
 
             const endpoint = `https://api.delirius.online/search/stickerly?query=${encodeURIComponent(query)}`;
 
-            let data;
+            let data: any;
             try {
                 const res = await axios.get(endpoint, {
                     timeout: 10000,
@@ -59,9 +77,11 @@ export default {
                 data = res.data?.data;
             } catch (err: any) {
                 console.error('Error en API:', err.message);
-                return sock.sendMessage(chat, { 
-                    text: `   ׄ  ✿  No se pudo conectar con el servidor. Intenta de nuevo.` 
-                }, { quoted: m });
+            }
+
+            // Respaldo: Stellar (sus campos se adaptan al formato de arriba)
+            if (!Array.isArray(data) || data.length === 0) {
+                data = await buscarStellar(query);
             }
 
             if (!data || !Array.isArray(data) || data.length === 0) {

@@ -1,5 +1,6 @@
 import { generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysockets/baileys';
 import fetch from 'node-fetch';
+import { stellarUrl } from '../../lib/stellar.ts';
 
 export default {
     command: ['yts', 'ytsearch'],
@@ -17,11 +18,19 @@ export default {
 
             // Una sola petición optimizada
             const apiUrl = `https://nyxdlapi.vercel.app/api/search/youtube?apikey=${apikey}&q=${encodeURIComponent(q)}`;
-            let res = await fetch(apiUrl).then(r => r.json()).catch(() => null);
+            let res: any = await fetch(apiUrl).then(r => r.json()).catch(() => null);
 
             // Fallback si falla la primera forma
             if (!res?.result?.results?.length) {
                 res = await fetch(`https://nyxdlapi.vercel.app/api/search/youtube?apikey=${apikey}&query=${encodeURIComponent(q)}`).then(r => r.json());
+            }
+
+            // Respaldo: Stellar, si la principal no trae resultados
+            if (!res?.result?.results?.length) {
+                const st: any = await fetch(stellarUrl('/search/yt', { query: q })).then(r => r.json()).catch(() => null);
+                if (st?.result?.length) {
+                    res = { result: { query: q, results: st.result.map((v: any) => ({ title: v.title, url: v.url, duration: v.duration, thumbnail: v.banner })) } };
+                }
             }
 
             const results = res?.result?.results?.slice(0, 10) || [];
