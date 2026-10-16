@@ -1,7 +1,7 @@
 import { delineJson, delineBytes } from '../../lib/deline.ts';
 
 export default {
-    command: ['ppcouple', 'parejas'],
+    command: ['parejas'],
     description: 'Envía fotos de perfil de pareja',
     category: 'fun',
     run: async (ctx: any) => {
