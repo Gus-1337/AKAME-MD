@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Jimp } from 'jimp';
 import { createWorker } from 'tesseract.js';
 import { stellarUrl } from '../../lib/stellar.ts';
-import { preguntarIA, enviarRespuesta, deliriusGptPrompt, siputzx, yosoyyoDeepseek, deliriusGemini, stellarGemini, stellarChatgpt, type Proveedor } from '#ia';
+import { preguntarIA, enviarRespuesta, deliriusGptPrompt, siputzx, yosoyyoDeepseek, deliriusGemini, stellarGemini, stellarChatgpt, esNegativa, type Proveedor } from '#ia';
 
 const NYX_KEY = process.env.NYX_KEY || 'nyx_aOtu2zWUS5jfVwzbtmiDBZAfPZ_xeMTX';
 
@@ -40,9 +40,14 @@ const leerTextoStellar = async (url: string): Promise<string> => {
 };
 
 let ocr: any = null;
-/** OCR local (Tesseract): devuelve las líneas de texto de la imagen. */
-const leerLineas = async (jpg: Buffer): Promise<{ lineas: string[]; numericas: string[] }> => {
-    if (!ocr) ocr = await createWorker('spa+eng');
+// Arranca el OCR al cargar el módulo, para que la primera tarea no espere la descarga de idiomas
+const ocrListo: Promise<any> = createWorker('spa+eng')
+    .then((w) => { ocr = w; return w; })
+    .catch(() => null);
+
+/** OCR local (Tesseract): líneas normales y líneas solo de números y operadores. */
+export const leerLineas = async (jpg: Buffer): Promise<{ lineas: string[]; numericas: string[] }> => {
+    if (!ocr) ocr = (await ocrListo) || await createWorker('spa+eng');
     const extraer = (data: any) => {
         const out: string[] = [];
         for (const b of data.blocks || []) for (const p of b.paragraphs) for (const l of p.lines) {
@@ -60,16 +65,35 @@ const leerLineas = async (jpg: Buffer): Promise<{ lineas: string[]; numericas: s
     return { lineas: extraer(normal.data), numericas: extraer(numerica.data) };
 };
 
-/** Resuelve operaciones simples de una línea, por ejemplo "3 x 4 =" o "12 ÷ 3 =". */
-const calcularLinea = (t: string): string | null => {
+// ---------- Operaciones ----------
+
+type Operacion = { a: number; op: '+' | '-' | '*' | '/'; b: number; r: string };
+
+/** Lee una operación simple al final de la línea, por ejemplo "2x6=" o "12 ÷ 3 =". */
+export const parsearOperacion = (t: string): Operacion | null => {
     const n = t.replace(/(\d)\s*[xX×*]\s*(\d)/g, '$1*$2').replace(/[÷:]/g, '/').replace(/\s+/g, '');
     const m = n.match(/(-?\d+(?:[.,]\d+)?)([+\-*\/])(-?\d+(?:[.,]\d+)?)=?$/);
     if (!m) return null;
     const a = Number(m[1].replace(',', '.'));
     const b = Number(m[3].replace(',', '.'));
-    if (m[2] === '/' && b === 0) return null;
-    const r = m[2] === '+' ? a + b : m[2] === '-' ? a - b : m[2] === '*' ? a * b : a / b;
-    return Number.isInteger(r) ? String(r) : (Math.round(r * 100) / 100).toString();
+    const op = m[2] as Operacion['op'];
+    if (op === '/' && b === 0) return null;
+    const res = op === '+' ? a + b : op === '-' ? a - b : op === '*' ? a * b : a / b;
+    const r = Number.isInteger(res) ? String(res) : (Math.round(res * 100) / 100).toString();
+    return { a, op, b, r };
+};
+
+/** Escribe la operación bonita, con su explicación corta en español. */
+const explicarOperacion = (o: Operacion): string => {
+    const simbolo = { '+': '+', '-': '−', '*': '×', '/': '÷' }[o.op];
+    const titulo = `${o.a} ${simbolo} ${o.b} = ${o.r}`;
+    let frase: string;
+    if (o.op === '*') {
+        frase = o.a === 1 ? `Un grupo de ${o.b} suma ${o.r}.` : `${o.a} grupos de ${o.b} suman ${o.r}.`;
+    } else if (o.op === '+') frase = `${o.a} más ${o.b} es ${o.r}.`;
+    else if (o.op === '-') frase = `${o.a} menos ${o.b} es ${o.r}.`;
+    else frase = `${o.a} entre ${o.b} es ${o.r}.`;
+    return `• ${titulo}\n  ${frase}`;
 };
 
 /** Quita el formato LaTeX y de Markdown que WhatsApp no muestra bien. */
@@ -82,17 +106,14 @@ const paraWhatsApp = (t: string) =>
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 
-/** Deja solo la explicación: quita frases internas del prompt y resalta la respuesta final. */
-export const limpiarExplicacion = (t: string): string => {
-    const lim = paraWhatsApp(t)
+/** Deja solo la explicación de los ejercicios con texto: quita frases internas del prompt. */
+export const limpiarExplicacion = (t: string): string =>
+    paraWhatsApp(t)
         .split('\n')
-        .filter((l) => !/resultados ya verificados|texto de la tarea|leído de la imagen|indicación del alumno/i.test(l))
+        .filter((l) => !/resultados ya verificados|texto de la tarea|leído de la imagen|indicación del alumno|ejercicios:/i.test(l))
         .join('\n')
-        .replace(/^(respuesta final\s*:?)\s*/gim, '*$1* ')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
-    return lim || 'No pude armar la explicación. Intenta de nuevo.';
-};
 
 // ---------- Comando ----------
 
@@ -127,9 +148,7 @@ export default {
                 reuploadRequest: sock.updateMediaMessage
             }) as Buffer;
 
-            // La imagen limpia sale en cuanto se descarga, sin esperar a la IA
-
-            // Texto de la imagen: OCR local (rápido, con imagen de 1000 px); si falla, OCR de Stellar
+            // Texto de la imagen: OCR local (imagen de 1000 px); si falla, OCR de Stellar
             let lineas: string[] = [];
             let numericas: string[] = [];
             try {
@@ -140,51 +159,61 @@ export default {
             if (!lineas.length) {
                 const texto = await leerTextoStellar(await subirImagen(buf, mime));
                 lineas = texto.split('\n').map((t) => t.trim()).filter(Boolean);
+                numericas = [];
             }
             if (!lineas.length) {
                 await sock.sendMessage(chat, { react: { text: '❌', key: m.key } }).catch(() => null);
                 return sock.sendMessage(chat, { text: '✧ No pude leer texto en esa imagen. Intenta con una foto más clara.' }, { quoted: m });
             }
 
-            // Operaciones simples se calculan aquí, para que la IA no se equivoque
-            const pistas = (numericas.length ? numericas : lineas)
-                .map((t) => ({ t, c: calcularLinea(t) }))
-                .filter((x) => x.c !== null)
-                .map((x) => `${x.t} ${x.c}`)
-                .join('\n');
+            // 1) Operaciones: se calculan aquí, en el orden de la hoja (sin inventar nada)
+            const fuente = numericas.length ? numericas : lineas;
+            const operaciones = fuente.map((t) => parsearOperacion(t)).filter((o): o is Operacion => o !== null);
 
-            const sistema = 'Eres un profesor paciente. Responde en español, sin emojis, en texto simple.';
-            const instruccion = indicacion ? `Indicación del alumno: ${indicacion}.` : 'Resuelve toda la tarea.';
-            const prompt = `${sistema}\n\n${instruccion} Formato obligatorio: una línea por ejercicio con "• operación = resultado", seguida de una explicación corta de una o dos frases. No repitas el texto de la tarea, no uses pasos numerados, no uses LaTeX ni negritas. Al final escribe "Respuesta final:" con todos los resultados en una sola línea.` +
-                (pistas ? `\nResultados ya verificados:\n${pistas}` : '') +
-                `\n\nTexto de la tarea (leído de la imagen):\n${lineas.join('\n')}`;
+            // 2) Ejercicios con texto (problemas de palabras): solo esos van a la IA
+            const conTexto = lineas.filter((t) => !parsearOperacion(t) && t.length > 12 &&
+                /\?|calcula|resuelve|cu[aá]nt|completa|escribe|encuentra|cu[aá]l|problema|compr|reparte|tiene|tenía|hay |suma|resta|multiplica|divide/i.test(t));
 
-            const proveedores: Proveedor[] = [
-                yosoyyoDeepseek,
-                siputzx('gptoss120b'),
-                deliriusGptPrompt(sistema),
-                stellarGemini,
-                deliriusGemini,
-                stellarChatgpt
-            ];
-            // Si todos se niegan, se reintenta con otro enunciado (es una tarea escolar)
-            const enunciadoAlterno = `Ayuda a un estudiante de primaria a entender estos ejercicios escolares. ${instruccion} Escribe una línea por ejercicio con "• operación = resultado" y una explicación corta debajo. Termina con "Respuesta final:". Sin LaTeX ni negritas.\n\nEjercicios:\n${lineas.join('\n')}`;
-            let texto = '';
-            try {
-                ({ texto } = await preguntarIA(proveedores, prompt));
-            } catch {
-                ({ texto } = await preguntarIA(proveedores, enunciadoAlterno));
+            const bloques: string[] = [];
+            operaciones.forEach((o, i) => {
+                bloques.push(explicarOperacion(o));
+                if ((i + 1) % 4 === 0) bloques.push('');
+            });
+            let cabecera = operaciones.length ? `Encontré *${operaciones.length}* operaciones.\n\n` : '';
+
+            if (conTexto.length) {
+                const sistema = 'Eres un profesor paciente. Responde en español, sin emojis, en texto simple.';
+                const instruccion = indicacion ? `Indicación del alumno: ${indicacion}.` : 'Resuelve cada ejercicio.';
+                const prompt = `${sistema}\n\n${instruccion} Para cada ejercicio escribe una línea "• respuesta" y una explicación corta debajo. Sin LaTeX ni negritas, sin repetir el enunciado.\n\nEjercicios:\n${conTexto.join('\n')}`;
+                const alterno = `Ayuda a un estudiante de primaria a entender estos ejercicios escolares. Para cada uno escribe "• respuesta" y una explicación corta debajo. Sin LaTeX.\n\nEjercicios:\n${conTexto.join('\n')}`;
+                const proveedores: Proveedor[] = [
+                    yosoyyoDeepseek,
+                    siputzx('gptoss120b'),
+                    deliriusGptPrompt(sistema),
+                    stellarGemini,
+                    deliriusGemini,
+                    stellarChatgpt
+                ];
+                let texto = '';
+                try { ({ texto } = await preguntarIA(proveedores, prompt)); } catch { ({ texto } = await preguntarIA(proveedores, alterno)); }
+                if (!esNegativa(texto)) {
+                    bloques.push('*Ejercicios con texto*', limpiarExplicacion(texto));
+                }
             }
-            console.log('[tarea] explicación:', texto.length, 'caracteres');
 
+            if (!bloques.length) {
+                await sock.sendMessage(chat, { react: { text: '❌', key: m.key } }).catch(() => null);
+                return sock.sendMessage(chat, { text: '✧ No encontré operaciones ni ejercicios en esa imagen.' }, { quoted: m });
+            }
 
+            const explicacion = (cabecera + bloques.join('\n')).replace(/\n{3,}/g, '\n\n').trim();
             await Promise.all([
                 sock.sendMessage(chat, { image: buf, caption: '📚 *TAREA*' }, { quoted: m }),
-                enviarRespuesta(sock, chat, m, '📝 *Explicación*', limpiarExplicacion(texto))
+                enviarRespuesta(sock, chat, m, '📝 *Explicación*', explicacion)
             ]);
-
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } }).catch(() => null);
-        } catch {
+        } catch (e) {
+            console.error('[tarea] error:', e);
             await sock.sendMessage(chat, { react: { text: '❌', key: m.key } }).catch(() => null);
             await sock.sendMessage(chat, { text: '✧ No pude resolver la tarea ahora, intenta de nuevo en un momento.' }, { quoted: m });
         }
