@@ -40,11 +40,11 @@ async function bajarParte(link: string, desde: number, hasta: number, destino: s
  * Descarga el archivo a disco. Si el servidor acepta rangos y el archivo es grande,
  * lo baja en partes a la vez (más rápido) y las une en orden.
  */
-export async function descargarArchivo(info: Info, destino: string): Promise<void> {
+export async function descargarArchivo(info: Info, destino: string, limite: number = LIMITE_BYTES): Promise<void> {
     const head = await axios.head(info.link, { headers: UA, timeout: 20000, validateStatus: () => true }).catch(() => null);
     const total = Number(head?.headers?.['content-length']) || info.tamano;
     if (!total) throw new Error('No pude saber el tamaño del archivo');
-    if (total > LIMITE_BYTES) throw new Error(`El archivo pesa más de ${mb(LIMITE_BYTES)}`);
+    if (total > limite) throw new Error(`El archivo pesa más de ${mb(limite)}`);
 
     const acepta = head?.headers?.['accept-ranges'] === 'bytes';
     if (!acepta || total < MIN_PARTE) {
