@@ -1,19 +1,24 @@
 import axios from 'axios';
 import config from '#config';
 
-const MAX_BYTES = 80 * 1024 * 1024; // 80 MB
+const MAX_BYTES = 80 * 1024 * 1024; // 80 MB (límite para enviar por WhatsApp sin problemas)
 const MIN_BYTES = 30 * 1024;        // menos de 30 KB = respuesta basura
 const MAX_SEGUNDOS = 900;           // 15 min
 
-/** Fuentes de TikTok en paralelo. Cada una: cómo armar la URL, cómo sacar el enlace del video y los datos. */
+const sonEnlace = (c: any): c is string => typeof c === 'string' && c.startsWith('http');
+const sinRepetir = (lista: string[]) => [...new Set(lista.filter(sonEnlace))];
+
+/**
+ * Fuentes de TikTok. Cada una devuelve VARIAS calidades, de la mejor a la más ligera.
+ * Si una calidad pesa más del límite, se prueba la siguiente.
+ */
 const FUENTES = [
     {
         nombre: 'delirius',
         url: (e: string) => `https://api.delirius.online/download/tiktok?url=${e}`,
-        enlace: (d: any) => {
-            const media = d?.data?.meta?.media?.[0];
-            const c = (media?.hd && media.hd !== '0 B' ? media.hd : media?.org) || media?.wm;
-            return typeof c === 'string' && c.startsWith('http') ? c : '';
+        enlaces: (d: any) => {
+            const media = d?.data?.meta?.media?.[0] || {};
+            return sinRepetir([media.hd !== '0 B' ? media.hd : '', media.org, media.wm]);
         },
         datos: (d: any) => d?.data || {},
         segundos: (x: any) => Number(x?.duration) || 0
@@ -21,9 +26,9 @@ const FUENTES = [
     {
         nombre: 'starlights',
         url: (e: string) => `https://api.starlights.uk/api/download/tiktok?url=${e}`,
-        enlace: (d: any) => {
-            const c = d?.data?.download?.no_watermark_hd || d?.data?.download?.no_watermark;
-            return typeof c === 'string' && c.startsWith('http') ? c : '';
+        enlaces: (d: any) => {
+            const dl = d?.data?.download || {};
+            return sinRepetir([dl.no_watermark_hd, dl.no_watermark]);
         },
         datos: (d: any) => d?.data || {},
         // Starlights manda la duración en milisegundos
@@ -32,10 +37,7 @@ const FUENTES = [
     {
         nombre: 'stellar',
         url: (e: string) => `https://api.stellarwa.xyz/dl/tiktok?url=${e}&apikey=proyectsV2`,
-        enlace: (d: any) => {
-            const c = d?.data?.dl;
-            return typeof c === 'string' && c.startsWith('http') ? c : '';
-        },
+        enlaces: (d: any) => sinRepetir([d?.data?.dl]),
         datos: (d: any) => d?.data || {},
         segundos: (x: any) => Number(x?.duration?.toString().split(':').reduce((a: number, t: string) => a * 60 + Number(t), 0)) || 0
     }
@@ -58,18 +60,30 @@ const descargar = async (url: string): Promise<Buffer> => {
     return buf;
 };
 
-/** Una fuente completa: pide el enlace, descarga el video y devuelve video + datos. */
+/** Una fuente: pide sus enlaces y descarga la primera calidad que quepa. */
 const intentar = async (f: typeof FUENTES[number], e: string) => {
     const { data } = await axios.get(f.url(e), { timeout: 20000, headers: { 'User-Agent': 'Mozilla/5.0' } });
-    const link = f.enlace(data);
-    if (!link) throw new Error(`${f.nombre}: sin enlace`);
-    const buffer = await descargar(link);
-    return { buffer, datos: f.datos(data), segundos: f.segundos(f.datos(data)), fuente: f.nombre };
+    const enlaces = f.enlaces(data);
+    if (!enlaces.length) throw new Error(`${f.nombre}: sin enlace`);
+
+    let ultimo = '';
+    for (const link of enlaces) {
+        try {
+            const buffer = await descargar(link);
+            return { buffer, datos: f.datos(data), segundos: f.segundos(f.datos(data)), fuente: f.nombre };
+        } catch (err: any) {
+            const msg = String(err?.message || '');
+            ultimo = /maxContentLength|maxBodyLength/i.test(msg)
+                ? `${f.nombre}: el video pesa más de 80 MB`
+                : `${f.nombre}: ${msg}`;
+        }
+    }
+    throw new Error(ultimo || `${f.nombre}: sin video válido`);
 };
 
 /**
  * Orden de prueba:
- * 1) Delirius sola (es la más rápida). Si da 500, reintenta una vez.
+ * 1) Delirius (la más rápida). Si falla, reintenta una vez.
  * 2) Si Delirius falla, Starlights y Stellar en paralelo.
  * 3) Una segunda vuelta completa si todo falló.
  */
@@ -90,7 +104,7 @@ const obtenerVideo = async (url: string) => {
         try {
             return await Promise.any(respaldos.map((f) => intentar(f, e)));
         } catch (err: any) {
-            ultimo = err;
+            ultimo = err?.errors?.[0] || err;
         }
     }
     const primer = ultimo?.errors?.[0]?.message || ultimo?.message;
