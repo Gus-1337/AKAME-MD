@@ -113,7 +113,7 @@ const EXISTENTES: { nombre: string; cmd: string; activa: (db: any) => boolean }[
 
 /** Panel con el estado de todas las funciones del grupo. */
 export const panelAjustes = {
-    command: ['ajustes', 'funciones', 'estadogrupo'],
+    command: ['ajustes', 'funciones', 'estadogrupo', 'gp'],
     description: 'Muestra qué funciones del grupo están activas',
     category: 'admin',
     group: true,
