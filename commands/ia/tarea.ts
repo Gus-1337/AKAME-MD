@@ -169,6 +169,7 @@ export default {
                 stellarChatgpt
             ];
             const { texto } = await preguntarIA(proveedores, prompt);
+            console.log('[tarea] explicación:', texto.length, 'caracteres');
 
             await enviarRespuesta(sock, chat, m, '📝 *Explicación*', limpiarExplicacion(texto));
             await sock.sendMessage(chat, { react: { text: '✅', key: m.key } }).catch(() => null);
