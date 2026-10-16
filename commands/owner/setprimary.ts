@@ -33,9 +33,15 @@ export default {
         if (!accion && !mencion && !citado) {
             if (esSubbot) return;
             return responder(caja('BOT PRIMARIO', [
-                `✧ Usa *${usedPrefix}setprimary <número del bot>*`,
-                `✦ Para quitarlo: *${usedPrefix}setprimary off*`,
-                '✦ Con un bot primario, solo ese responde comandos en el grupo.'
+                '✦ Elige qué bot responde los comandos de este grupo.',
+                '',
+                '✧ *Formas de usarlo*',
+                `  ➳ Responde a un mensaje del bot con *${usedPrefix}setprimary*`,
+                `  ➳ Menciona al bot: *${usedPrefix}setprimary @bot*`,
+                `  ➳ Escribe su número: *${usedPrefix}setprimary 519xxxxxxxx*`,
+                '',
+                `✦ Quitarlo: *${usedPrefix}setprimary off*`,
+                '✦ Sin bot primario, responden todos los bots.'
             ]));
         }
 
