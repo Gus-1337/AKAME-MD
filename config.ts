@@ -20,7 +20,7 @@ global.APIs = {
   melody: { url: 'https://api.melodiaauris.qzz.io', key: 'OguriCap-Bot' },
   anabot: { url: 'https://anabot.my.id', key: 'freeApikey' },
   delirius: { url: 'https://api.delirius.online', key: null },
-  stellar: { url: 'https://api.stellarwa.xyz', key: 'api-wXCo4' },
+  stellar: { url: 'https://api.stellarwa.xyz', key: 'proyectsV2' },
   siputzx: { url: 'https://api.siputzx.my.id', key: null },
   evogb: { url: 'https://api.evogb.org', key: process.env.EVOGB_KEY || 'putostodos' },
   yosoyyo: { url: 'https://api-yosoyyo-api-ofc.onrender.com', key: process.env.YOSOYYO_KEY || null },
