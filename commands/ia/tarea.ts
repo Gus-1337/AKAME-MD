@@ -128,7 +128,6 @@ export default {
             }) as Buffer;
 
             // La imagen limpia sale en cuanto se descarga, sin esperar a la IA
-            await sock.sendMessage(chat, { image: buf, caption: '📚 *TAREA*' }, { quoted: m }).catch(() => null);
 
             // Texto de la imagen: OCR local (rápido, con imagen de 1000 px); si falla, OCR de Stellar
             let lineas: string[] = [];
@@ -156,7 +155,7 @@ export default {
 
             const sistema = 'Eres un profesor paciente. Responde en español, sin emojis, en texto simple.';
             const instruccion = indicacion ? `Indicación del alumno: ${indicacion}.` : 'Resuelve toda la tarea.';
-            const prompt = `${sistema}\n\n${instruccion} Explica paso a paso cómo resolver cada ejercicio y termina con la respuesta final clara, sin formato LaTeX.` +
+            const prompt = `${sistema}\n\n${instruccion} Formato obligatorio: una línea por ejercicio con "• operación = resultado", seguida de una explicación corta de una o dos frases. No repitas el texto de la tarea, no uses pasos numerados, no uses LaTeX ni negritas. Al final escribe "Respuesta final:" con todos los resultados en una sola línea.` +
                 (pistas ? `\nResultados ya verificados:\n${pistas}` : '') +
                 `\n\nTexto de la tarea (leído de la imagen):\n${lineas.join('\n')}`;
 
