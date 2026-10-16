@@ -23,8 +23,14 @@ export default {
         const esSubbot = !!(global as any).esSubbot;
         const accion = String(args?.[0] || '').toLowerCase();
 
-        // Sin argumentos: la explicación la da solo el bot principal, para no repetirla en cada subbot
-        if (!accion) {
+        // Mensaje citado: al responder a un mensaje de un bot, el autor de ese mensaje es el elegido
+        const m = ctx.m ?? msg;
+        const ctxInfo = m?.message?.extendedTextMessage?.contextInfo || m?.message?.contextInfo || msg?.message?.extendedTextMessage?.contextInfo;
+        const citado = ctxInfo?.participant || '';
+        const mencion = ctxInfo?.mentionedJid?.[0] || m?.mentionedJid?.[0];
+
+        // Sin argumentos ni mención ni respuesta: la explicación la da solo el bot principal
+        if (!accion && !mencion && !citado) {
             if (esSubbot) return;
             return responder(caja('BOT PRIMARIO', [
                 `✧ Usa *${usedPrefix}setprimary <número del bot>*`,
@@ -43,19 +49,19 @@ export default {
         // Asignar: cada bot compara el número con el suyo; solo el elegido confirma
         // Puede venir como mención (@bot) o como número. La mención real trae el JID en mentionedJid;
         // el texto "@AKAME" no sirve, por eso se lee de ahí.
-        const m = ctx.m ?? msg;
-        const mencion = m?.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0] || m?.mentionedJid?.[0];
-        let objetivo = String(args[0]).replace(/\D/g, '');
-        if (mencion) {
+        // Prioridad: mención, luego mensaje citado, luego número escrito
+        let objetivo = String(args?.[0] || '').replace(/\D/g, '');
+        const referencia = mencion || citado;
+        if (referencia) {
             try {
-                objetivo = soloDigitos(await UserJid(sock, chat, mencion)) || soloDigitos(mencion);
+                objetivo = soloDigitos(await UserJid(sock, chat, referencia)) || soloDigitos(referencia);
             } catch {
-                objetivo = soloDigitos(mencion);
+                objetivo = soloDigitos(referencia);
             }
         }
         if (!objetivo) {
             if (esSubbot) return;
-            return responder(caja('BOT PRIMARIO', ['✧ Menciona al bot o escribe su número.', `✦ Ejemplo: *${usedPrefix}setprimary @bot*`]));
+            return responder(caja('BOT PRIMARIO', ['✧ Menciona al bot, responde a un mensaje suyo o escribe su número.', `✦ Ejemplo: *${usedPrefix}setprimary @bot*`]));
         }
 
         const soyElegido = yo === objetivo;
