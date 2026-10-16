@@ -21,6 +21,7 @@ export default {
 
             // Link directo o búsqueda por nombre
             let videoId;
+            let datos: any = null;
             const m = query.match(YT_REGEX);
             if (m) {
                 videoId = m[1];
@@ -29,12 +30,15 @@ export default {
                 const first = search?.videos?.[0];
                 if (!first) throw new Error('sin resultados');
                 videoId = first.videoId;
+                datos = first;
             }
             const videoUrl = `https://youtu.be/${videoId}`;
 
-            // Datos para la tarjeta (si falla, seguimos sin ella)
-            let info: any = null;
-            try { info = await yts({ videoId }); } catch {}
+            // La descarga arranca ya; los datos y la tarjeta van en paralelo
+            const descarga = getVideoBuffer(videoUrl);
+            descarga.catch(() => null);
+
+            const info: any = datos || await yts({ videoId }).catch(() => null);
             const titulo = limpiarNombre(info?.title);
 
             await sock.sendMessage(chat, {
@@ -42,7 +46,7 @@ export default {
                 caption: `🎬 *${info?.title || 'Video'}*\n\n✿ Canal: ${info?.author?.name || 'Desconocido'}\n✿ Duración: ${info?.timestamp || '??'}\n✿ Vistas: ${info?.views?.toLocaleString?.() || '??'}\n\n_Descargando video..._`
             }, { quoted: msg }).catch(() => null);
 
-            const buffer = await getVideoBuffer(videoUrl);
+            const buffer = await descarga;
             const mb = (buffer.length / (1024 * 1024)).toFixed(1);
 
             if (buffer.length > 64 * 1024 * 1024) {
@@ -63,7 +67,7 @@ export default {
             }
 
             await sock.sendMessage(chat, { react: { text: '✅', key: msg.key } });
-        } catch (e) {
+        } catch (e: any) {
             console.log('[PLAY2 ERROR]', e?.message);
             await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } });
             await sock.sendMessage(chat, { text: `❌ No pude descargar el video, intenta de nuevo` }, { quoted: msg });

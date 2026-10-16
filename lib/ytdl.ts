@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { stellarUrl } from './stellar.ts';
 
 /**
  * Descarga de YouTube compartida (audio y video).
@@ -130,12 +131,35 @@ export const getAudioBuffer = (videoUrl: string): Promise<Buffer> => {
     ]);
 };
 
-/** Video MP4 completo de un video de YouTube (360p). */
-export const getVideoBuffer = (videoUrl: string): Promise<Buffer> => {
+/** Video MP4 completo de un video de YouTube (360p).
+ * Fuentes principales al mismo tiempo. Stellar entra a los 6 s si aún no hay video
+ * (así no baja la calidad cuando las principales responden, y no espera de más si fallan).
+ */
+export const getVideoBuffer = async (videoUrl: string): Promise<Buffer> => {
     const e = encodeURIComponent(videoUrl);
-    return enParalelo('VIDEO', [
+    const principales: Array<[string, () => Promise<Buffer>]> = [
         ['delirius', () => desdeApi(`https://api.delirius.online/download/ytmp4?url=${e}`, descargarVideo, 45000)],
+        ['starlights', () => desdeApi(`https://api.starlights.uk/api/download/ytmp4?url=${e}`, descargarVideo, 45000)],
         ['yosoyyo', () => desdeYosoyyoVideo(videoUrl)],
         ['dorratz', () => desdeDorratz(videoUrl, 'video', 360, descargarVideo)]
-    ]);
+    ];
+    const stellar = () => desdeApi(stellarUrl('/dl/ytmp4', { url: videoUrl }), descargarVideo, 45000);
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const conRetardo = new Promise<Buffer>((resolve, reject) => {
+        timer = setTimeout(() => stellar().then(resolve, reject), 6000);
+    });
+    const tareas: Array<Promise<Buffer>> = principales.map(([id, fn]) =>
+        fn().catch((err) => { throw new Error(`${id}: ${err?.message || 'error'}`); }));
+    tareas.push(conRetardo.catch((err) => { throw new Error(`stellar: ${err?.message || 'error'}`); }));
+
+    try {
+        return await Promise.any(tareas);
+    } catch (err: any) {
+        const motivos = (err?.errors || []).map((x: any) => x.message).slice(0, 6).join(' | ');
+        console.log(`[YTDL VIDEO] todas fallaron → ${motivos}`);
+        throw new Error(`todas las APIs fallaron${motivos ? ': ' + motivos : ''}`);
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
 };
