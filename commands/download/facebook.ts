@@ -86,11 +86,11 @@ export default {
 
         if (!url) {
             return sock.sendMessage(chat, {
-                text: `🌸 Usa: *${p}fb <link de facebook>*\n🌸 Ejemplo: *${p}fb https://fb.watch/xxxxx/*`
+                text: `╭─────────────────╮\n   ✧ *FACEBOOK* ✧\n╰─────────────────╯\n\n❖ Usa: *${p}fb <link de facebook>*\n✦ Ejemplo: *${p}fb https://fb.watch/xxxxx/*`
             }, { quoted: msg });
         }
         if (!FB_REGEX.test(url)) {
-            return sock.sendMessage(chat, { text: '🌸 Ese link no es de Facebook.' }, { quoted: msg });
+            return sock.sendMessage(chat, { text: '✧ Ese link no es de Facebook.' }, { quoted: msg });
         }
 
         try {
@@ -100,19 +100,19 @@ export default {
 
             const caption =
                 '╭─────────────────╮\n' +
-                '   🌸 *FACEBOOK VIDEO* 🌸\n' +
+                '   ✧ *FACEBOOK VIDEO* ✧\n' +
                 '╰─────────────────╯\n\n' +
-                (calidad ? `✧ *Calidad:* ${calidad}\n` : '') +
+                (calidad ? `❖ *Calidad:* ${calidad}\n` : '') +
                 (titulo ? `✦ *Título:* ${String(titulo).slice(0, 120)}\n` : '') +
-                '\n> AKAME-MD 🌸';
+                '\n⋆ AKAME-MD ⋆';
 
-            await sock.sendMessage(chat, { react: { text: '📤', key: msg.key } }).catch(() => null);
+            // Envío directo; la reacción ✅ no espera para no retrasar el video
+            sock.sendMessage(chat, { react: { text: '✅', key: msg.key } }).catch(() => null);
             await sock.sendMessage(chat, { video: buf, mimetype: 'video/mp4', caption }, { quoted: msg });
-            await sock.sendMessage(chat, { react: { text: '✅', key: msg.key } }).catch(() => null);
         } catch (e: any) {
             console.log('[FB ERROR]', e?.message);
             await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => null);
-            await sock.sendMessage(chat, { text: '🌸 No pude descargar ese video. Prueba con otro link.' }, { quoted: msg });
+            await sock.sendMessage(chat, { text: '✧ No pude descargar ese video. Prueba con otro link.' }, { quoted: msg });
         }
     }
 };
