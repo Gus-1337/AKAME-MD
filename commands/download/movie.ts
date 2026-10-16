@@ -6,12 +6,16 @@ import { randomBytes } from 'crypto';
 import { generateWAMessageFromContent } from '@whiskeysockets/baileys';
 import { descargarArchivo, mb, type Info } from '../../lib/descarga.ts';
 
-// Películas de dominio público o con licencia libre, desde Internet Archive (archive.org).
+// Películas completas desde Internet Archive (archive.org).
 const IA = 'https://archive.org';
-const LIMITE_PELI = 1024 * 1024 * 1024; // 1 GB
+const LIMITE_PELI = 1024 * 1024 * 1024; // límite interno (no se muestra al usuario)
 const MIME_VIDEO = 'video/mp4';
 const MAX_RESULTADOS = 10;
+const MIN_MINUTOS = 40; // por debajo de esto se considera corto, no película
 const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' };
+
+// Tráilers, clips y extras: se descartan para mostrar solo películas completas
+const NO_PELICULA = /trailer|tráiler|clip|promo|teaser|preview|sample|excerpt|bonus|recap|review|making of|behind the scenes|scene|intro|opening|highlights|resumen|episode|episodio|\bep\.?\s?\d|season|temporada|commercial|comercial|\bads?\b|beer|news|noticias|show|serie|capitulo|cap\.?\s?\d/i;
 
 type Peli = { id: string; titulo: string; anio: string };
 
@@ -20,27 +24,45 @@ const caja = (titulo: string, lineas: string[]) =>
 
 const limpiarNombre = (n: string) => String(n || 'pelicula').replace(/[\\/:*?"<>|]/g, '').trim() || 'pelicula';
 
-/** Busca películas por título en Internet Archive. */
+/** Duración en minutos a partir de lo que devuelve Internet Archive ("98", "01:37:00", "98 min"). */
+function minutosDe(v: any): number | null {
+    if (v === undefined || v === null || v === '') return null;
+    const s = String(v).trim();
+    const hms = s.match(/^(\d+):(\d{1,2})(?::(\d{1,2}))?$/);
+    if (hms) return Number(hms[1]) * 60 + Number(hms[2]) + (Number(hms[3] || 0) / 60);
+    const n = parseFloat(s.replace(',', '.'));
+    if (isNaN(n)) return null;
+    // Números enteros grandes suelen ser segundos
+    return n > 600 ? n / 60 : n;
+}
+
+/** Busca películas completas por título en Internet Archive. */
 async function buscarPelis(q: string): Promise<Peli[]> {
     const limpio = q.replace(/["()]/g, ' ').replace(/\s+/g, ' ').trim();
     const { data } = await axios.get(`${IA}/advancedsearch.php`, {
         params: {
-            q: `title:(${limpio}) AND mediatype:movies`,
-            'fl[]': ['identifier', 'title', 'year'],
-            rows: MAX_RESULTADOS,
+            q: `title:(${limpio}) AND collection:(feature_films)`,
+            'fl[]': ['identifier', 'title', 'year', 'runtime'],
+            rows: 40,
             output: 'json'
         },
         timeout: 25000,
         headers: UA
     });
-    return (data?.response?.docs || []).map((d: any) => ({
-        id: String(d.identifier),
-        titulo: String(d.title || d.identifier).slice(0, 80),
-        anio: d.year ? String(d.year) : '?'
-    }));
+    const pelis: Peli[] = [];
+    for (const d of data?.response?.docs || []) {
+        const titulo = String(d.title || d.identifier);
+        if (NO_PELICULA.test(titulo)) continue;
+        // Si Internet Archive trae la duración y es corta, se descarta; si no la trae, la colección ya son largometrajes
+        const min = minutosDe(d.runtime);
+        if (min !== null && min < MIN_MINUTOS) continue;
+        pelis.push({ id: String(d.identifier), titulo: titulo.slice(0, 80), anio: d.year ? String(d.year) : '?' });
+        if (pelis.length >= MAX_RESULTADOS) break;
+    }
+    return pelis;
 }
 
-/** Elige el MP4 más pesado que no pase de 1 GB. */
+/** Elige el MP4 más pesado que quepa en el límite interno. */
 async function archivoDe(id: string): Promise<{ nombre: string; tamano: number; link: string; titulo: string } | null> {
     const { data } = await axios.get(`${IA}/metadata/${encodeURIComponent(id)}`, { timeout: 25000, headers: UA });
     const candidatos = (data?.files || [])
@@ -70,16 +92,18 @@ function limpiar(destino: string) {
 async function enviarLista(sock: any, chat: string, quoted: any, usedPrefix: string, q: string, pelis: Peli[]) {
     const rows = pelis.map((p) => ({
         title: p.titulo.slice(0, 40),
-        description: `Año ${p.anio} • Dominio público`.slice(0, 72),
+        description: `🎞️ ${p.anio} • Película completa`.slice(0, 72),
         id: `${usedPrefix}movie id:${p.id}`
     }));
 
-    const cuerpo = caja('MOVIE', [
+    const cuerpo = [
+        '🍿 *PELÍCULAS COMPLETAS*',
+        '───────────────',
         `✧ Búsqueda » *${q}*`,
         `✦ Resultados » *${pelis.length}*`,
-        '',
-        'Elige la película que quieres ver 🎬'
-    ]).replace(/\n> AKAME-MD 🌸$/, '');
+        '───────────────',
+        'Elige la que quieres ver 🎬'
+    ].join('\n');
 
     const opciones: any = quoted?.message ? { quoted } : {};
     const list = generateWAMessageFromContent(chat, {
@@ -88,13 +112,13 @@ async function enviarLista(sock: any, chat: string, quoted: any, usedPrefix: str
                 messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
                 interactiveMessage: {
                     body: { text: cuerpo },
-                    footer: { text: 'AKAME MD • Dominio público (Internet Archive)' },
+                    footer: { text: 'AKAME MD • Películas' },
                     nativeFlowMessage: {
                         buttons: [{
                             name: 'single_select',
                             buttonParamsJson: JSON.stringify({
-                                title: 'Elegir película',
-                                sections: [{ title: '🎬 PELÍCULAS', highlight_label: 'MOVIE', rows }]
+                                title: 'Ver películas',
+                                sections: [{ title: '🎬 RESULTADOS', highlight_label: 'HD', rows }]
                             })
                         }]
                     }
@@ -115,7 +139,7 @@ async function enviarPeli(sock: any, m: any, chat: string, id: string) {
         const archivo = await archivoDe(id);
         if (!archivo) {
             await sock.sendMessage(chat, {
-                text: caja('MOVIE', ['✧ Esa película no tiene una versión de 1 GB o menos.', '✦ Elige otra.'])
+                text: caja('MOVIE', ['✧ No pude preparar esa película.', '✦ Elige otra de la lista.'])
             }, { quoted: m });
             await sock.sendMessage(chat, { react: { text: '✘', key: m.key } });
             return;
@@ -131,10 +155,10 @@ async function enviarPeli(sock: any, m: any, chat: string, id: string) {
             mimetype: MIME_VIDEO,
             fileName: `${titulo}.mp4`,
             caption: caja('MOVIE', [
-                `✧ *${titulo}*`,
+                `🎬 *${titulo}*`,
                 `✦ Peso » *${mb(real)}*`,
                 '',
-                '🎬 Dominio público (Internet Archive)'
+                'Disfruta la película 🍿'
             ])
         }, { quoted: m });
         await sock.sendMessage(chat, { react: { text: '♡', key: m.key } });
@@ -142,7 +166,7 @@ async function enviarPeli(sock: any, m: any, chat: string, id: string) {
         console.error('[MOVIE ERROR]', e?.message);
         const msg = String(e?.message || '');
         const texto = msg.includes('más de')
-            ? caja('MOVIE', ['✧ Esa película pesa más de 1 GB, no la puedo enviar.'])
+            ? caja('MOVIE', ['✧ Esa película es muy pesada para enviarla.', '✦ Elige otra de la lista.'])
             : caja('MOVIE', ['✧ No pude descargar esa película.', '✦ Prueba otra vez o elige otra.']);
         await sock.sendMessage(chat, { text: texto }, { quoted: m });
         await sock.sendMessage(chat, { react: { text: '✘', key: m.key } });
@@ -153,7 +177,7 @@ async function enviarPeli(sock: any, m: any, chat: string, id: string) {
 
 export default {
     command: ['movie', 'pelicula', 'peli'],
-    description: 'Busca películas de dominio público y elige cuál descargar (hasta 1 GB)',
+    description: 'Busca películas completas y elige cuál ver',
     category: 'download',
 
     run: async (ctx: any): Promise<void> => {
@@ -163,9 +187,8 @@ export default {
         if (!args?.[0]) {
             await sock.sendMessage(chat, {
                 text: caja('MOVIE', [
-                    `✧ Usa *${usedPrefix}movie <nombre de la película>*`,
-                    `✦ Ejemplo: *${usedPrefix}movie night of the living dead*`,
-                    `✦ Solo películas de dominio público. Límite: *1 GB*`
+                    `✧ Usa *${usedPrefix}movie nombre de la película*`,
+                    `✦ Ejemplo: *${usedPrefix}movie night of the living dead*`
                 ])
             }, { quoted: m });
             return;
@@ -192,7 +215,7 @@ export default {
         }
 
         if (!pelis.length) {
-            await sock.sendMessage(chat, { text: caja('MOVIE', [`✧ No encontré *${q}*.`, '✦ Prueba con otro nombre.']) }, { quoted: m });
+            await sock.sendMessage(chat, { text: caja('MOVIE', [`✧ No encontré *${q}* en películas completas.`, '✦ Prueba con otro nombre.']) }, { quoted: m });
             await sock.sendMessage(chat, { react: { text: '✘', key: m.key } });
             return;
         }
