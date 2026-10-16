@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@hapi/boom": "^10.0.1",
+    "@napi-rs/canvas": "^1.0.11",
     "@whiskeysockets/baileys": "git+https://github.com/Andresv27728/baileys-beta.git",
     "axios": "^1.7.9",
     "axios-cookiejar-support": "^6.0.5",

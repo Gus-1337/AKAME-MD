@@ -1,4 +1,5 @@
 import { UserJid } from '#simple';
+import { generarHoroscopoCard } from '../../lib/horoscopo-card.ts';
 
 const signos = ['aries', 'tauro', 'geminis', 'cancer', 'leo', 'virgo', 'libra', 'escorpio', 'sagitario', 'capricornio', 'acuario', 'piscis'];
 
@@ -499,6 +500,20 @@ export default {
 
         const texto = `*_☑︎ HORÓSCOPO NEGRO ☑︎_*\n\n> ▸ *Signo:* ${signo.toUpperCase()} ${emojiSigno[signo] || '♋'}\n> ▸ *Usuario:* ${targetName}\n\n> 🔮 *${areas[area]}:*\n> "${prediccion}"\n\n> 💀 *Número de la mala suerte:* ${numero}\n> 🎨 *Color de la desgracia:* ${color}`;
 
-        await sock.sendMessage(chat, { text: texto }, { quoted: m });
+        try {
+            const png = await generarHoroscopoCard({
+                signo: signo.toUpperCase(),
+                simbolo: emojiSigno[signo] || '♋',
+                usuario: targetName,
+                area: areas[area],
+                prediccion,
+                numero,
+                color
+            });
+            await sock.sendMessage(chat, { image: png, caption: texto }, { quoted: m });
+        } catch (err: any) {
+            console.error('[HORO] tarjeta falló, se manda texto:', err?.message);
+            await sock.sendMessage(chat, { text: texto }, { quoted: m });
+        }
     }
 };
