@@ -138,7 +138,7 @@ export default {
             await sock.sendMessage(chat, {
                 video,
                 mimetype: 'video/mp4',
-                caption: `☬ *PINTEREST VIDEO* ☬\n\n♡ *Título:* ${pin.title || 'Sin título'}\n♡ *Autor:* ${pin.author_name || pin.username || 'Desconocido'}\n\n☬ *AKAME-MD* ♡`
+                caption: `☬ *PINTEREST VIDEO* ☬\n\n♡ *Título:* ${pin.title || 'Sin título'}\n\n☬ *AKAME-MD* ♡`
             }, { quoted: msg });
 
             await sock.sendMessage(chat, { react: { text: '✅', key: msg.key } }).catch(() => {});
