@@ -114,7 +114,7 @@ export default {
             try {
                 imgUrl = await sock.profilePictureUrl(targetJid, 'image');
             } catch {
-                imgUrl = 'https://cdn.ryuzei.xyz/files/cv46xgk.jpeg';
+                imgUrl = 'https://cdn.dix.lat/me/q2se_20261008-r2x1-0f9o-f489.jpg';
             }
 
             let statusMarry = '';

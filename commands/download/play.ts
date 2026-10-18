@@ -67,7 +67,6 @@ const getAudio = async (videoUrl) => {
     const apis = [
         `https://api.delirius.online/download/ytmp3?url=${enc}`,
         `https://api-gohan-v1.onrender.com/download/ytaudio?url=${enc}&download=true`,
-        `https://api.ryuzei.xyz/download/ytmp3/v4?url=${enc}&quality=64`,
         `https://api.starlights.uk/api/download/ytmp3?url=${enc}`,
         `https://api-gohan-v1.onrender.com/download/ytaudio?url=${enc}`,
         stellarUrl('/dl/ytmp3', { url: videoUrl })

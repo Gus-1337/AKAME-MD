@@ -123,7 +123,6 @@ export const getAudioBuffer = (videoUrl: string): Promise<Buffer> => {
     return enParalelo('AUDIO', [
         ['delirius', () => desdeApi(`https://api.delirius.online/download/ytmp3?url=${e}`, descargarAudio)],
         ['gohan', () => desdeApi(`https://api-gohan-v1.onrender.com/download/ytaudio?url=${e}&download=true`, descargarAudio)],
-        ['ryuzei', () => desdeApi(`https://api.ryuzei.xyz/download/ytmp3/v4?url=${e}&quality=64`, descargarAudio)],
         ['starlights', () => desdeApi(`https://api.starlights.uk/api/download/ytmp3?url=${e}`, descargarAudio)],
         ['starlights-v2', () => desdeApi(`https://api.starlights.uk/api/download/ytmp3v2?url=${e}`, descargarAudio)],
         ['yosoyyo', () => desdeYosoyyoAudio(videoUrl)],
