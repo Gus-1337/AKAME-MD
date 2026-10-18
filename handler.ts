@@ -6,6 +6,7 @@ import { broadcast } from '#index';
 import { LRUCache } from 'lru-cache';
 import { obtenerPrimario } from '#primario';
 import { estaActiva } from './lib/ajustes.ts';
+import { esOwnerExtra } from './lib/owners.ts';
 
 // Comandos de gacha (waifus y Pokémon): se apagan con `.gacha off`.
 const COMANDOS_GACHA = ['harem', 'mywaifus', 'misswaifus', 'reclamar', 'claim', 'c', 'venderpk', 'liberarpk', 'soltarpk', 'pokemon', 'pk', 'rp', 'pokemones', 'pokes', 'mispokemon', 'waifu', 'waifus', 'rw', 'cpk', 'atrapar', 'reclamarpk'];
@@ -238,6 +239,8 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
         const cleanNum = normalizeNumber(String(ownerConfig));
         isOwner = normalizedSender === cleanNum || altSender === cleanNum || baseSender === stripMexOne(cleanNum);
     }
+    // Owners agregados con .setowner (guardados aparte de config.ts)
+    if (!isOwner) isOwner = esOwnerExtra(normalizedSender) || esOwnerExtra(altSender) || esOwnerExtra(baseSender);
     let isAdmins = false;
     let isBotAdmins = false;
     if (isGroup && groupMetadata?.participants) {

@@ -29,3 +29,4 @@ subbots/
 # Base de datos local (datos de usuarios, nunca subir)
 database/
 *.traineddata
+database/owners.json
