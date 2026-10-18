@@ -99,6 +99,7 @@ const getAudio = async (videoUrl: string): Promise<Buffer> => {
     const apis = [
         `https://api.delirius.online/download/ytmp3?url=${e}`,
         `https://api-gohan-v1.onrender.com/download/ytaudio?url=${e}&download=true`,
+        `https://api.ryuzei.xyz/download/ytmp3/v4?url=${e}&quality=64`,
         `https://api.starlights.uk/api/download/ytmp3?url=${e}`,
         `https://api.starlights.uk/api/download/ytmp3v2?url=${e}`,
         `https://api-gohan-v1.onrender.com/download/ytaudio?url=${e}`,

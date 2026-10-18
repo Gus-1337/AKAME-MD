@@ -65,6 +65,7 @@ const obtenerAudio = async (videoUrl: string) => {
         stellarUrl('/dl/ytmp3', { url: videoUrl }),
         `https://api.starlights.uk/api/download/ytmp3?url=${e}`,
         `https://api.starlights.uk/api/download/ytmp3v2?url=${e}`,
+        `https://api.ryuzei.xyz/download/ytmp3/v4?url=${e}&quality=64`,
         `https://api-gohan-v1.onrender.com/download/ytaudio?url=${e}&download=true`
     ];
     let ultimo: any = null;
