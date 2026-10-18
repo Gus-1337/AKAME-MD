@@ -24,7 +24,7 @@ export default {
         }
 
         const yo = await UserJid(sock, chat, sender);
-        const objetivo = resolverObjetivo(m, yo);
+        const objetivo = UserJid(sock, chat, resolverObjetivo(m, yo));
         const nuevo = cambiarCoins(chat, objetivo, 'add', monto);
         const moneda = (config as any)?.coin || 'coins';
         const esYo = objetivo === yo;
