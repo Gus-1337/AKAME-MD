@@ -31,3 +31,12 @@ export const agregarOwnerExtra = (numero: string): boolean => {
     fs.writeFileSync(ARCHIVO, JSON.stringify(lista, null, 2));
     return true;
 };
+
+/** Quita un owner agregado con .setowner. Devuelve false si no estaba en la lista. */
+export const quitarOwnerExtra = (numero: string): boolean => {
+    const n = soloDigitos(numero);
+    const lista = leerOwnersExtra();
+    if (!n || !lista.includes(n)) return false;
+    fs.writeFileSync(ARCHIVO, JSON.stringify(lista.filter((x) => x !== n), null, 2));
+    return true;
+};
