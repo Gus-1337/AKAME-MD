@@ -1,37 +1,47 @@
 import { generateWAMessageFromContent, generateWAMessage, jidNormalizedUser } from '@whiskeysockets/baileys';
 import axios from 'axios';
 import crypto from 'crypto';
+import { stellarUrl } from '../../lib/stellar.ts';
 
 const MAX_VIDEOS = 10;
 const WORKERS = 8;                  // descargas simultáneas
 const MAX_BYTES = 45 * 1024 * 1024; // descarta videos muy pesados
 const TIMEOUT_BAJADA = 12000;
 const TIMEOUT_BUSQUEDA = 10000;
+const ESPERA_EXTRA = 2500;          // tras la primera respuesta, espera un poco más a las demás fuentes
+
+const DVYER_KEY = process.env.DVYER_KEY || '';
+
+type Video = { title: string; nowm: string; wm: string; autor: string; pagina: string };
 
 /** Convierte cualquier forma de respuesta de búsqueda de TikTok a un formato común. */
-const normalizar = (v: any) => ({
+const normalizar = (v: any): Video => ({
     title: String(v?.title || v?.desc || v?.titulo || v?.description || '').trim(),
-    nowm: v?.url_nowm || v?.nowm || v?.no_watermark || v?.play || v?.video || v?.url || '',
-    wm: v?.url_wm || v?.wm || v?.hdplay || '',
-    autor: v?.author?.username || v?.author?.nickname || (typeof v?.author === 'string' ? v.author : '') || ''
+    nowm: v?.url_nowm || v?.nowm || v?.no_watermark || v?.dl || v?.play || v?.video || v?.url || '',
+    wm: v?.url_wm || v?.wm || v?.hdplay || v?.watermark || '',
+    autor: v?.author?.username || v?.author?.nickname || (typeof v?.author === 'string' ? v.author : '') || v?.username || '',
+    // DVYER solo da la página del video; el archivo se pide al descargar
+    pagina: v?.video_url || ''
 });
 
-const extraerLista = (d: any) => {
+const extraerLista = (d: any): Video[] => {
     const arr = [d?.result, d?.resultado, d?.results, d?.data, d?.data?.data, d?.data?.results, d]
         .find((x) => Array.isArray(x) && x.length);
     if (!arr) throw new Error('sin resultados');
-    const lista = arr.map(normalizar).filter((v) => v.nowm.startsWith('http') || v.wm.startsWith('http'));
+    const lista = arr.map(normalizar).filter((v: Video) =>
+        v.nowm.startsWith('http') || v.wm.startsWith('http') || (DVYER_KEY && v.pagina.startsWith('http')));
     if (!lista.length) throw new Error('sin videos');
     return lista;
 };
 
 const UA = { 'User-Agent': 'Mozilla/5.0' };
 
-/** Varias APIs de búsqueda en paralelo; gana la primera que devuelva videos. */
-const buscar = (q: string) => {
+/** Búsquedas en paralelo. Con la primera respuesta válida, espera ESPERA_EXTRA ms más a las demás y junta resultados. */
+const buscar = (q: string): Promise<Video[]> => {
     const e = encodeURIComponent(q);
-    return Promise.any([
-        axios.get(`https://api-faa.my.id/faa/tiktok-search?q=${e}`, { timeout: TIMEOUT_BUSQUEDA, headers: UA })
+    const fuentes: Promise<Video[]>[] = [
+        // Stellar: trae el enlace directo del video en la misma búsqueda
+        axios.get(stellarUrl('/search/tiktok', { query: q }), { timeout: TIMEOUT_BUSQUEDA, headers: UA })
             .then((r) => extraerLista(r.data)),
         axios.get(`https://api.delirius.online/search/tiktoksearch?query=${e}`, { timeout: TIMEOUT_BUSQUEDA, headers: UA })
             .then((r) => extraerLista(r.data)),
@@ -39,15 +49,83 @@ const buscar = (q: string) => {
             .then((r) => extraerLista(r.data)),
         axios.get(`https://api.melodiaauris.qzz.io/v1/search/tiktok?q=${e}`, { timeout: TIMEOUT_BUSQUEDA, headers: { ...UA, Authorization: 'Bearer OguriCap-Bot' } })
             .then((r) => extraerLista(r.data))
-    ]).catch((err) => {
-        console.log('[TTSEARCH] búsqueda fallida:', err?.errors?.map((x) => x.message).join(' | '));
-        throw new Error('no pude buscar en TikTok, intenta de nuevo');
+    ];
+    if (DVYER_KEY) {
+        fuentes.push(
+            axios.get(`https://dvyer-api.com/tiktok/search?q=${e}&apikey=${encodeURIComponent(DVYER_KEY)}`, { timeout: TIMEOUT_BUSQUEDA, headers: UA })
+                .then((r) => extraerLista(r.data))
+        );
+    }
+
+    return new Promise((resolve, reject) => {
+        const juntados: Video[] = [];
+        const errores: string[] = [];
+        let pendientes = fuentes.length;
+        let primera = false;
+        let timer: NodeJS.Timeout | null = null;
+
+        const terminar = () => {
+            if (timer) clearTimeout(timer);
+            if (!juntados.length) return reject(new Error('no pude buscar en TikTok, intenta de nuevo'));
+            // Primero los que traen enlace directo (más rápidos), luego los que requieren resolver (DVYER)
+            const directos = juntados.filter((v) => v.nowm.startsWith('http') || v.wm.startsWith('http'));
+            const resto = juntados.filter((v) => !(v.nowm.startsWith('http') || v.wm.startsWith('http')));
+            const vistos = new Set<string>();
+            const unicos = [...directos, ...resto].filter((v) => {
+                const clave = v.nowm || v.wm || v.pagina;
+                if (vistos.has(clave)) return false;
+                vistos.add(clave);
+                return true;
+            });
+            resolve(unicos);
+        };
+
+        fuentes.forEach((p, i) => {
+            p.then((lista) => {
+                juntados.push(...lista);
+                if (!primera) {
+                    primera = true;
+                    timer = setTimeout(terminar, ESPERA_EXTRA);
+                }
+            }).catch((err) => {
+                errores.push(err?.message || 'error');
+            }).finally(() => {
+                pendientes--;
+                if (pendientes === 0) {
+                    if (!primera) console.log('[TTSEARCH] búsqueda fallida:', errores.join(' | '));
+                    terminar();
+                }
+            });
+        });
     });
 };
 
-/** Descarga un video; prueba sin marca de agua y luego con marca. Devuelve null si ambos fallan. */
-const bajarVideo = async (v: ReturnType<typeof normalizar>) => {
-    for (const url of [v.nowm, v.wm].filter((u) => u.startsWith('http'))) {
+/** Obtiene el archivo de un video de DVYER (espera a que el enlace esté listo). */
+const resolverDvyer = async (pagina: string): Promise<string> => {
+    const api = `https://dvyer-api.com/ttdlmp4?url=${encodeURIComponent(pagina)}&mode=link&apikey=${encodeURIComponent(DVYER_KEY)}`;
+    for (let intento = 1; intento <= 6; intento++) {
+        const { data } = await axios.get(api, { timeout: 20000, headers: UA });
+        if (data?.ok === false) break;
+        if (data?.ready !== false && typeof data?.download_url === 'string' && data.download_url.startsWith('http')) {
+            return data.download_url;
+        }
+        await new Promise((r) => setTimeout(r, 2500));
+    }
+    return '';
+};
+
+/** Descarga un video; prueba sin marca de agua y luego con marca. Devuelve null si todo falla. */
+const bajarVideo = async (v: Video) => {
+    const urls = [v.nowm, v.wm].filter((u) => u.startsWith('http'));
+    if (!urls.length && v.pagina && DVYER_KEY) {
+        try {
+            const url = await resolverDvyer(v.pagina);
+            if (url) urls.push(url);
+        } catch {
+            // sin enlace de DVYER
+        }
+    }
+    for (const url of urls) {
         try {
             const res = await axios.get(url, {
                 responseType: 'arraybuffer',
@@ -67,7 +145,7 @@ const bajarVideo = async (v: ReturnType<typeof normalizar>) => {
 };
 
 /** Descarga en paralelo (WORKERS a la vez) y devuelve los primeros MAX_VIDEOS válidos, en orden. */
-const bajarTodos = async (candidatos: ReturnType<typeof normalizar>[]) => {
+const bajarTodos = async (candidatos: Video[]) => {
     const ok: { i: number; video: any }[] = [];
     let siguiente = 0;
     const worker = async () => {
