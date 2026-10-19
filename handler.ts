@@ -241,6 +241,20 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
     }
     // Owners agregados con .setowner (guardados aparte de config.ts)
     if (!isOwner) isOwner = esOwnerExtra(normalizedSender) || esOwnerExtra(altSender) || esOwnerExtra(baseSender);
+    // En grupos el remitente puede llegar como LID y no convertirse a número. Revisamos todos los
+    // identificadores del mensaje (teléfono y LID) antes de negar el acceso al dueño.
+    const idsRemitente = [rawMsg?.key?.participantAlt, rawMsg?.participantAlt, rawMsg?.key?.participant, rawMsg?.participant, msgSender, rawParticipant]
+        .filter((x: any) => typeof x === 'string' && x.length > 0);
+    const numerosRemitente = new Set<string>();
+    for (const id of idsRemitente) {
+        numerosRemitente.add(normalizeNumber(id));
+        try { numerosRemitente.add(normalizeNumber(UserJid(sock, chat, id) || id)); } catch {}
+    }
+    if (!isOwner && ownerConfig instanceof Set) {
+        for (const n of numerosRemitente) {
+            if (n && (ownerConfig.has(n) || ownerConfig.has(stripMexOne(n)) || esOwnerExtra(n))) { isOwner = true; break; }
+        }
+    }
     let isAdmins = false;
     let isBotAdmins = false;
     if (isGroup && groupMetadata?.participants) {
@@ -357,6 +371,7 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
     // Subbots: sin comandos de dueño del bot ni de la categoría subbot (no crean subbots en subbots)
     if ((global as any).esSubbot && (cmd.owner || cmd.category === 'subbot')) return;
     if (cmd.owner &&!isOwner) {
+        console.log('[OWNER] acceso negado a', rawCommand, '| ids:', [...numerosRemitente].join(', '));
         queueMicrotask(() => { broadcast('security_event', { type: 'unauthorized_access', command: rawCommand, sender: normalizedSender, chat }); });
         return msg.reply('ׅ ׄ ✿ Este comando solo puede ser utilizado por el dueño del bot.');
     }
