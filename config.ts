@@ -5,7 +5,7 @@ import chalk from 'chalk';
 
 const ownerNumbers = new Set([
     '51926519334',
-    '523319164806',
+    '51986425908',
     '5491128178894'
 ]);
 
