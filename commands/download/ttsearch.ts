@@ -3,8 +3,8 @@ import axios from 'axios';
 import crypto from 'crypto';
 import { stellarUrl } from '../../lib/stellar.ts';
 
-const MAX_VIDEOS = 10;
-const WORKERS = 8;                  // descargas simultáneas
+const MAX_VIDEOS = 15;
+const WORKERS = 15;                 // descargas simultáneas
 const MAX_BYTES = 45 * 1024 * 1024; // descarta videos muy pesados
 const TIMEOUT_BAJADA = 12000;
 const TIMEOUT_BUSQUEDA = 10000;
