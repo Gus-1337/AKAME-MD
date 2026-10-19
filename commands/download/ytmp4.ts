@@ -97,13 +97,30 @@ const intentarDorratz = async (videoUrl: string, type: 'audio' | 'video', qualit
     throw ultimo;
 };
 
+const DVYER_KEY = process.env.DVYER_KEY || '';
+
+/** DVYER: el enlace puede estar "preparándose"; se consulta de nuevo hasta que esté listo (máx. ~40 s). */
+const intentarDvyer = async (videoUrl: string): Promise<Buffer> => {
+    if (!DVYER_KEY) throw new Error('dvyer sin clave');
+    const api = `https://dvyer-api.com/ytmp4?mode=link&quality=360p&url=${encodeURIComponent(videoUrl)}&apikey=${encodeURIComponent(DVYER_KEY)}`;
+    for (let intento = 1; intento <= 10; intento++) {
+        const { data } = await axios.get(api, { timeout: 30000, headers: { 'User-Agent': 'Mozilla/5.0' } });
+        if (data?.ok === false) throw new Error('dvyer error');
+        if (data?.ready && typeof data.download_url === 'string' && data.download_url.startsWith('http')) {
+            return descargar(data.download_url);
+        }
+        await new Promise((r) => setTimeout(r, 4000));
+    }
+    throw new Error('dvyer no estuvo listo');
+};
+
 /** Principales en paralelo; si fallan, respaldo yosoyyo. Dos rondas. */
 const getVideo = async (videoUrl: string): Promise<Buffer> => {
     const { principales, respaldo } = sources(videoUrl);
     let ultimo: any = null;
     for (let ronda = 1; ronda <= 2; ronda++) {
         try {
-            return await Promise.any([...principales.map((api) => intentar(api)), intentarDorratz(videoUrl, 'video', 360)]);
+            return await Promise.any([intentarDvyer(videoUrl), ...principales.map((api) => intentar(api)), intentarDorratz(videoUrl, 'video', 360)]);
         } catch (e) { ultimo = e; }
         if (respaldo) {
             try {
