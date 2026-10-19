@@ -16,6 +16,7 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import fs from 'node:fs';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const [MAJOR, MINOR] = process.versions.node.split('.').map(Number);
@@ -32,6 +33,10 @@ if (!alMenos(22, 6)) {
 }
 
 const flags = [];
+
+// Variables de entorno (claves de API) desde .env, que no se sube a GitHub.
+// --env-file-if-exists existe desde Node 22.9; en versiones viejas se omite.
+if (alMenos(22, 9) && fs.existsSync(path.join(ROOT, '.env'))) flags.push('--env-file-if-exists=.env');
 
 // TypeScript sin compilar (type stripping): activo por defecto desde 22.18.0 / 23.6.0
 const tsPorDefecto = alMenos(22, 18) || alMenos(23, 6);
