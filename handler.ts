@@ -287,6 +287,7 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
     msg.isAdmin = isAdmins;
     msg.isBotAdmin = isBotAdmins;
     msg.isOwner = isOwner;
+    msg.debugOwner = { ids: [...numerosRemitente], participant: rawParticipant, participantAlt: rawMsg?.key?.participantAlt || '', normalizado: normalizedSender, esOwner: isOwner };
     msg.groupMetadata = groupMetadata;
 
     const nativeText = extractNativeText(rawMsg);
