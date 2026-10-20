@@ -113,14 +113,14 @@ export default {
             const videoUrl = `https://youtu.be/${video.videoId}`;
             const titulo = limpiarNombre(video.title);
 
-            // La tarjeta sale ya, mientras se descarga el audio
-            const tarjeta = sock.sendMessage(chat, {
-                image: { url: video.thumbnail },
-                caption: `*${video.title}*\n\n✿ Canal » ${video.author?.name || 'Desconocido'}\n✿ Vistas » ${formatViews(video.views)}\n✿ Duración » ${video.timestamp || '?'}\n✿ Link » ${videoUrl}\n\n_Enviando audio..._`
-            }, { quoted: msg }).catch(() => null);
-
             const audio = await getAudio(videoUrl);
-            await tarjeta;
+
+            // Tarjeta con miniatura, ya con el tamaño del audio
+            const mb = (audio.length / (1024 * 1024)).toFixed(2);
+            await sock.sendMessage(chat, {
+                image: { url: video.thumbnail },
+                caption: `*「✦」 ¡Descargando!*\n\n> ❀ Título » *${video.title}*\n\n> ✐ Canal » *${video.author?.name || 'Desconocido'}*\n> ⴵ Duración » *${video.timestamp || '?'}*\n> ❒ Tamaño » *${mb}MB*\n> 🜸 Link » _${videoUrl}_`
+            }, { quoted: msg }).catch(() => null);
 
             if (audio.length > DOC_BYTES) {
                 // Archivos grandes: como documento para que WhatsApp no lo rechace
