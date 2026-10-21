@@ -31,6 +31,42 @@ const RESPALDOS: Array<{ nombre: string; pedir: (url: string) => Promise<any>; l
     }
 ];
 
+/** Tipo MIME según la extensión del archivo (los respaldos a veces lo mandan vacío o genérico). */
+const MIMES: Record<string, string> = {
+    zip: 'application/zip',
+    rar: 'application/vnd.rar',
+    '7z': 'application/x-7z-compressed',
+    apk: 'application/vnd.android.package-archive',
+    xapk: 'application/zip',
+    apks: 'application/zip',
+    obb: 'application/octet-stream',
+    pdf: 'application/pdf',
+    txt: 'text/plain',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ppt: 'application/vnd.ms-powerpoint',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    mp4: 'video/mp4',
+    mkv: 'video/x-matroska',
+    mp3: 'audio/mpeg',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    iso: 'application/x-iso9660-image',
+    exe: 'application/x-msdownload',
+    json: 'application/json',
+    html: 'text/html'
+};
+
+const mimeDe = (nombre: string, mime?: string): string => {
+    const ext = path.extname(nombre || '').slice(1).toLowerCase();
+    if (MIMES[ext]) return MIMES[ext];
+    if (mime && mime !== 'application/octet-stream') return mime;
+    return 'application/octet-stream';
+};
+
 /** Busca el archivo en los respaldos en orden y lo baja con el primero que funcione. */
 async function obtenerYDescargar(url: string, destino: string): Promise<{ info: Info; carpeta?: any[]; nombreCarpeta?: string }> {
     let ultimoError = 'sin respuesta';
@@ -102,7 +138,7 @@ export default {
             const tamano = fs.statSync(destino).size;
             await sock.sendMessage(chat, {
                 document: { stream: fs.createReadStream(destino) },
-                mimetype: info.mime || 'application/octet-stream',
+                mimetype: mimeDe(info.nombre, info.mime),
                 fileName: info.nombre || 'archivo',
                 caption: `♡ AKAME-MD - MEDIAFIRE ♡\n\n✿ *Nombre:* ${info.nombre}\n✿ *Peso:* ${mb(tamano)}`
             }, { quoted: m });
