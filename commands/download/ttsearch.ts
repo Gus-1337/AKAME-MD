@@ -172,11 +172,17 @@ export default {
     command: ['ttsearch', 'tiktoksearch', 'tts'],
     category: 'download',
     description: 'busca videos en tiktok',
-    run: async (ctx) => {
+    run: async (ctx: any): Promise<any> => {
         const { sock, msg, chat, args, jid } = ctx;
         const targetJid = jid || chat;
         const query = args.join(' ').trim();
         if (!query) return sock.sendMessage(chat, { text: `🌸 Ingresa una búsqueda\nEjemplo: .tts goku` }, { quoted: msg });
+
+        // Si es un link de TikTok, se descarga igual que .tt
+        if (/(?:tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com)/i.test(query)) {
+            const tiktok = (await import('./Tiktok.ts')).default;
+            return tiktok.run({ ...ctx, m: msg });
+        }
 
         try {
             await sock.sendMessage(chat, { react: { text: '🔍', key: msg.key } });

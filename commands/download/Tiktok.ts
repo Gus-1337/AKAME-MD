@@ -124,22 +124,24 @@ export default {
     category: 'download',
     group: true,
 
-    run: async ({ chat, m, sock, args }: any) => {
+    run: async (ctx: any): Promise<any> => {
+        const { chat, m, sock, args } = ctx;
         const msgId = m?.id || m?.key?.id;
 
         try {
             const url = args.join(' ').trim();
             if (!url) {
                 return sock.sendMessage(chat, {
-                    text: `♡ AKAME-MD - TIKTOK ♡\n\n✿ Ingresa un link de TikTok bb\n\nEjemplo: *.tiktok https://vm.tiktok.com/ZMh8nTB9b/*`
+                    text: `♡ AKAME-MD - TIKTOK ♡\n\n✿ Ingresa un link de TikTok o una búsqueda bb\n\nEjemplo: *.tt https://vm.tiktok.com/ZMh8nTB9b/*\nEjemplo: *.tt goku*`
                 }, { quoted: m });
             }
 
             const tiktokRegex = /(?:tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com)/i;
             if (!tiktokRegex.test(url)) {
-                return sock.sendMessage(chat, { text: `✿ Ese no es un link de TikTok válido bb ✿` }, { quoted: m });
+                // Sin link: es una búsqueda, igual que .ttsearch
+                const ttsearch = (await import('./ttsearch.ts')).default;
+                return ttsearch.run({ ...ctx, msg: m });
             }
-
             await sock.sendMessage(chat, { react: { text: '⏳', key: m.key } });
             global.broadcast?.('cmd_progress', { id: msgId, step: 'search_started', url });
 
