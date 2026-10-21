@@ -4,7 +4,8 @@ import { generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysoc
 const BUSQUEDA = 'https://api.siputzx.my.id/api/s/mcpedl';
 const FORMULARIO = 'https://mcpedl.org/show_file.php';
 const LIMITE_MB = 400;
-const MAX_RESULTADOS = 5;
+const MAX_RESULTADOS = 15;
+const POR_LISTA = 10; // límite de opciones por lista en WhatsApp
 const UA = { 'User-Agent': 'Mozilla/5.0' };
 
 type Addon = { title: string; link: string; image?: string };
@@ -43,9 +44,9 @@ async function obtenerArchivo(pagina: string, titulo: string): Promise<string | 
 }
 
 /** Manda la lista con selección única y la imagen del primer resultado. */
-async function enviarLista(sock: any, chat: string, quoted: any, usedPrefix: string, q: string, addons: Addon[]) {
+async function enviarLista(sock: any, chat: string, quoted: any, usedPrefix: string, q: string, addons: Addon[], conImagen: boolean, inicio: number) {
     const rows = addons.map((a, i) => ({
-        title: `${i + 1}. ${a.title}`.slice(0, 40),
+        title: `${inicio + i + 1}. ${a.title}`.slice(0, 40),
         description: 'Addon de Minecraft Bedrock'.slice(0, 72),
         id: `${usedPrefix}mcaddon link:${a.link}`
     }));
@@ -58,7 +59,7 @@ async function enviarLista(sock: any, chat: string, quoted: any, usedPrefix: str
     ]).replace(/\n> AKAME-MD 🌸$/, '');
 
     let header: any = undefined;
-    const imagen = addons.find((a) => a.image)?.image;
+    const imagen = conImagen ? addons.find((a) => a.image)?.image : undefined;
     if (imagen) {
         try {
             const media = await prepareWAMessageMedia({ image: { url: imagen } }, { upload: sock.waUploadToServer });
@@ -112,7 +113,8 @@ async function enviarAddon(sock: any, msg: any, chat: string, pagina: string, ti
 
     await sock.sendMessage(chat, {
         document: buffer,
-        mimetype: 'application/octet-stream',
+        // zip por dentro: con este tipo WhatsApp lo muestra con su nombre .mcaddon (no como .bin)
+        mimetype: 'application/zip',
         fileName: nombre,
         caption: caja('MCADDON', [
             `✧ *${titulo}*`,
@@ -166,7 +168,11 @@ export default {
                 return responder(caja('MCADDON', [`✧ No encontré addons para: *${q}*`]));
             }
 
-            await enviarLista(sock, chat, msg, usedPrefix, q, addons);
+            // WhatsApp muestra máximo 10 opciones por lista: se mandan en bloques
+            for (let i = 0; i < addons.length; i += POR_LISTA) {
+                const bloque = addons.slice(i, i + POR_LISTA);
+                await enviarLista(sock, chat, msg, usedPrefix, q, bloque, i === 0, i);
+            }
             await sock.sendMessage(chat, { react: { text: '✅', key: msg.key } }).catch(() => null);
         } catch (e: any) {
             console.log('[MCADDON ERROR]', e?.message);
