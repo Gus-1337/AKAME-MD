@@ -48,28 +48,39 @@ export default {
 
             const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
             const pie = (i: number) => i === 0 ?
-`☬ *PINTEREST* ☬
+`✧ *PINTEREST* ✧
 
-♡ *Búsqueda:* ${q}
-♡ *Resultados:* ${images.length} fotos
+> ✦ Búsqueda » *${q}*
+> ❖ Resultados » *${images.length}* fotos
 
-☬ *AKAME-MD* ♡` : '';
+⋆ AKAME-MD ⋆` : '';
 
-            // 1) Se preparan todas en paralelo (lo lento es subir las imágenes)
-            const preparadas: any[] = new Array(images.length);
-            for (let i = 0; i < images.length; i += 5) {
-                await Promise.all(images.slice(i, i + 5).map(async (url, j) => {
-                    const child = await generateWAMessage(targetJid, { image: { url }, caption: pie(i + j) }, { upload: sock.waUploadToServer });
+            // Preparación en paralelo (5 a la vez) y envío en orden apenas cada una esté lista
+            const preparar = (i: number) => generateWAMessage(targetJid, { image: { url: images[i] }, caption: pie(i) }, { upload: sock.waUploadToServer })
+                .then((child: any) => {
                     child.message.messageContextInfo = {
                         messageSecret: crypto.randomBytes(32),
                         messageAssociation: { associationType: 1, parentMessageKey: opener.key }
                     };
-                    preparadas[i + j] = child;
-                }).map((p) => p.catch(() => null)));
-            }
+                    return child;
+                })
+                .catch(() => null);
 
-            // 2) Se envían seguidas con pausa corta; si WhatsApp pone límite, se reintenta esa imagen
-            for (const child of preparadas) {
+            const listas: Promise<any>[] = [];
+            let siguiente = 0;
+            const worker = async () => {
+                while (siguiente < images.length) {
+                    const i = siguiente++;
+                    listas[i] = preparar(i);
+                    await listas[i];
+                }
+            };
+            // Los 5 workers arrancan juntos; las promesas quedan en orden
+            const pool = Promise.all(Array.from({ length: Math.min(5, images.length) }, worker));
+
+            for (let i = 0; i < images.length; i++) {
+                while (!listas[i]) await esperar(20);
+                const child = await listas[i];
                 if (!child) continue;
                 for (let intento = 1; intento <= 4; intento++) {
                     try {
@@ -82,6 +93,7 @@ export default {
                 }
                 await esperar(200);
             }
+            await pool;
 
         } catch (e) {
             console.log(e);
