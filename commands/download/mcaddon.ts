@@ -13,10 +13,26 @@ type Addon = { title: string; link: string; image?: string };
 const caja = (titulo: string, lineas: string[]) =>
     `˚₊· ͟͟͞͞➳❥ *${titulo}*\n───────────────\n${lineas.join('\n')}\n───────────────\n> AKAME-MD 🌸`;
 
-/** Busca addons por nombre, deja fuera las APKs del juego y devuelve hasta MAX_RESULTADOS. */
+/** Una consulta al buscador. La búsqueda va codificada en la URL (un apóstrofe sin codificar da 403). */
+async function consultar(q: string): Promise<any[]> {
+    const { data } = await axios.get(`${BUSQUEDA}?q=${encodeURIComponent(q)}`, { timeout: 12000, headers: UA });
+    return data?.data || [];
+}
+
+/** Busca addons por nombre (hasta MAX_RESULTADOS, sin APKs). Si falla o no trae nada, reintenta sin signos. */
 async function buscar(q: string): Promise<Addon[]> {
-    const { data } = await axios.get(BUSQUEDA, { params: { q }, timeout: 20000, headers: UA });
-    const lista: any[] = data?.data || [];
+    const sinSignos = q.replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+    const intentos = [q, sinSignos].filter((x, i, a) => x && a.indexOf(x) === i);
+    let lista: any[] = [];
+    for (const termino of intentos) {
+        try {
+            lista = await consultar(termino);
+        } catch (e: any) {
+            console.log('[MCADDON] búsqueda falló:', termino, e?.message);
+            lista = [];
+        }
+        if (lista.length) break;
+    }
     return lista
         .filter((r) => r?.link && !/apk/i.test(r.title || ''))
         .slice(0, MAX_RESULTADOS)
