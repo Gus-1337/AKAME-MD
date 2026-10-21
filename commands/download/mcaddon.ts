@@ -4,7 +4,7 @@ import { generateWAMessageFromContent, prepareWAMessageMedia } from '@whiskeysoc
 const BUSQUEDA = 'https://api.siputzx.my.id/api/s/mcpedl';
 const FORMULARIO = 'https://mcpedl.org/show_file.php';
 const LIMITE_MB = 400;
-const MAX_RESULTADOS = 15;
+const MAX_RESULTADOS = 10;
 const POR_LISTA = 10; // límite de opciones por lista en WhatsApp
 const UA = { 'User-Agent': 'Mozilla/5.0' };
 
