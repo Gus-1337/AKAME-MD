@@ -12,7 +12,7 @@ const emojis: any = {
 // Estilo de lista: bloque por categoría con ♡ y ➪ / ✦ (igual que la lista de referencia)
 const bloqueCategoria = (titulo: string, cmds: { cmd: string; desc: string }[], p: string, emoji: string) => {
     let t = `┏━━〔 ♡ ${emoji} ${titulo.toUpperCase()} ♡ 〕━━⬣\n\n`;
-    for (const x of cmds) t += `┃ ♡ ➪ ${p}${x.cmd}\n┃ ✦ ${x.desc}\n┃\n`;
+    for (const x of cmds) t += `┃ ➪ ${p}${x.cmd}\n┃ 💖 ${x.desc}\n┃\n`;
     t += `┗━━━━━━━━━━━━━━━⬣\n\n`;
     return t;
 };
