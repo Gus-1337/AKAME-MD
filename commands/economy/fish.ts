@@ -8,31 +8,34 @@ import { saveDB } from '#db';
 
 // Cada pez tiene la MISMA probabilidad (1 de 25). El peso sale al azar dentro de su rango.
 const PECES = [
-    { nombre: 'Anchoveta 🐟', coins: 120, min: 0.05, max: 0.3, img: 'anchoveta' },
-    { nombre: 'Sardina 🐟', coins: 150, min: 0.2, max: 1, img: 'sardina' },
-    { nombre: 'Camarón 🦐', coins: 350, min: 0.05, max: 0.5, img: 'camaron' },
-    { nombre: 'Pez Payaso 🐠', coins: 300, min: 0.1, max: 0.5, img: 'pez-payaso' },
-    { nombre: 'Caballa 🐟', coins: 220, min: 0.5, max: 2, img: 'caballa' },
-    { nombre: 'Jurel 🐟', coins: 260, min: 0.5, max: 3, img: 'jurel' },
-    { nombre: 'Cangrejo 🦀', coins: 500, min: 0.2, max: 2, img: 'cangrejo' },
-    { nombre: 'Trucha 🐠', coins: 400, min: 0.5, max: 4, img: 'trucha' },
-    { nombre: 'Calamar 🦑', coins: 700, min: 0.5, max: 5, img: 'calamar' },
-    { nombre: 'Pulpo 🐙', coins: 800, min: 1, max: 6, img: 'pulpo' },
-    { nombre: 'Pez Globo 🐡', coins: 900, min: 0.5, max: 3, img: 'pez-globo' },
-    { nombre: 'Langosta 🦞', coins: 1000, min: 0.5, max: 4, img: 'langosta' },
-    { nombre: 'Atún 🐟', coins: 1100, min: 5, max: 30, img: 'atun' },
+    // Mar peruano
+    { nombre: 'Anchoveta 🐟', coins: 100, min: 0.02, max: 0.1, img: 'anchoveta' },
+    { nombre: 'Sardina peruana 🐟', coins: 120, min: 0.05, max: 0.3, img: 'sardina' },
+    { nombre: 'Pejerrey 🐟', coins: 250, min: 0.1, max: 0.5, img: 'sardina' },
+    { nombre: 'Caballa 🐟', coins: 220, min: 0.3, max: 1.2, img: 'caballa' },
+    { nombre: 'Jurel 🐟', coins: 260, min: 0.4, max: 2.5, img: 'jurel' },
+    { nombre: 'Bonito 🐟', coins: 350, min: 1.5, max: 5, img: 'atun' },
+    { nombre: 'Lenguado 🐟', coins: 400, min: 0.5, max: 2, img: 'trucha' },
+    { nombre: 'Corvina 🐟', coins: 500, min: 1, max: 5, img: 'caballa' },
+    { nombre: 'Cangrejo de roca 🦀', coins: 450, min: 0.1, max: 0.5, img: 'cangrejo' },
+    { nombre: 'Pulpo común 🐙', coins: 800, min: 0.5, max: 3, img: 'pulpo' },
+    { nombre: 'Calamar gigante 🦑', coins: 900, min: 2, max: 12, img: 'calamar' },
+    { nombre: 'Pez globo 🐡', coins: 700, min: 0.2, max: 1, img: 'pez-globo' },
+    { nombre: 'Langosta espinosa 🦞', coins: 1000, min: 0.3, max: 2, img: 'langosta' },
     { nombre: 'Mero 🐟', coins: 1200, min: 5, max: 40, img: 'mero' },
-    { nombre: 'Pez Espada 🗡️', coins: 1300, min: 10, max: 60, img: 'pez-espada' },
-    { nombre: 'Tiburón 🦈', coins: 1500, min: 20, max: 150, img: 'tiburon' },
-    { nombre: 'Pez Ángel 🐠', coins: 1800, min: 0.5, max: 3, img: 'pez-angel' },
-    { nombre: 'Pez Dorado 🌟', coins: 2000, min: 1, max: 5, img: 'pez-dorado' },
-    { nombre: 'Pez Luna 🌙', coins: 2500, min: 50, max: 500, img: 'pez-luna' },
-    { nombre: 'Orca 🐋', coins: 3500, min: 1000, max: 6000, img: 'orca' },
-    { nombre: 'Ballena 🐳', coins: 3000, min: 500, max: 3000, img: 'ballena' },
-    { nombre: 'Cachalote 🐋', coins: 4000, min: 2000, max: 15000, img: 'cachalote' },
-    { nombre: 'Pez Sirena 🧜', coins: 6000, min: 3, max: 10, img: 'pez-sirena' },
-    { nombre: 'Pez Dragón 🐉', coins: 8000, min: 5, max: 25, img: 'pez-dragon' },
-    { nombre: 'Kraken 🦑', coins: 10000, min: 300, max: 1500, img: 'kraken' }
+    { nombre: 'Atún aleta amarilla 🐟', coins: 1600, min: 10, max: 60, img: 'atun' },
+    { nombre: 'Tiburón azul 🦈', coins: 1500, min: 20, max: 100, img: 'tiburon' },
+    { nombre: 'Pez espada 🗡️', coins: 1800, min: 30, max: 150, img: 'pez-espada' },
+    { nombre: 'Raya látigo 🐟', coins: 2500, min: 10, max: 50, img: 'pez-luna' },
+    // Ríos de la Amazonía
+    { nombre: 'Camarón de río 🦐', coins: 300, min: 0.02, max: 0.1, img: 'camaron' },
+    { nombre: 'Pez payaso 🐠', coins: 300, min: 0.02, max: 0.1, img: 'pez-payaso' },
+    { nombre: 'Gamitana 🐟', coins: 1400, min: 3, max: 15, img: 'trucha' },
+    { nombre: 'Dorado 🌟', coins: 1000, min: 2, max: 10, img: 'pez-dorado' },
+    { nombre: 'Paiche 🐟', coins: 4000, min: 30, max: 150, img: 'orca' },
+    // Grandes
+    { nombre: 'Cachalote 🐋', coins: 12000, min: 15000, max: 45000, img: 'cachalote' },
+    { nombre: 'Ballena jorobada 🐳', coins: 10000, min: 15000, max: 30000, img: 'ballena' }
 ];
 
 // Tamaño según dónde cae el peso dentro del rango del pez
@@ -71,7 +74,7 @@ const pesoAlAzar = (pez: { min: number; max: number }) => {
 
 const tamanoDe = (ratio: number) => TAMANOS.find((t) => ratio < t.hasta) || TAMANOS[TAMANOS.length - 1];
 
-const formatoKg = (kg: number) => (kg < 10 ? kg.toFixed(2) : kg.toFixed(1)) + ' kg';
+const formatoKg = (kg: number) => (kg < 10 ? kg.toFixed(2) : kg.toLocaleString('es-PE', { maximumFractionDigits: 1 })) + ' kg';
 
 export default {
     command: ['fish', 'pescar'],
