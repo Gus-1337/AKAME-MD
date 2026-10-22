@@ -67,7 +67,7 @@ export default {
             let txt = `┏━━〔 ♡ ${cemo} ${carg.toUpperCase()} ♡ 〕━━⬣\n`;
             txt += `┃ ✧ Total » ${cmds.length} comandos\n`;
             txt += `┗━━━━━━━━━━━━━━━⬣\n\n`;
-            for (const x of cmds) txt += `┃ ♡ ➪ ${p}${x.cmd}\n┃ ✦ ${x.desc}\n┃\n`;
+            for (const x of cmds) txt += `┃ ➪ ${p}${x.cmd}\n┃ 💖 ${x.desc}\n┃\n`;
             txt += `\n> ♡ Escribe el comando y disfruta ♡`;
             return await sock.sendMessage(chat, {
                 image: bannerCat? { url: bannerCat } : undefined,
