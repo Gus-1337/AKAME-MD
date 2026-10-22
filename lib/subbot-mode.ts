@@ -176,3 +176,68 @@ export const bienvenidaSubbot = async (sock: any, { id: grupo, participants, act
         await sock.sendMessage(grupo, { text: caja('BIENVENIDA', [texto]), mentions: [jid] }).catch(() => {});
     }
 };
+
+// ---------------------------------------------------------------------------
+// Apagar el subbot por grupo: el dueño del subbot decide en qué grupos responde.
+//   apagado -> no responde a nadie en ese grupo (ni admins), solo el dueño puede volver a encenderlo
+//   solo    -> solo responde a los comandos del dueño en ese grupo
+// Estado en subbots/<id>/grupos.json: { "<jid del grupo>": "apagado" | "solo" }
+// ---------------------------------------------------------------------------
+const GRUPOS = path.join(CARPETA_SUBBOT, 'grupos.json');
+
+const leerGrupos = (): Record<string, string> => {
+    try { return JSON.parse(fs.readFileSync(GRUPOS, 'utf8')) || {}; } catch { return {}; }
+};
+
+const guardarGrupos = (g: Record<string, string>) => {
+    fs.writeFileSync(GRUPOS, JSON.stringify(g, null, 2));
+};
+
+/** Modo de un grupo para este subbot: 'activo' (normal), 'solo' o 'apagado'. */
+export const modoGrupo = (grupo: string): string => leerGrupos()[grupo] || 'activo';
+
+/**
+ * Filtro de mensajes de grupo para el subbot. Devuelve true si el mensaje NO debe seguir
+ * (el grupo está apagado o en modo solo dueño y quien escribe no es el dueño, o era un
+ * comando .apagar del dueño que ya se atendió).
+ */
+export const filtrarGrupo = (sock: any, m: any): boolean => {
+    if (!esSubbot) return false;
+    const grupo = m?.key?.remoteJid;
+    if (!grupo || !String(grupo).endsWith('@g.us')) return false;
+
+    const perfil = leerPerfil();
+    const prefijo = String((global as any).db?.data?.settings?.globalPrefix || perfil.prefijo || '.').charAt(0) || '.';
+    const texto = textoDe(m).trim();
+    const remitente = numeroDe(m.key.participant || grupo);
+    const esDueno = Boolean(m.key.fromMe) || (perfil.numero && remitente === perfil.numero);
+    const modo = modoGrupo(grupo);
+
+    // Comandos del dueño: .apagar [solo|on|off] y .encender (siempre se atienden, aunque esté apagado)
+    if (esDueno && texto.startsWith(prefijo)) {
+        const [cmd, ...resto] = texto.slice(prefijo.length).trim().split(/\s+/);
+        const c = (cmd || '').toLowerCase();
+        if (c === 'apagar' || c === 'encender') {
+            const opcion = c === 'encender' ? 'on' : (resto[0] || 'off').toLowerCase();
+            const grupos = leerGrupos();
+            let texto2: string;
+            if (opcion === 'on' || opcion === 'encender') {
+                delete grupos[grupo];
+                texto2 = caja('ENCENDIDO', ['✧ Vuelvo a responder en este grupo.']);
+            } else if (opcion === 'solo') {
+                grupos[grupo] = 'solo';
+                texto2 = caja('MODO SOLO', ['✧ En este grupo solo te respondo a ti.', `✦ Para volver a todos: ${prefijo}apagar on`]);
+            } else {
+                grupos[grupo] = 'apagado';
+                texto2 = caja('APAGADO', ['✧ No responderé en este grupo.', `✦ Solo tú puedes encenderlo con ${prefijo}encender`]);
+            }
+            guardarGrupos(grupos);
+            sock.sendMessage(grupo, { text: texto2 }, { quoted: m }).catch(() => {});
+            return true;
+        }
+    }
+
+    if (modo === 'apagado') return true;
+    if (modo === 'solo' && !esDueno) return true;
+    return false;
+};

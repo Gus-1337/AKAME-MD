@@ -28,7 +28,7 @@ import { restaurarSubbots } from './lib/subbots.ts';
 import { guardarParaAntidelete, procesarRevocacion, procesarVerUnaVez } from './lib/antidelete.ts';
 import { revisarIngreso, recordarNombre } from './lib/antibot.ts';
 import { leerPrefijo } from './lib/prefijo.ts';
-import { esSubbot, SUBBOT_MODO, CARPETA_SUBBOT, aplicarPerfil, leerPerfil, manejarPersonal, bienvenidaSubbot, reportar } from './lib/subbot-mode.ts';
+import { esSubbot, SUBBOT_MODO, CARPETA_SUBBOT, aplicarPerfil, leerPerfil, manejarPersonal, bienvenidaSubbot, reportar, filtrarGrupo } from './lib/subbot-mode.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -401,6 +401,8 @@ async function startBot() {
 
             // Subbot: primero sus comandos de personalización (.setnombre, .perfil, ...)
             if (esSubbot && rawMsg.key.fromMe && enviadosPorBot.has(mId)) continue;
+            // Subbot: apagado o solo-dueño por grupo (.apagar / .encender)
+            if (esSubbot && filtrarGrupo(sock, rawMsg)) continue;
             if (esSubbot && manejarPersonal(sock, rawMsg)) continue;
 
             const msg = serialize(sock, rawMsg);
