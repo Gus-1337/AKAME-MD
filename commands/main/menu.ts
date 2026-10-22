@@ -3,7 +3,7 @@ import config from '#config';
 const ord = ['main', 'owner', 'info', 'download', 'profile', 'admin', 'stickers', 'tools', 'ia', 'utils', 'fun', 'game', 'economy', 'gacha', 'subbot', 'anime', 'nsfw', 'otros', 'logo'];
 const idx = new Map(ord.map((c, i) => [c, i]));
 const emojis: any = {
-    'main': '🌸', 'owner': '👑', 'info': '💮', 'download': '🎀', 'profile': '💖',
+    'main': '🌸', 'owner': '👑', 'info': '💮', 'download': '🎀', 'profile': '🌙',
     'admin': '🛡️', 'stickers': '✨', 'tools': '🌷', 'ia': '🤖', 'utils': '🍓',
     'fun': '💕', 'game': '🎮', 'economy': '💸', 'gacha': '🪭', 'subbot': '🧩',
     'anime': '🦋', 'nsfw': '💋', 'otros': '🌺', 'logo': '🎨'
@@ -62,17 +62,17 @@ export default {
 
         if (carg && cats.has(carg)) {
             const cmds = cats.get(carg)!;
-            const cemo = emojis[carg] || '💖';
+            const cemo = emojis[carg] || '♡';
             const bannerCat = banners[carg] || mainBanner;
-            let txt = `┏━━〔 💖 ${cemo} ${carg.toUpperCase()} 💖 〕━━⬣\n`;
-            txt += `┃ ✧ Total » ${cmds.length} comandos\n`;
-            txt += `┗━━━━━━━━━━━━━━━⬣\n\n`;
-            for (const x of cmds) txt += `┃ ➪ *${p}${x.cmd}*\n┃ ♡ *${x.desc}*\n┃\n`;
-            txt += `\n> 💖 Escribe el comando y disfruta 💖`;
+            let txt = `╭─〔 ${cemo} ${carg.toUpperCase()} 〕─\n`;
+            txt += `│ • Total: ${cmds.length} comandos\n`;
+            txt += `╰───────────────\n\n`;
+            for (const x of cmds) txt += `> ♡ ${p}${x.cmd}\n`;
+            txt += `\n╰─ By GUS`;
             return await sock.sendMessage(chat, {
                 image: bannerCat? { url: bannerCat } : undefined,
                 caption: txt,
-                title: `💖 ${carg.toUpperCase()} 💖`,
+                title: `♡ ${carg.toUpperCase()} ♡`,
                 subtitle: `${cmds.length} comandos`,
                 footer: marcaPie,
                 interactiveButtons: [
@@ -82,15 +82,15 @@ export default {
         }
 
         if (carg === 'all') {
-            let menu = `┏━━〔 💖 MENÚ COMPLETO 💖 〕━━⬣\n`;
+            let menu = `┏━━〔 ♡ MENÚ COMPLETO ♡ 〕━━⬣\n`;
             menu += `┃ ✧ Hola » ${userName}\n`;
             menu += `┃ ✧ Total » ${tot} comandos\n`;
             menu += `┃ ✧ Prefijo » ( ${p} )\n`;
             menu += `┗━━━━━━━━━━━━━━━⬣\n\n`;
             for (const c of scats) {
-                menu += bloqueCategoria(c, cats.get(c)!, p, emojis[c] || '💖');
+                menu += bloqueCategoria(c, cats.get(c)!, p, emojis[c] || '♡');
             }
-            menu += `> 💖 Escribe el comando y disfruta 💖`;
+            menu += `> ♡ Escribe el comando y disfruta ♡`;
             return await sock.sendMessage(chat, {
                 image: banners['main'] || mainBanner? { url: banners['main'] || mainBanner } : undefined,
                 caption: menu,
@@ -107,7 +107,7 @@ export default {
         const hora = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
         const rows = [
             { title: '📋 TODO EL MENU', description: `Ver los ${tot} comandos`, id: `${p}menu all` },
- ...scats.map(c => ({ title: `${emojis[c] || '💖'} ${c.toUpperCase()}`, description: `${cats.get(c)!.length} comandos`, id: `${p}menu ${c}` }))
+ ...scats.map(c => ({ title: `${emojis[c] || '♡'} ${c.toUpperCase()}`, description: `${cats.get(c)!.length} comandos`, id: `${p}menu ${c}` }))
         ];
 
         const mainText =
