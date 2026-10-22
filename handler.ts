@@ -6,6 +6,7 @@ import { broadcast } from '#index';
 import { LRUCache } from 'lru-cache';
 import { obtenerPrimario } from '#primario';
 import { estaActiva } from './lib/ajustes.ts';
+import { procesarAntitoxic } from './lib/antitoxic.ts';
 import { esOwnerExtra } from './lib/owners.ts';
 
 // Comandos de gacha (waifus y Pokémon): se apagan con `.gacha off`.
@@ -280,6 +281,13 @@ export const handler = async (sock: any, rawMsg: any): Promise<any> => {
             if (isBotAdmins && rawMsg?.key) sock.sendMessage(chat, { delete: rawMsg.key }).catch(() => null);
             return;
         }
+    }
+    // Antitoxic: mismo punto que el mute, con el mensaje original (no depende del hook `before`)
+    if (isGroup && chat && rawMsg?.key) {
+        const manejado = await procesarAntitoxic(sock, rawMsg, chat, realJidResult || normalizedSender, extractNativeText(rawMsg), {
+            isAdmin: isAdmins, isOwner, isBotAdmin: isBotAdmins
+        });
+        if (manejado) return;
     }
     const msg = serialize(sock, rawMsg);
     if (!msg) return;
