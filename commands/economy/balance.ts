@@ -1,6 +1,7 @@
 import { formatear } from '../../lib/owner-coins.ts';
 import { UserJid } from '#simple';
 import config from '#config';
+import { generarTarjetaBalance } from '../../lib/tarjeta-balance.ts';
 
 const normalizeNumber = (x: string) => {
     if (!x) return '';
@@ -62,17 +63,32 @@ export default {
             const total = coins + bank;
             const fmt = (n: number) => formatear(n); // ∞ cuando son coins infinitas
 
+            const etiquetaUsuario = `@${targetJid.split('@')[0]}`;
+            const nombre = (dbData.users?.[targetJid]?.name) || userInChat.name || etiquetaUsuario.slice(1);
             const caption =
-`˚₊· ͟͟͞͞➳❥ *BALANCE* ✦
-     ❀ Usuario › @${targetJid.split('@')[0]}
+`✦ *BALANCE* ✦
+   ❀ Usuario › ${etiquetaUsuario}
 
- ♡ Efectivo › *${fmt(coins)}* ${coinName}
- ♡ Banco › *${fmt(bank)}* ${coinName}
- ♡ Total › *${fmt(total)}* ${coinName}
+   ♡ Efectivo › *${fmt(coins)}* ${coinName}
+   ♡ Banco › *${fmt(bank)}* ${coinName}
+   ✧ Total › *${fmt(total)}* ${coinName}
 
-_Usa .dep o .with para mover tu dinero_`;
+> Usa *.dep* o *.with* para mover tu dinero 💰`;
 
-            await sock.sendMessage(chat, { text: caption, mentions: [targetJid] }, { quoted: m });
+            // Tarjeta dorada con el fondo de Akame. Si falla el canvas, se manda el texto.
+            try {
+                const tarjeta = await generarTarjetaBalance({
+                    nombre: String(nombre),
+                    efectivo: fmt(coins),
+                    banco: fmt(bank),
+                    total: fmt(total),
+                    moneda: coinName
+                });
+                await sock.sendMessage(chat, { image: tarjeta, caption, mentions: [targetJid] }, { quoted: m });
+            } catch (err: any) {
+                console.error('[BAL] tarjeta falló, se manda texto:', err?.message);
+                await sock.sendMessage(chat, { text: caption, mentions: [targetJid] }, { quoted: m });
+            }
 
         } catch (e) {
             console.error('Error en bal:', e);
