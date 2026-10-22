@@ -31,6 +31,7 @@ export default {
                 `✧ Desactivar » *${p} off*`,
                 `✧ Agregar palabra » *${p} add <palabra>*`,
                 `✧ Quitar palabra » *${p} del <palabra>*`,
+                `✧ Quitar advertencias » *${p} quitaradv @usuario*`,
                 `✧ Ver todas » *${p} lista*`,
                 `✦ Estado » *${estado}*`,
                 `✦ ${MAX_ADVERTENCIAS} advertencias y silencio de ${MINUTOS_SILENCIO} min.`
@@ -75,6 +76,45 @@ export default {
             chatDb.palabrasToxicas = lista.filter((x: string) => normalizar(x) !== quitar);
             saveDB(chat);
             return reply(caja('ANTITOXIC', [`✗ Quitada » *${quitar}*`]));
+        }
+
+        if (['quitaradv', 'quitaradvertencias', 'perdonar', 'unwarn'].includes(input)) {
+            // Objetivo: mención, respuesta al mensaje o número escrito
+            const ctxInfo = m.message?.extendedTextMessage?.contextInfo;
+            const objetivo: string | undefined = ctxInfo?.mentionedJid?.[0]
+                || ctxInfo?.quotedMessage?.key?.participant
+                || ctxInfo?.quotedMessage?.key?.sender
+                || (args[1] && args[1].replace(/\D/g, '') ? args[1].replace(/\D/g, '') + '@s.whatsapp.net' : undefined);
+            if (!objetivo) {
+                return reply(caja('ANTITOXIC', [`✧ Menciona a la persona, responde a su mensaje o escribe su número.`, `✦ Ejemplo: *${p} quitaradv @usuario*`]));
+            }
+
+            const num = (j: string) => String(j).split('@')[0].split(':')[0].replace(/\D/g, '');
+            const quien = num(objetivo);
+            const advs = chatDb.advertenciasToxicas || {};
+            const silen = chatDb.silenciados || {};
+            const claves = (obj: Record<string, any>) => Object.keys(obj).filter((k) => num(k) === quien);
+
+            const tenia = claves(advs).reduce((t, k) => t + (advs[k] || 0), 0);
+            const estabaSilenciado = claves(silen).length > 0;
+            claves(advs).forEach((k) => delete advs[k]);
+            claves(silen).forEach((k) => delete silen[k]);
+            chatDb.advertenciasToxicas = advs;
+            chatDb.silenciados = silen;
+            saveDB(chat);
+
+            const etiqueta = `@${quien}`;
+            if (!tenia && !estabaSilenciado) {
+                return sock.sendMessage(chat, { text: caja('ANTITOXIC', [`✧ ${etiqueta} no tiene advertencias.`]), mentions: [objetivo] }, { quoted: m });
+            }
+            return sock.sendMessage(chat, {
+                text: caja('ANTITOXIC', [
+                    `✓ Advertencias de ${etiqueta} quitadas.`,
+                    tenia ? `✦ Antes » *${tenia}/${MAX_ADVERTENCIAS}*${estabaSilenciado ? ' · silenciado' : ''}` : '✦ Estaba silenciado',
+                    estabaSilenciado ? '✦ También se quitó el silencio.' : ''
+                ].filter(Boolean)),
+                mentions: [objetivo]
+            }, { quoted: m });
         }
 
         if (['lista', 'list', 'ver'].includes(input)) {
