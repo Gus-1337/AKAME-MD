@@ -67,6 +67,21 @@ const mimeDe = (nombre: string, mime?: string): string => {
     return 'application/octet-stream';
 };
 
+const VERIFICACION = 'MEDIAFIRE_VERIFICACION';
+
+/** ¿El archivo descargado es una página HTML (no el archivo real)? */
+function esPaginaHtml(ruta: string): boolean {
+    const fd = fs.openSync(ruta, 'r');
+    try {
+        const buf = Buffer.alloc(64);
+        const leidos = fs.readSync(fd, buf, 0, 64, 0);
+        const inicio = buf.subarray(0, leidos).toString('utf8').trimStart().toLowerCase();
+        return inicio.startsWith('<!doctype') || inicio.startsWith('<html');
+    } finally {
+        fs.closeSync(fd);
+    }
+}
+
 /** Busca el archivo en los respaldos en orden y lo baja con el primero que funcione. */
 async function obtenerYDescargar(url: string, destino: string): Promise<{ info: Info; carpeta?: any[]; nombreCarpeta?: string }> {
     let ultimoError = 'sin respuesta';
@@ -78,10 +93,15 @@ async function obtenerYDescargar(url: string, destino: string): Promise<{ info: 
             const info = r.leer(data);
             if (!info) { ultimoError = `${r.nombre} no devolvió el archivo`; continue; }
             await descargarArchivo(info, destino);
+            // MediaFire a veces responde una página de verificación (captcha) en vez del archivo
+            if (esPaginaHtml(destino)) throw new Error(VERIFICACION);
             return { info };
         } catch (e: any) {
+            // Si MediaFire mandó su página de captcha, el tamaño no cuadra y falla antes; aquí se revisa
+            if (fs.existsSync(destino) && esPaginaHtml(destino)) throw new Error(VERIFICACION);
             ultimoError = e?.message || ultimoError;
             if (String(e?.message).includes('más de')) throw e; // el límite no cambia con otro respaldo
+            if (String(e?.message) === VERIFICACION) throw e; // otro respaldo recibe la misma página
             fs.rmSync(destino, { force: true });
         }
     }
@@ -146,10 +166,13 @@ export default {
         } catch (e: any) {
             console.error('[MF ERROR]', e?.message);
             const limite = String(e?.message).includes('más de');
+            const verificacion = String(e?.message) === VERIFICACION;
             await sock.sendMessage(chat, {
                 text: limite
                     ? `✿ Ese archivo pesa más de 800 MB bb, no lo puedo enviar.`
-                    : `✿ No pude descargar ese archivo bb. Prueba otra vez o con otro link.`
+                    : verificacion
+                        ? `✿ MediaFire pide verificación humana (captcha) para bajar ese archivo bb, y el bot no puede resolverlo. Prueba con otro link.`
+                        : `✿ No pude descargar ese archivo bb. Prueba otra vez o con otro link.`
             }, { quoted: m });
             await sock.sendMessage(chat, { react: { text: '✘', key: m.key } });
         } finally {
