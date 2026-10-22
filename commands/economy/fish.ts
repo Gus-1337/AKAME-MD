@@ -1,24 +1,56 @@
+import fs from 'fs';
+import path from 'path';
 import { GANANCIA_BASE } from '#shop';
 import { UserJid } from '#simple';
 import { activeEffectsLine, coinMultiplier, effectiveCooldown, titulo, money, formatDuration, ecoUser, bloqueadoPorAdmin } from '#shop';
 import config from '#config';
 import { saveDB } from '#db';
 
+// Cada pez tiene la MISMA probabilidad (1 de 12). El peso sale al azar dentro de su rango.
 const PECES = [
-    { nombre: 'Sardina 🐟', coins: 200, prob: 0.25 },
-    { nombre: 'Pulpo 🐙', coins: 800, prob: 0.25 },
-    { nombre: 'Tiburón 🦈', coins: 1500, prob: 0.25 },
-    { nombre: 'Ballena 🐳', coins: 3000, prob: 0.25 }
+    { nombre: 'Anchoveta 🐟', coins: 120, min: 0.05, max: 0.3 },
+    { nombre: 'Sardina 🐟', coins: 150, min: 0.2, max: 1 },
+    { nombre: 'Cangrejo 🦀', coins: 500, min: 0.2, max: 2 },
+    { nombre: 'Trucha 🐠', coins: 400, min: 0.5, max: 4 },
+    { nombre: 'Calamar 🦑', coins: 700, min: 0.5, max: 5 },
+    { nombre: 'Pulpo 🐙', coins: 800, min: 1, max: 6 },
+    { nombre: 'Pez Globo 🐡', coins: 900, min: 0.5, max: 3 },
+    { nombre: 'Langosta 🦞', coins: 1000, min: 0.5, max: 4 },
+    { nombre: 'Pez Dorado 🌟', coins: 2000, min: 1, max: 5 },
+    { nombre: 'Pez Espada 🗡️', coins: 1300, min: 10, max: 60 },
+    { nombre: 'Tiburón 🦈', coins: 1500, min: 20, max: 150 },
+    { nombre: 'Ballena 🐳', coins: 3000, min: 500, max: 3000 }
 ];
 
-const sacarPez = () => {
-    let t = Math.random();
-    for (const p of PECES) {
-        if (t < p.prob) return p;
-        t -= p.prob;
+// Tamaño según dónde cae el peso dentro del rango del pez
+const TAMANOS = [
+    { clave: 'pequeno', etiqueta: 'Pequeño', hasta: 0.25, factor: 1 },
+    { clave: 'mediano', etiqueta: 'Mediano', hasta: 0.6, factor: 1.5 },
+    { clave: 'grande', etiqueta: 'Grande', hasta: 0.9, factor: 2.2 },
+    { clave: 'gigante', etiqueta: 'Gigante', hasta: 1.01, factor: 3.5 }
+];
+
+const RUTA_IMG = path.join(process.cwd(), 'img', 'pesca');
+const cacheImg: Record<string, Buffer | null> = {};
+const imagenDeTamano = (clave: string): Buffer | null => {
+    if (!(clave in cacheImg)) {
+        const ruta = path.join(RUTA_IMG, `${clave}.jpg`);
+        cacheImg[clave] = fs.existsSync(ruta) ? fs.readFileSync(ruta) : null;
     }
-    return PECES[0];
+    return cacheImg[clave];
 };
+
+const sacarPez = () => PECES[Math.floor(Math.random() * PECES.length)];
+
+const pesoAlAzar = (pez: { min: number; max: number }) => {
+    const r = Math.random();
+    const kg = pez.min + (pez.max - pez.min) * r;
+    return { kg, ratio: r };
+};
+
+const tamanoDe = (ratio: number) => TAMANOS.find((t) => ratio < t.hasta) || TAMANOS[TAMANOS.length - 1];
+
+const formatoKg = (kg: number) => (kg < 10 ? kg.toFixed(2) : kg.toFixed(1)) + ' kg';
 
 export default {
     command: ['fish', 'pescar'],
@@ -42,7 +74,9 @@ export default {
             }
 
             const pez = sacarPez();
-            const ganancia = pez.coins * coinMultiplier(user) * GANANCIA_BASE;
+            const { kg, ratio } = pesoAlAzar(pez);
+            const tamano = tamanoDe(ratio);
+            const ganancia = Math.round(pez.coins * tamano.factor * coinMultiplier(user) * GANANCIA_BASE);
 
             user.coins = (user.coins || 0) + ganancia;
             user.lastFish = Date.now();
@@ -50,13 +84,21 @@ export default {
             user.inventory[pez.nombre] = (user.inventory[pez.nombre] || 0) + 1;
             saveDB(chat, jid);
 
-            return reply(
+            const texto =
                 `${titulo('PESCA')}\n\n` +
-                `   Pescaste un *${pez.nombre}*\n\n` +
+                `   ✧ Pez » *${pez.nombre}*\n` +
+                `   ✦ Peso » *${formatoKg(kg)}*\n` +
+                `   ✿ Tamaño » *${tamano.etiqueta}*\n\n` +
                 `♡ Ganaste › *+${money(ganancia)}* ${coin}\n` +
                 `♡ Saldo › *${money(user.coins)}* ${coin}` +
-                activeEffectsLine(user)
-            );
+                activeEffectsLine(user) +
+                `\n\n> ✧ Vuelve en un rato, la caña se seca 🎣`;
+
+            const foto = imagenDeTamano(tamano.clave);
+            if (foto) {
+                return sock.sendMessage(chat, { image: foto, caption: texto }, { quoted: m });
+            }
+            return reply(texto);
         } catch (e) {
             console.error('Error en fish:', e);
             return reply('「 ꕤ 」 Ocurrió un error al pescar.');
