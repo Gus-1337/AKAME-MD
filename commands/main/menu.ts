@@ -12,7 +12,7 @@ const emojis: any = {
 // Estilo de lista: bloque por categoría con ♡ y ➪ / ✦ (igual que la lista de referencia)
 const bloqueCategoria = (titulo: string, cmds: { cmd: string; desc: string }[], p: string, emoji: string) => {
     let t = `┏━━〔 💖 ${emoji} ${titulo.toUpperCase()} 💖 〕━━⬣\n\n`;
-    for (const x of cmds) t += `┃ ➪ ${p}${x.cmd}\n┃ ♡ ${x.desc}\n┃\n`;
+    for (const x of cmds) t += `┃ ➪ *${p}${x.cmd}*\n┃ ♡ *${x.desc}*\n┃\n`;
     t += `┗━━━━━━━━━━━━━━━⬣\n\n`;
     return t;
 };
@@ -67,7 +67,7 @@ export default {
             let txt = `┏━━〔 💖 ${cemo} ${carg.toUpperCase()} 💖 〕━━⬣\n`;
             txt += `┃ ✧ Total » ${cmds.length} comandos\n`;
             txt += `┗━━━━━━━━━━━━━━━⬣\n\n`;
-            for (const x of cmds) txt += `┃ ➪ ${p}${x.cmd}\n┃ ♡ ${x.desc}\n┃\n`;
+            for (const x of cmds) txt += `┃ ➪ *${p}${x.cmd}*\n┃ ♡ *${x.desc}*\n┃\n`;
             txt += `\n> 💖 Escribe el comando y disfruta 💖`;
             return await sock.sendMessage(chat, {
                 image: bannerCat? { url: bannerCat } : undefined,
