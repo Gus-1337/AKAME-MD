@@ -301,7 +301,7 @@ export const sendNsfwMedia = async (ctx: any, endpoint: NsfwEndpoint, label?: st
             : { image: media.buffer, caption, mimetype: media.mime };
 
         await sock.sendMessage(chat, payload, { quoted: m });
-        await sock.sendMessage(chat, { react: { text: '💋', key: m.key } }).catch(() => null);
+        await sock.sendMessage(chat, { react: { text: '🔞', key: m.key } }).catch(() => null);
         return true;
     } catch (e: any) {
         console.error(`[NSFW:${endpoint}]`, e?.message || e);
