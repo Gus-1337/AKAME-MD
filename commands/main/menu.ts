@@ -9,6 +9,14 @@ const emojis: any = {
     'anime': '🦋', 'nsfw': '💋', 'otros': '🌺', 'logo': '🎨'
 };
 
+// Estilo de lista: bloque por categoría con ♡ y ➪ / ✦ (igual que la lista de referencia)
+const bloqueCategoria = (titulo: string, cmds: { cmd: string; desc: string }[], p: string, emoji: string) => {
+    let t = `┏━━〔 ♡ ${emoji} ${titulo.toUpperCase()} ♡ 〕━━⬣\n\n`;
+    for (const x of cmds) t += `┃ ♡ ➪ ${p}${x.cmd}\n┃ ✦ ${x.desc}\n┃\n`;
+    t += `┗━━━━━━━━━━━━━━━⬣\n\n`;
+    return t;
+};
+
 export default {
     command: ['menu', 'help', 'comandos'],
     description: 'Lista de comandos por categoría',
@@ -56,11 +64,11 @@ export default {
             const cmds = cats.get(carg)!;
             const cemo = emojis[carg] || '♡';
             const bannerCat = banners[carg] || mainBanner;
-            let txt = `╭─〔 ${cemo} ${carg.toUpperCase()} 〕─\n`;
-            txt += `│ • Total: ${cmds.length} comandos\n`;
-            txt += `╰───────────────\n\n`;
-            for (const x of cmds) txt += `> ♡ ${p}${x.cmd}\n`;
-            txt += `\n╰─ By GUS`;
+            let txt = `┏━━〔 ♡ ${cemo} ${carg.toUpperCase()} ♡ 〕━━⬣\n`;
+            txt += `┃ ✧ Total » ${cmds.length} comandos\n`;
+            txt += `┗━━━━━━━━━━━━━━━⬣\n\n`;
+            for (const x of cmds) txt += `┃ ♡ ➪ ${p}${x.cmd}\n┃ ✦ ${x.desc}\n┃\n`;
+            txt += `\n> ♡ Escribe el comando y disfruta ♡`;
             return await sock.sendMessage(chat, {
                 image: bannerCat? { url: bannerCat } : undefined,
                 caption: txt,
@@ -74,19 +82,15 @@ export default {
         }
 
         if (carg === 'all') {
-            let menu = `╭─〔 Hola ${userName} 〕─\n`;
-            menu += `│ Total: ${tot} | Prefijo: ( ${p} )\n`;
-            menu += `│ By GUS\n`;
-            menu += `╰───────────────\n\n`;
+            let menu = `┏━━〔 ♡ MENÚ COMPLETO ♡ 〕━━⬣\n`;
+            menu += `┃ ✧ Hola » ${userName}\n`;
+            menu += `┃ ✧ Total » ${tot} comandos\n`;
+            menu += `┃ ✧ Prefijo » ( ${p} )\n`;
+            menu += `┗━━━━━━━━━━━━━━━⬣\n\n`;
             for (const c of scats) {
-                const cmds = cats.get(c)!;
-                const cemo = emojis[c] || '♡';
-                menu += `┌─〔 ${cemo} ${c.toUpperCase()} 〕─\n`;
-                for (const x of cmds) {
-                    menu += `> ♡ ${p}${x.cmd}\n> ↳ ${x.desc}\n`;
-                }
-                menu += `└──────────────\n\n`;
+                menu += bloqueCategoria(c, cats.get(c)!, p, emojis[c] || '♡');
             }
+            menu += `> ♡ Escribe el comando y disfruta ♡`;
             return await sock.sendMessage(chat, {
                 image: banners['main'] || mainBanner? { url: banners['main'] || mainBanner } : undefined,
                 caption: menu,
