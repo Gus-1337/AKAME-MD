@@ -5,15 +5,16 @@ import sharp from 'sharp';
 const api = (config as any).api || (global as any).api || { url: 'https://api.stellarwa.xyz', key: 'proyectsV2' };
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const toBuffer = async (url: string) => Buffer.from((await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data);
+const toBuffer = async (url: string) => Buffer.from((await axios.get(url, { responseType: 'arraybuffer', timeout: 10000 })).data);
 
 const toWebp = async (buffer: Buffer, isAnimated = false) => {
   if (isAnimated) {
-    return await sharp(buffer, { animated: true }).resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 50, loop: 0 }).toBuffer();
+    return await sharp(buffer, { animated: true }).resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 50, loop: 0, effort: 0 }).toBuffer();
   }
-  let webp = await sharp(buffer).resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 50 }).toBuffer();
+  // effort 0: codifica ~3 veces más rápido y el tamaño casi no cambia
+  let webp = await sharp(buffer).resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 50, effort: 0 }).toBuffer();
   if (webp.length > 100 * 1024) {
-    webp = await sharp(buffer).resize(256, 256, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 40 }).toBuffer();
+    webp = await sharp(buffer).resize(256, 256, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 40, effort: 0 }).toBuffer();
   }
   return webp;
 };
