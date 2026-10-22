@@ -142,4 +142,20 @@ export async function procesarAntitoxic(sock: any, rawMsg: any, chat: string, qu
     return true;
 }
 
+/** Quita advertencias (y el silencio) de una persona. Devuelve lo que tenía antes. */
+export function quitarAdvertencias(chatDb: any, objetivo: string): { tenia: number; estabaSilenciado: boolean } {
+    const num = (j: string) => String(j).split('@')[0].split(':')[0].replace(/\D/g, '');
+    const quien = num(objetivo);
+    const advs = chatDb.advertenciasToxicas || {};
+    const silen = chatDb.silenciados || {};
+    const claves = (obj: Record<string, any>) => Object.keys(obj).filter((k) => num(k) === quien);
+    const tenia = claves(advs).reduce((t, k) => t + (advs[k] || 0), 0);
+    const estabaSilenciado = claves(silen).length > 0;
+    claves(advs).forEach((k) => delete advs[k]);
+    claves(silen).forEach((k) => delete silen[k]);
+    chatDb.advertenciasToxicas = advs;
+    chatDb.silenciados = silen;
+    return { tenia, estabaSilenciado };
+}
+
 export { caja };
