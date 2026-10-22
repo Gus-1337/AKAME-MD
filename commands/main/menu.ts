@@ -6,7 +6,7 @@ const emojis: any = {
     'main': '🌸', 'owner': '👑', 'info': '💮', 'download': '🎀', 'profile': '🌙',
     'admin': '🛡️', 'stickers': '✨', 'tools': '🌷', 'ia': '🤖', 'utils': '🍓',
     'fun': '💕', 'game': '🎮', 'economy': '💸', 'gacha': '🪭', 'subbot': '🧩',
-    'anime': '🦋', 'nsfw': '💋', 'otros': '🌺', 'logo': '🎨'
+    'anime': '🦋', 'nsfw': '🔞', 'otros': '🌺', 'logo': '🎨'
 };
 
 // Estilo de lista: bloque por categoría con ♡ y ➪ / ✦ (igual que la lista de referencia)
