@@ -64,7 +64,7 @@ async function enviarCarrusel(sock: any, chat: string, quoted: any, p: string, u
 }
 
 export default {
-    command: ['cana', 'canas'],
+    command: ['cana', 'canas', 'caña', 'cañas'],
     description: 'Tienda de cañas de pescar: compra y equipa una caña',
     category: 'economy',
     group: true,
