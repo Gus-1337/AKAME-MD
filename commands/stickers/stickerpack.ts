@@ -29,6 +29,10 @@ export default {
     const text = args.join(" ").trim();
     if (!text) return sock.sendMessage(chat, { text: `《✧》 Ingresa un texto o URL de sticker.ly` }, { quoted: msg });
 
+    // Reacción de progreso: ⏳ mientras trabaja, ✅ al terminar o ❌ si falla
+    const reaccionar = (emoji: string) => sock.sendMessage(chat, { react: { text: emoji, key: msg.key } }).catch(() => null);
+    await reaccionar('⏳');
+
     try {
       const isUrl = /sticker\.ly\/s\//i.test(text);
       let packData: any;
@@ -39,7 +43,10 @@ export default {
         packData = data.detalles;
       } else {
         const { data } = await axios.get(`${api.url}/stickerly/search`, { params: { query: text, key: api.key } });
-        if (!data.status || !data.resultados?.length) return sock.sendMessage(chat, { text: `《✧》 No hay packs para *${text}*` }, { quoted: msg });
+        if (!data.status || !data.resultados?.length) {
+          await reaccionar('❌');
+          return sock.sendMessage(chat, { text: `《✧》 No hay packs para *${text}*` }, { quoted: msg });
+        }
         const random = data.resultados[Math.floor(Math.random() * Math.min(5, data.resultados.length))];
         const { data: detail } = await axios.get(`${api.url}/stickerly/detail`, { params: { url: random.url, key: api.key } });
         packData = detail.detalles;
@@ -62,6 +69,7 @@ export default {
         })).then(r => r.filter(Boolean))
       ]);
 
+      await reaccionar('✅');
       await sock.sendMessage(chat, {
         stickerPack: {
           name: packName,
@@ -74,6 +82,7 @@ export default {
 
     } catch (e: any) {
       console.error(e);
+      await reaccionar('❌');
       await sock.sendMessage(chat, { text: `❌ Error: ${e.message}` }, { quoted: msg });
     }
   }
