@@ -7,7 +7,7 @@ import { join } from 'node:path';
 
 const ROOT = process.cwd();
 const FONTS_DIR = join(ROOT, 'assets', 'fonts');
-const BANNER = join(ROOT, 'img', 'akame-banner.png');
+const BANNER = join(ROOT, 'img', 'balance', 'fondo-azul.jpg');
 
 let fuenteLista = false;
 const cargarFuentes = (GlobalFonts: Canvas['GlobalFonts']) => {
@@ -66,36 +66,36 @@ export const generarTarjetaBalance = async (d: TarjetaBalanceData): Promise<Buff
         const fh = fondo.height * escala;
         ctx.drawImage(fondo, (W - fw) / 2, (H - fh) / 2, fw, fh);
     } catch {
-        ctx.fillStyle = '#1a1205';
+        ctx.fillStyle = '#06142e';
         ctx.fillRect(0, 0, W, H);
     }
 
     // Capa oscura con tono dorado (más oscuro a la izquierda para leer el texto)
     const velo = ctx.createLinearGradient(0, 0, W, 0);
-    velo.addColorStop(0, 'rgba(20, 12, 2, 0.92)');
-    velo.addColorStop(0.55, 'rgba(40, 26, 4, 0.72)');
-    velo.addColorStop(1, 'rgba(60, 40, 6, 0.25)');
+    velo.addColorStop(0, 'rgba(4, 14, 40, 0.92)');
+    velo.addColorStop(0.55, 'rgba(8, 28, 70, 0.70)');
+    velo.addColorStop(1, 'rgba(10, 40, 90, 0.20)');
     ctx.fillStyle = velo;
     ctx.fillRect(0, 0, W, H);
 
     // Brillo dorado arriba
     const brillo = ctx.createRadialGradient(W * 0.2, 0, 10, W * 0.2, 0, W * 0.7);
-    brillo.addColorStop(0, 'rgba(255, 215, 0, 0.28)');
-    brillo.addColorStop(1, 'rgba(255, 215, 0, 0)');
+    brillo.addColorStop(0, 'rgba(90, 170, 255, 0.28)');
+    brillo.addColorStop(1, 'rgba(90, 170, 255, 0)');
     ctx.fillStyle = brillo;
     ctx.fillRect(0, 0, W, H);
 
     // Marco dorado con degradado
     const oro = ctx.createLinearGradient(0, 0, W, H);
-    oro.addColorStop(0, '#FFE58A');
-    oro.addColorStop(0.5, '#D4A017');
-    oro.addColorStop(1, '#8A5A00');
+    oro.addColorStop(0, '#9FE3FF');
+    oro.addColorStop(0.5, '#3A8DFF');
+    oro.addColorStop(1, '#1B3FA0');
     ctx.lineWidth = 10;
     ctx.strokeStyle = oro;
     rectRedondeado(ctx, 14, 14, W - 28, H - 28, 34);
     ctx.stroke();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(255, 240, 180, 0.9)';
+    ctx.strokeStyle = 'rgba(190, 230, 255, 0.9)';
     rectRedondeado(ctx, 26, 26, W - 52, H - 52, 26);
     ctx.stroke();
 
@@ -113,15 +113,15 @@ export const generarTarjetaBalance = async (d: TarjetaBalanceData): Promise<Buff
     // Nombre
     ctx.font = `bold 58px ${bold}`;
     ctx.fillStyle = '#FFFFFF';
-    ctx.shadowColor = 'rgba(255, 200, 60, 0.6)';
+    ctx.shadowColor = 'rgba(90, 170, 255, 0.7)';
     ctx.shadowBlur = 18;
     ctx.fillText(recortarTexto(ctx, d.nombre, W - xTexto - 80), xTexto, 190);
     ctx.shadowBlur = 0;
 
     // Línea dorada
     const linea = ctx.createLinearGradient(xTexto, 0, W - 120, 0);
-    linea.addColorStop(0, 'rgba(255, 215, 0, 0.95)');
-    linea.addColorStop(1, 'rgba(255, 215, 0, 0)');
+    linea.addColorStop(0, 'rgba(120, 190, 255, 0.95)');
+    linea.addColorStop(1, 'rgba(120, 190, 255, 0)');
     ctx.fillStyle = linea;
     ctx.fillRect(xTexto, 212, W - xTexto - 120, 3);
 
@@ -135,18 +135,18 @@ export const generarTarjetaBalance = async (d: TarjetaBalanceData): Promise<Buff
         const y = 252 + i * 46;
         ctx.textAlign = 'left';
         ctx.font = `${destacada ? 'bold ' : ''}32px ${destacada ? bold : sans}`;
-        ctx.fillStyle = destacada ? '#FFE58A' : 'rgba(255, 240, 200, 0.92)';
+        ctx.fillStyle = destacada ? '#9FE3FF' : 'rgba(220, 238, 255, 0.92)';
         ctx.fillText(etiqueta, xTexto, y);
         ctx.textAlign = 'right';
         ctx.font = `bold ${destacada ? 40 : 34}px ${bold}`;
-        ctx.fillStyle = destacada ? '#FFD700' : '#FFF4D0';
+        ctx.fillStyle = destacada ? '#6EC8FF' : '#EAF5FF';
         ctx.fillText(recortarTexto(ctx, valor, 520), W - 80, y);
     });
 
     // Pie
     ctx.textAlign = 'left';
     ctx.font = `24px ${sans}`;
-    ctx.fillStyle = 'rgba(255, 230, 150, 0.8)';
+    ctx.fillStyle = 'rgba(190, 225, 255, 0.85)';
     ctx.fillText("Usa .dep o .with para mover tu dinero ✿", xTexto, H - 44);
 
     return canvas.toBuffer('image/png');
