@@ -30,7 +30,7 @@ global.APIs = {
 
 export const config = {
     botName: 'AKAME-MD',
-    devName: 'LORD GUS',
+    devName: 'GUS',
     prefix: '.',
     owner: ownerNumbers,
     banner: 'https://cdn.dix.lat/me/q2se_20261008-r2x1-0f9o-f489.jpg',
