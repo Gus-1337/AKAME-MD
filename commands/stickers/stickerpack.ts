@@ -7,16 +7,28 @@ const api = (config as any).api || (global as any).api || { url: 'https://api.st
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const toBuffer = async (url: string) => Buffer.from((await axios.get(url, { responseType: 'arraybuffer', timeout: 10000 })).data);
 
-const toWebp = async (buffer: Buffer, isAnimated = false) => {
-  if (isAnimated) {
-    return await sharp(buffer, { animated: true }).resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 50, loop: 0, effort: 0 }).toBuffer();
+// WhatsApp rechaza stickers de más de 1 MB. Se baja calidad y tamaño hasta que quepa.
+const LIMITE_STICKER = 950 * 1024;
+const PASOS: Array<{ size: number; quality: number }> = [
+  { size: 512, quality: 50 },
+  { size: 512, quality: 30 },
+  { size: 384, quality: 30 },
+  { size: 256, quality: 30 },
+  { size: 256, quality: 15 },
+  { size: 160, quality: 15 }
+];
+
+const toWebp = async (buffer: Buffer, isAnimated = false): Promise<Buffer | null> => {
+  for (const { size, quality } of PASOS) {
+    const base = sharp(buffer, isAnimated ? { animated: true } : {})
+      .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } });
+    const webp = await (isAnimated
+      ? base.webp({ quality, loop: 0, effort: 0 })
+      : base.webp({ quality, effort: 0 })
+    ).toBuffer();
+    if (webp.length <= LIMITE_STICKER) return webp;
   }
-  // effort 0: codifica ~3 veces más rápido y el tamaño casi no cambia
-  let webp = await sharp(buffer).resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 50, effort: 0 }).toBuffer();
-  if (webp.length > 100 * 1024) {
-    webp = await sharp(buffer).resize(256, 256, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 40, effort: 0 }).toBuffer();
-  }
-  return webp;
+  return null; // ni con el tamaño mínimo cabe: se omite
 };
 
 export default {
@@ -64,6 +76,7 @@ export default {
           try {
             const buf = await toBuffer(s.imageUrl);
             const sticker = await toWebp(buf, s.isAnimated);
+            if (!sticker) return null; // demasiado pesado incluso reducido: se salta
             return { sticker, isAnimated: s.isAnimated || false, isLottie: false, emojis: ['🎭'] };
           } catch { return null; }
         })).then(r => r.filter(Boolean))
