@@ -78,6 +78,12 @@ export const handleGroupAlerts = async (sock: any, updates: any[]) => {
     }
 };
 
+/** Nombre de la persona: el que tiene guardado el bot (pushName). Si no lo conoce, no muestra el número. */
+const nombreDe = (jid: string): string => {
+    const guardado = (global as any).db?.data?.users?.[String(jid || '').split('@')[0] + '@s.whatsapp.net']?.name;
+    return guardado && guardado !== 'Usuario' ? String(guardado).slice(0, 30) : 'Nuevo miembro';
+};
+
 export const handleGroupParticipants = async (sock: any, part: any) => {
     const groupEventConfig = {
         imageTimeout: 2000,
@@ -184,30 +190,42 @@ export const handleGroupParticipants = async (sock: any, part: any) => {
            .replace(/{grupo}|@grupo|#grupo/g, groupName)
            .replace(/{desc}|@desc|#desc/g, desc);
 
-        // --- DISEÑO FINAL CON CONTADOR ---
+        // --- DISEÑO CON DATOS DEL GRUPO ---
+        const ahora = new Date();
+        const fecha = ahora.toLocaleDateString('es-PE', { timeZone: 'America/Lima', day: '2-digit', month: '2-digit', year: 'numeric' });
+        const hora = ahora.toLocaleTimeString('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit', hour12: false });
+        const descCorta = desc.replace(/\s+/g, ' ').trim().slice(0, 90) + (desc.length > 90 ? '…' : '');
+        const nombres = mentions.slice(0, 3).map((m: string) => nombreDe(m)).join(', ') + (mentions.length > 3 ? ` y ${mentions.length - 3} más` : '');
+        const cabecera = action === 'add' ? '◜ ✿ 𝗪𝗘𝗟𝗖𝗢𝗠𝗘 ✿ ◞' : '◜ ✿ 𝗚𝗢𝗢𝗗 𝗕𝗬𝗘 ✿ ◞';
+
         let message = '';
         if (action === 'add') {
             message =
-`◜ WELCOME ◞
+`${cabecera}
 
   𖤐 usuario » ${userTags}
+  𖤐 nombre » *${nombres}*
   𖤐 grupo » *${groupName}*
   𖤐 miembros » *${totalMembers}*
+  𖤐 fecha » ${fecha} · ${hora}
+  𖤐 descripción » ${descCorta}
 
 ${finalMsg}
 
-> Disfruta tu estadía 🍓`.trim();
+> ✧ Usa *.menu* para ver los comandos 🍓`.trim();
         } else {
             message =
-`◜ GOOD BYE ◞
+`${cabecera}
 
   𖤐 usuario » ${userTags}
+  𖤐 nombre » *${nombres}*
   𖤐 grupo » *${groupName}*
   𖤐 miembros » *${totalMembers}*
+  𖤐 fecha » ${fecha} · ${hora}
 
 ${finalMsg}
 
-> Nunca te quisimos igual 😿`.trim();
+> ✧ Nunca te quisimos igual 😿`.trim();
         }
 
         const userPic = profilePics.find(pic => pic!== null);
@@ -219,10 +237,9 @@ ${finalMsg}
         try {
             const fotoBuffer = userPic ? await axios.get(userPic, { responseType: 'arraybuffer', timeout: 5000 })
                 .then((r) => Buffer.from(r.data)).catch(() => null) : null;
-            const numero = (mentions[0] || '').split('@')[0];
             tarjeta = await generarTarjetaBienvenida({
                 tipo: action === 'add' ? 'add' : 'remove',
-                nombre: numero ? `+${numero}` : 'Nuevo miembro',
+                nombre: nombreDe(mentions[0]),
                 grupo: groupName,
                 miembros: totalMembers,
                 foto: fotoBuffer
