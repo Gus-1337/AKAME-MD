@@ -4,6 +4,7 @@ import os from 'os';
 import path from 'path';
 import { randomBytes } from 'crypto';
 import { aBytes, descargarArchivo, mb, UA, type Info } from '../../lib/descarga.ts';
+import { stellarUrl } from '../../lib/stellar.ts';
 import type { WASocket } from '@whiskeysockets/baileys';
 
 const g = (global as any);
@@ -15,6 +16,20 @@ const RESPALDOS: Array<{ nombre: string; pedir: (url: string) => Promise<any>; l
         nombre: 'principal',
         pedir: async (url) => (await axios.get(`${g.APIs?.delirius?.url || 'https://api.delirius.online'}/download/mediafire?url=${enc(url)}`, { timeout: 25000, headers: UA })).data,
         leer: (d) => d?.data?.link ? { nombre: d.data.filename, link: d.data.link, tamano: aBytes(d.data.size), mime: d.data.mime } : null
+    },
+    {
+        nombre: 'stellar',
+        pedir: async (url) => (await axios.get(stellarUrl('/dl/mediafire', { url }), { timeout: 25000, headers: UA })).data,
+        leer: (d) => {
+            const r = d?.result;
+            if (!r?.download) return null;
+            // Stellar a veces manda el nombre sin extensión: se toma de la URL de descarga
+            const ultimo = decodeURIComponent(String(r.download).split('?')[0].split('/').pop() || '').replace(/\+/g, ' ');
+            const ext = path.extname(ultimo) || '';
+            const base = String(r.filename || 'archivo');
+            const nombre = path.extname(base) ? base : base + ext;
+            return { nombre, link: r.download, tamano: aBytes(r.filesize), mime: r.mimetype };
+        }
     },
     {
         nombre: 'respaldo 1',
