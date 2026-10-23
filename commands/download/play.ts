@@ -62,7 +62,7 @@ const pedirDorratz = async (videoUrl) => {
 };
 
 /** Todas las fuentes en paralelo: gana la primera que entregue el audio completo. */
-const getAudio = async (videoUrl) => {
+export const getAudio = async (videoUrl) => {
     const enc = encodeURIComponent(videoUrl);
     const apis = [
         `https://api.delirius.online/download/ytmp3?url=${enc}`,
