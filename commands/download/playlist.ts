@@ -1,16 +1,27 @@
 import yts from 'yt-search';
+import axios from 'axios';
 import { getAudio } from './play.ts';
+import { generarPortadaPlaylist } from '../../lib/portada-playlist.ts';
 
 // Una playlist son 5 canciones: se buscan en YouTube y se bajan todas a la vez.
 const CANCIONES = 5;
 const MAX_SEGUNDOS = 15 * 60;
-const DOC_BYTES = 16 * 1024 * 1024; // por encima de esto se manda como documento
 
 const limpiarNombre = (t: string) =>
     (String(t || 'audio')).replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 80) || 'audio';
 
 const caja = (titulo: string, lineas: string[]) =>
     `˚₊· ͟͟͞͞➳❥ *${titulo}*\n───────────────\n${lineas.join('\n')}\n───────────────\n> AKAME-MD 🌸`;
+
+const bajarMiniatura = async (url: string): Promise<Buffer | null> => {
+    if (!url) return null;
+    try {
+        const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 6000, headers: { 'User-Agent': 'Mozilla/5.0' } });
+        return Buffer.from(res.data);
+    } catch {
+        return null;
+    }
+};
 
 export default {
     command: ['playlist', 'pl'],
@@ -33,10 +44,9 @@ export default {
 
         await reaccionar('⏳');
         try {
-            // 1. Buscar: se toman 5 videos distintos
+            // 1. Buscar: solo canciones normales (fuera mixes, directos y videos de más de 15 min)
             const busqueda = await yts(q);
             const vistos = new Set<string>();
-            // Solo canciones normales: fuera mixes, directos y videos de más de 15 min
             const videos = (busqueda.videos || []).filter((v: any) => {
                 const seg = Number(v?.seconds) || 0;
                 if (!v?.videoId || vistos.has(v.videoId)) return false;
@@ -52,35 +62,34 @@ export default {
                 return responder(caja('PLAYLIST', [`✧ No encontré canciones para: *${q}*`]));
             }
 
-            // 2. Bajar todas a la vez (cada una ya prueba varias APIs en paralelo)
-            const resultados = await Promise.allSettled(
-                videos.map((v: any) => getAudio(`https://youtu.be/${v.videoId}`))
+            // 2. Empezar a bajar TODAS ya, y mientras tanto armar la portada
+            const descargas = videos.map((v: any) =>
+                getAudio(`https://youtu.be/${v.videoId}`).then((buf) => ({ ok: true as const, buf }), () => ({ ok: false as const, buf: null }))
             );
+            const miniatura = await bajarMiniatura(videos[0].thumbnail || videos[0].image || '');
 
-            // 3. Lista de lo que se va a mandar
-            const lista = videos.map((v: any, i: number) => {
-                const ok = resultados[i].status === 'fulfilled';
-                return `${ok ? '✧' : '✦'} ${i + 1}. ${v.title} ${ok ? '' : '(no se pudo)'}`.trimEnd();
-            });
-            await responder(caja('PLAYLIST', [
-                `✧ Tema » *${q}*`,
-                `✦ Canciones » *${videos.length}*`,
-                '',
-                ...lista
-            ]));
+            // 3. Portada: la miniatura del primer resultado con las canciones
+            const titulos = videos.map((v: any) => v.title);
+            const caption = `> ✧ Tema » *${q}*\n> ✦ ${videos.length} canciones · MP3 como documento`;
+            try {
+                const portada = await generarPortadaPlaylist({ tema: q, canciones: titulos, miniatura });
+                await sock.sendMessage(chat, { image: portada, caption }, { quoted: msg });
+            } catch (err: any) {
+                console.error('[PLAYLIST] portada falló:', err?.message);
+                await responder(caja('PLAYLIST', [`✧ Tema » *${q}*`, '', ...titulos.map((t: string, i: number) => `✧ ${i + 1}. ${t}`)]));
+            }
 
-            // 4. Mandar los audios en orden
+            // 4. Mandar cada canción en cuanto termina de bajar, en orden, como documento MP3
             let enviadas = 0;
             for (let i = 0; i < videos.length; i++) {
-                const r = resultados[i];
-                if (r.status !== 'fulfilled') continue;
-                const audio = r.value;
+                const r = await descargas[i];
+                if (!r.ok || !r.buf) continue;
                 const titulo = limpiarNombre(videos[i].title);
-                if (audio.length > DOC_BYTES) {
-                    await sock.sendMessage(chat, { document: audio, mimetype: 'audio/mpeg', fileName: `${titulo}.mp3` }, { quoted: msg });
-                } else {
-                    await sock.sendMessage(chat, { audio, mimetype: 'audio/mpeg', fileName: `${titulo}.mp3`, ptt: false }, { quoted: msg });
-                }
+                await sock.sendMessage(chat, {
+                    document: r.buf,
+                    mimetype: 'audio/mpeg',
+                    fileName: `${titulo}.mp3`
+                }, { quoted: msg });
                 enviadas++;
             }
 
