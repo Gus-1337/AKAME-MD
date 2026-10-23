@@ -4,6 +4,9 @@ import config from '#config'
 
 const STELLAR_KEY = 'proyectsV2'
 const TIEMPO_RECLAMO = 60000
+// Cada persona puede tirar una waifu cada 2 minutos (por grupo), para evitar spam
+const COOLDOWN_TIRADA = 2 * 60 * 1000
+const ultimaTirada: Map<string, number> = (global as any).waifuUltimaTirada || ((global as any).waifuUltimaTirada = new Map())
 const coinName = (config as any)?.coin || 'coins'
 
 // Rarezas del gacha: probabilidad, valor en yenes e icono
@@ -49,6 +52,17 @@ export default {
         const jid = UserJid(sock, chat, sender || m.sender) || sender || m.sender
         const dueno = normalize(jid)
 
+        const claveCooldown = `${chat}|${dueno}`
+        const espera = (ultimaTirada.get(claveCooldown) || 0) + COOLDOWN_TIRADA - Date.now()
+        if (espera > 0) {
+            const seg = Math.ceil(espera / 1000)
+            const txt = seg >= 60 ? `${Math.ceil(seg / 60)} min` : `${seg} s`
+            return sock.sendMessage(chat, {
+                text: `⏳ @${dueno} espera *${txt}* para tirar otra waifu`,
+                mentions: [jid]
+            }, { quoted: m })
+        }
+
         const activa = pendientes.get(chat)
         if (activa) {
             return sock.sendMessage(chat, {
@@ -58,6 +72,7 @@ export default {
         }
 
         await sock.sendMessage(chat, { react: { text: '💖', key: m.key } }).catch(() => null)
+        ultimaTirada.set(claveCooldown, Date.now())
 
         try {
             const w = await waifuDelirius()
