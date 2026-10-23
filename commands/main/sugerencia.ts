@@ -1,7 +1,7 @@
 import config from '#config';
 
 /** Grupo donde llegan las sugerencias y los reportes. */
-const GRUPO_REPORTES = '120363429023932239@g.us';
+const GRUPO_REPORTES = '120363412261204126@g.us';
 
 const ESPERA_MS = 2 * 60 * 1000;
 const MAX_CARACTERES = 1000;
