@@ -10,7 +10,7 @@ import { stellarUrl } from '../../lib/stellar.ts';
 
 const DELIRIUS = ((global as any).APIs?.delirius?.url || 'https://api.delirius.online').replace(/\/+$/, '');
 
-const CANTIDAD = 5;                  // videos por búsqueda (álbum)
+const CANTIDAD = 10;                 // videos por búsqueda (álbum)
 const MAX_BYTES = 45 * 1024 * 1024;  // descarta videos muy pesados
 const TIMEOUT_BUSQUEDA = 15000;
 const UA = { 'User-Agent': 'Mozilla/5.0' };
@@ -124,7 +124,7 @@ const tarjeta = (query: string, total: number) =>
 export default {
     command: ['pinvid'],
     category: 'download',
-    description: 'Descarga videos de Pinterest por link o envía 5 videos por nombre (álbum)',
+    description: 'Descarga videos de Pinterest por link o envía 10 videos por nombre (álbum)',
     run: async (ctx: any) => {
         const { sock, msg, chat, args, usedPrefix, jid } = ctx;
         const targetJid = jid || chat;
@@ -164,7 +164,7 @@ export default {
                 return sock.sendMessage(chat, { react: { text: '✅', key: msg.key } }).catch(() => {});
             }
 
-            // Modo nombre: hasta 5 videos en álbum
+            // Modo nombre: hasta 10 videos en álbum
             const encontrados = await buscarVideos(entrada);
             if (!encontrados.length) {
                 await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => {});
