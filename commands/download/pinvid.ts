@@ -114,12 +114,14 @@ async function obtenerVideo(pinUrl: string) {
 }
 
 const tarjeta = (query: string, total: number) =>
-`☬ *PINTEREST VIDEO* ☬
-
-♡ *Búsqueda:* ${query}
-♡ *Videos:* ${total}
-
-☬ *AKAME-MD* ♡`;
+`˚₊· ͟͟͞͞➳❥ *PINTEREST VIDEO* ♡
+───────────────
+✧ Búsqueda » ${query}
+✦ Videos » ${total}
+✩ Formato » álbum
+♡ Disfruta, cariño ♡
+───────────────
+> AKAME-MD 🌸`;
 
 export default {
     command: ['pinvid'],
@@ -132,13 +134,13 @@ export default {
 
         if (!entrada) {
             return sock.sendMessage(chat, {
-                text: `☬ *AKAME - PINVID* ☬\n\n♡ *Usa:*\n> ${usedPrefix}pinvid <link del pin>\n> ${usedPrefix}pinvid <nombre>\n\n♡ *Ejemplos:*\n> ${usedPrefix}pinvid https://pin.it/xxxxx\n> ${usedPrefix}pinvid gatos bailando`
+                text: `˚₊· ͟͟͞͞➳❥ *PINTEREST VIDEO*\n───────────────\n✧ Usa » ${usedPrefix}pinvid <link o nombre>\n✦ Ej » ${usedPrefix}pinvid gatos bailando\n✦ Ej » ${usedPrefix}pinvid https://pin.it/xxxxx\n✩ Nombre » 10 videos en álbum\n───────────────\n> AKAME-MD 🌸`
             }, { quoted: msg });
         }
 
         if (esLink(entrada) && !esPinterest(entrada)) {
             return sock.sendMessage(chat, {
-                text: `☬ *AKAME-MD* ☬\n\n♡ Ese link no es de Pinterest.`
+                text: `˚₊· ͟͟͞͞➳❥ *PINTEREST*\n───────────────\n✿ Ese link no es de Pinterest.\n───────────────\n> AKAME-MD 🌸`
             }, { quoted: msg });
         }
 
@@ -152,14 +154,14 @@ export default {
                 if (r.media.type !== 'video') {
                     await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => {});
                     return sock.sendMessage(chat, {
-                        text: `☬ *AKAME-MD* ☬\n\n♡ Ese pin no tiene video, solo imagen.`
+                        text: `˚₊· ͟͟͞͞➳❥ *PINTEREST*\n───────────────\n✿ Ese pin no tiene video, solo imagen.\n───────────────\n> AKAME-MD 🌸`
                     }, { quoted: msg });
                 }
                 const video = await arreglarVideo(r.media.url);
                 await sock.sendMessage(chat, {
                     video,
                     mimetype: 'video/mp4',
-                    caption: `☬ *PINTEREST VIDEO* ☬\n\n♡ *Título:* ${r.pin?.title || 'Sin título'}\n\n☬ *AKAME-MD* ♡`
+                    caption: `˚₊· ͟͟͞͞➳❥ *PINTEREST VIDEO* ♡\n───────────────\n✧ Título » ${r.pin?.title || 'Sin título'}\n✩ Formato » video\n───────────────\n> AKAME-MD 🌸`
                 }, { quoted: msg });
                 return sock.sendMessage(chat, { react: { text: '✅', key: msg.key } }).catch(() => {});
             }
@@ -169,45 +171,45 @@ export default {
             if (!encontrados.length) {
                 await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => {});
                 return sock.sendMessage(chat, {
-                    text: `☬ *AKAME-MD* ☬\n\n♡ No encontré videos de Pinterest para: *${entrada}*`
+                    text: `˚₊· ͟͟͞͞➳❥ *PINTEREST*\n───────────────\n✿ No encontré videos para: *${entrada}*\n───────────────\n> AKAME-MD 🌸`
                 }, { quoted: msg });
             }
 
+            // Cada video se descarga y se sube a WhatsApp en cuanto está listo (sin esperar a los demás)
             const candidatos = encontrados.slice(0, CANTIDAD);
-            const resultados = await Promise.allSettled(candidatos.map((h) =>
-                h.hls ? hlsAMp4(h.url) : arreglarVideo(h.url)
-            ));
-            const videos: Buffer[] = resultados
-                .filter((r): r is PromiseFulfilledResult<Buffer> => r.status === 'fulfilled')
+            const preparados = await Promise.allSettled(candidatos.map(async (h) => {
+                const buffer = h.hls ? await hlsAMp4(h.url) : await arreglarVideo(h.url);
+                return generateWAMessage(targetJid, { video: buffer, mimetype: 'video/mp4', caption: '' },
+                    { upload: sock.waUploadToServer });
+            }));
+            const listos = preparados
+                .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
                 .map((r) => r.value);
 
-            if (!videos.length) throw new Error('no pude descargar ningún video');
+            if (!listos.length) throw new Error('no pude descargar ningún video');
 
-            if (videos.length === 1) {
-                await sock.sendMessage(chat, {
-                    video: videos[0],
-                    mimetype: 'video/mp4',
-                    caption: tarjeta(entrada, 1)
-                }, { quoted: msg });
+            if (listos.length === 1) {
+                const unico = listos[0].message;
+                const contenido = unico.videoMessage;
+                if (contenido) contenido.caption = tarjeta(entrada, 1);
+                await sock.relayMessage(targetJid, unico, { messageId: listos[0].key.id });
                 return sock.sendMessage(chat, { react: { text: '✅', key: msg.key } }).catch(() => {});
             }
 
-            // Álbum: abrir, subir los videos en paralelo y enviarlos asociados al álbum (igual que .tts)
+            // Álbum: abrir y enviar los videos asociados al álbum, en orden (igual que .tts)
             const opener = generateWAMessageFromContent(targetJid, {
                 messageContextInfo: { messageSecret: crypto.randomBytes(32) },
-                albumMessage: { expectedImageCount: 0, expectedVideoCount: videos.length }
+                albumMessage: { expectedImageCount: 0, expectedVideoCount: listos.length }
             }, { userJid: jidNormalizedUser(sock.user.id), quoted: msg, upload: sock.waUploadToServer });
 
             await sock.relayMessage(targetJid, opener.message, { messageId: opener.key.id });
 
-            const hijos = await Promise.all(videos.map((buffer, i) =>
-                generateWAMessage(targetJid, {
-                    video: buffer,
-                    mimetype: 'video/mp4',
-                    caption: i === 0 ? tarjeta(entrada, videos.length) : `🎬 ${i + 1}/${videos.length}`
-                }, { upload: sock.waUploadToServer })
-            ));
+            listos.forEach((child, i) => {
+                const contenido = child.message?.videoMessage;
+                if (contenido) contenido.caption = i === 0 ? tarjeta(entrada, listos.length) : `🎬 ${i + 1}/${listos.length}`;
+            });
 
+            const hijos = listos;
             for (const child of hijos) {
                 child.message.messageContextInfo = {
                     messageSecret: crypto.randomBytes(32),
@@ -221,7 +223,7 @@ export default {
             console.log('[PINVID ERROR]', (e as any)?.message);
             await sock.sendMessage(chat, { react: { text: '❌', key: msg.key } }).catch(() => {});
             await sock.sendMessage(chat, {
-                text: `☬ *AKAME-MD* ☬\n\n♡ No pude descargar ese video. Prueba con otro link o nombre.`
+                text: `˚₊· ͟͟͞͞➳❥ *PINTEREST*\n───────────────\n✿ No pude descargar ese video.\n✦ Prueba con otro link o nombre.\n───────────────\n> AKAME-MD 🌸`
             }, { quoted: msg });
         }
     }
