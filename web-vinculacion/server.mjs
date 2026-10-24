@@ -18,6 +18,7 @@ const MAX_PEDIDOS = 500;
 const pedidos = new Map(); // id -> { numero, estado, codigo, error, creado, actualizado }
 const ultimoPorNumero = new Map();
 const HTML = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+const FONDO = fs.readFileSync(path.join(__dirname, 'fondo.jpg'));
 
 const json = (res, status, obj) => {
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -63,6 +64,10 @@ const servidor = http.createServer(async (req, res) => {
             return res.end(HTML);
         }
         if (req.method === 'GET' && ruta === '/health') return json(res, 200, { ok: true });
+        if (req.method === 'GET' && ruta === '/fondo.jpg') {
+            res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' });
+            return res.end(FONDO);
+        }
 
         // ---- Lo usa la página ----
         if (req.method === 'POST' && ruta === '/api/vincular') {
