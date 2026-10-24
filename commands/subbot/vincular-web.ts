@@ -319,10 +319,16 @@ let reintentos = 0;
 /** Abre el túnel público de Cloudflare (Quick Tunnel) y guarda el link. Se reintenta si se cae. */
 const abrirTunel = () => {
     if (!fs.existsSync(BIN_CLOUDFLARED)) return;
-    tunel = spawn(BIN_CLOUDFLARED, ['tunnel', '--no-autoupdate', '--url', `http://localhost:${PUERTO}`]);
+    // HTTP/2 en vez de QUIC: los hostings suelen bloquear el UDP que usa QUIC
+    tunel = spawn(BIN_CLOUDFLARED, ['tunnel', '--no-autoupdate', '--protocol', 'http2', '--url', `http://localhost:${PUERTO}`]);
+    const ultimas: string[] = [];
 
     const mirar = (datos: Buffer) => {
-        const m = datos.toString().match(REGEX_LINK);
+        const texto = datos.toString();
+        for (const l of texto.split('\n')) {
+            if (l.trim()) { ultimas.push(l.trim().slice(0, 300)); if (ultimas.length > 6) ultimas.shift(); }
+        }
+        const m = texto.match(REGEX_LINK);
         if (m && linkPublico !== m[0]) {
             linkPublico = m[0];
             reintentos = 0;
@@ -339,6 +345,7 @@ const abrirTunel = () => {
         reintentos++;
         const espera = Math.min(60, 5 * reintentos) * 1000;
         console.log(`[VINCULAR WEB] el túnel se cerró; reintento en ${espera / 1000} s`);
+        if (ultimas.length) console.log('[VINCULAR WEB] motivo:\n' + ultimas.join('\n'));
         setTimeout(abrirTunel, espera);
     });
 };
