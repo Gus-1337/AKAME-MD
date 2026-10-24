@@ -76,6 +76,7 @@ export const rutaPanel = async (req, res, url, deps) => {
             const item = { id: t.id, tipo: t.tipo, numero: t.numero };
             if (t.tipo === 'codigo') item.codigo = t.codigo;
             if (t.tipo === 'aplicar') item.cambios = t.cambios;
+            if (t.tipo === 'perfil') item.perfil = t.perfil;
             lista.push(item);
         }
         json(res, 200, { pedidos: lista });
@@ -157,7 +158,38 @@ export const rutaPanel = async (req, res, url, deps) => {
         if (!s) { json(res, 401, { error: 'Sesión vencida. Vuelve a entrar.' }); return true; }
         const r = await pedirAlBot('grupos', { numero: s.numero });
         if (!r.ok) { json(res, 400, { error: r.error }); return true; }
-        json(res, 200, { grupos: r.datos?.grupos || [] });
+        json(res, 200, { grupos: r.datos?.grupos || [], perfil: r.datos?.perfil || null });
+        return true;
+    }
+
+    if (ruta === '/api/panel/perfil' && req.method === 'POST') {
+        const s = sesionDe(req);
+        if (!s) { json(res, 401, { error: 'Sesión vencida. Vuelve a entrar.' }); return true; }
+        let datos;
+        try { datos = await leerCuerpo(req); } catch { json(res, 400, { error: 'Datos inválidos.' }); return true; }
+        const perfil = {};
+        if (datos?.nombre !== undefined) {
+            const nombre = String(datos.nombre).trim();
+            if (!nombre || nombre.length > 30) { json(res, 400, { error: 'El nombre tiene de 1 a 30 caracteres.' }); return true; }
+            perfil.nombre = nombre;
+        }
+        if (datos?.prefijo !== undefined) {
+            const prefijo = String(datos.prefijo).trim();
+            if (!/^[^\p{L}\p{N}\s]{1,2}$/u.test(prefijo)) {
+                json(res, 400, { error: 'El prefijo debe ser de 1 o 2 símbolos, sin letras ni números.' }); return true;
+            }
+            perfil.prefijo = prefijo;
+        }
+        if (datos?.banner !== undefined) {
+            const banner = String(datos.banner).trim();
+            if (banner.length > 500 || (banner && !/^https?:\/\//i.test(banner))) {
+                json(res, 400, { error: 'El banner debe ser un enlace que empiece con http o https.' }); return true;
+            }
+            perfil.banner = banner;
+        }
+        const r = await pedirAlBot('perfil', { numero: s.numero, perfil });
+        if (!r.ok) { json(res, 400, { error: r.error }); return true; }
+        json(res, 200, { ok: true });
         return true;
     }
 

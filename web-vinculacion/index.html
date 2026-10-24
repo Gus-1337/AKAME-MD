@@ -28,7 +28,6 @@
     background-repeat: no-repeat;
   }
 
-  /* Encabezado */
   header {
     position: sticky; top: 0; z-index: 5;
     display: flex; align-items: center; gap: 12px;
@@ -62,12 +61,12 @@
 
   label { display: block; font-size: 13px; font-weight: 700; color: var(--morado2); margin-top: 12px; }
   label:first-of-type { margin-top: 0; }
-  input {
+  input, select {
     width: 100%; padding: 13px; margin: 7px 0 4px; font-size: 16px; color: var(--texto);
     background: rgba(255,255,255,.04); border: 1px solid var(--borde); border-radius: 14px; outline: none;
   }
   input::placeholder { color: #5f5878; }
-  input:focus { border-color: var(--morado); box-shadow: 0 0 0 3px rgba(139,92,246,.25); }
+  input:focus, select:focus { border-color: var(--morado); box-shadow: 0 0 0 3px rgba(139,92,246,.25); }
   .ayuda { font-size: 12px; color: #7d7596; }
   button.principal {
     width: 100%; padding: 14px; border: 0; border-radius: 16px; margin-top: 14px;
@@ -75,8 +74,13 @@
     font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 24px rgba(139,92,246,.4);
   }
   button.principal:disabled { opacity: .6; cursor: wait; }
+  button.secundario {
+    width: auto; margin: 0; padding: 8px 14px; font-size: 13px; border-radius: 12px; font-weight: 700;
+    background: transparent; color: var(--morado2); border: 1px solid var(--borde); cursor: pointer;
+  }
   .msg { min-height: 22px; font-size: 14px; text-align: center; margin-top: 10px; color: var(--suave); }
   .err { color: #ff7aa8; font-weight: 700; }
+  .ok { color: #6ee7a7; }
 
   .codigo {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -85,32 +89,23 @@
     padding: 18px 8px; margin: 10px 0; user-select: all; text-shadow: 0 0 14px rgba(192,132,252,.6);
   }
   .estado { text-align: center; font-weight: 700; font-size: 15px; margin-top: 8px; color: var(--suave); }
-  .ok { color: #6ee7a7; }
-  .oculto { display: none; }
-  .cabecera-panel { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .cabecera-panel h2 { margin: 0; }
-  button.secundario {
-    width: auto; margin: 0; padding: 8px 14px; font-size: 13px; border-radius: 12px;
-    background: transparent; color: var(--morado2); border: 1px solid var(--borde); box-shadow: none;
-  }
-  .grupo .gnombre { font-weight: 800; font-size: 15px; margin-bottom: 4px; word-break: break-word; }
-  .grupo select {
-    width: 100%; padding: 11px; margin: 6px 0 10px; font-size: 15px; color: var(--texto);
-    background: rgba(255,255,255,.04); border: 1px solid var(--borde); border-radius: 12px;
-  }
-  .fila { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-top: 1px solid var(--borde); font-size: 14px; }
-  .fila input[type=checkbox] { width: 20px; height: 20px; margin: 0; accent-color: var(--morado); }
-  .spamcfg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
-  .spamcfg label { font-size: 11px; margin: 0; }
-  .spamcfg input { padding: 9px; font-size: 14px; margin: 4px 0 0; }
-  .texto { font-size: 14px; color: var(--suave); line-height: 1.5; margin: 0 0 10px; }
+  .oculto { display: none !important; }
+  .cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .cabecera h2 { margin: 0; }
 
   details { border-bottom: 1px solid var(--borde); padding: 12px 0; }
   details:last-child { border-bottom: 0; }
   summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--texto); }
   details p { font-size: 13px; color: var(--suave); line-height: 1.6; margin: 8px 0 0; }
 
-  /* Barra inferior */
+  .grupo .gnombre { font-weight: 800; font-size: 15px; margin-bottom: 2px; word-break: break-word; }
+  .grupo select { font-size: 15px; padding: 11px; margin: 6px 0 8px; }
+  .fila { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-top: 1px solid var(--borde); font-size: 14px; }
+  .fila input[type=checkbox] { width: 20px; height: 20px; margin: 0; accent-color: var(--morado); }
+  .spamcfg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .spamcfg label { font-size: 11px; margin: 0; }
+  .spamcfg input { padding: 9px; font-size: 14px; margin: 4px 0 0; }
+
   nav.barra {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
     display: flex; justify-content: space-around; align-items: stretch;
@@ -120,7 +115,7 @@
   }
   nav.barra button {
     flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-    margin: 0; padding: 8px 4px; background: transparent; border-radius: 14px;
+    margin: 0; padding: 8px 2px; background: transparent; border-radius: 14px;
     color: var(--suave); font-size: 11px; font-weight: 700; cursor: pointer; box-shadow: none;
   }
   nav.barra button svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -155,8 +150,8 @@
       </ol>
     </div>
     <div class="card">
-      <h2>Antes de empezar</h2>
-      <p class="texto">Si quieres cambiar el nombre, el prefijo o el banner del menú, hazlo en <b>Personalizar</b>. Son opcionales.</p>
+      <h2>Después de vincular</h2>
+      <p class="texto">En <b>Personalizar</b> cambias el nombre, el prefijo y el banner del menú. En <b>Grupos</b> eliges dónde responde tu subbot y sus protecciones.</p>
     </div>
   </section>
 
@@ -172,20 +167,9 @@
       <button class="principal" id="boton">Obtener código</button>
       <div class="msg" id="msg"></div>
     </div>
-    <div class="card oculto" id="resultado">
-      <h2>Tu código</h2>
-      <div class="codigo" id="codigo"></div>
-      <div class="ayuda" style="text-align:center">Toca el código para seleccionarlo y cópialo.</div>
-      <div class="estado" id="estado">⏳ Esperando que lo vincules…</div>
-    </div>
-  </section>
 
-  <!-- PERSONALIZAR -->
-  <section class="pagina" id="p-personalizar">
-    <h1>Personalizar</h1>
-    <p class="intro">Ajustes de tu subbot. Los datos de vinculación se aplican al crearlo; el panel sirve cuando ya está vinculado.</p>
     <div class="card">
-      <h2>Al vincular</h2>
+      <h2>Al vincular (opcional)</h2>
       <label for="nombre">Nombre de tu subbot</label>
       <input id="nombre" type="text" maxlength="30" placeholder="Ej. KATA BOT">
       <div class="ayuda">Hasta 30 caracteres. Sale en el menú.</div>
@@ -199,9 +183,22 @@
       <div class="ayuda">Opcional. Debe empezar con https://</div>
     </div>
 
+    <div class="card oculto" id="resultado">
+      <h2>Tu código</h2>
+      <div class="codigo" id="codigo"></div>
+      <div class="ayuda" style="text-align:center">Toca el código para seleccionarlo y cópialo.</div>
+      <div class="estado" id="estado">⏳ Esperando que lo vincules…</div>
+    </div>
+  </section>
+
+  <!-- PERSONALIZAR -->
+  <section class="pagina" id="p-personalizar">
+    <h1>Personalizar</h1>
+    <p class="intro">Cambia cómo se ve tu subbot cuando ya está vinculado.</p>
+
     <div class="card" id="panel-login">
-      <h2>Panel de tu subbot</h2>
-      <p class="texto">Entra con el número de tu subbot. Te enviamos un código por WhatsApp a ese mismo número.</p>
+      <h2>Entrar a tu subbot</h2>
+      <p class="texto">Pon el número de tu subbot. Te enviamos un código por WhatsApp a ese mismo número.</p>
       <label for="pnumero">Número del subbot</label>
       <input id="pnumero" type="tel" inputmode="numeric" placeholder="51999999999">
       <button class="principal" id="ppedir">Enviar código por WhatsApp</button>
@@ -213,13 +210,46 @@
       <div class="msg" id="pmsg"></div>
     </div>
 
-    <div id="panel-control" class="oculto">
+    <div id="panel-perfil" class="oculto">
       <div class="card">
-        <div class="cabecera-panel">
-          <h2>Tus grupos</h2>
+        <div class="cabecera">
+          <h2>Datos del subbot</h2>
           <button class="secundario" id="psalir">Salir</button>
         </div>
-        <p class="ayuda">Elige en qué grupos responde tu subbot y qué protecciones tiene en cada uno.</p>
+        <label for="pnombre">Nombre</label>
+        <input id="pnombre" type="text" maxlength="30" placeholder="Ej. KATA BOT">
+        <div class="ayuda">Hasta 30 caracteres. Sale en el menú.</div>
+
+        <label for="pprefijo">Prefijo de comandos</label>
+        <input id="pprefijo" type="text" maxlength="2" placeholder=".">
+        <div class="ayuda">1 o 2 símbolos, sin letras ni números. Ej. ! # /</div>
+
+        <label for="pbanner">Banner del menú (enlace de imagen)</label>
+        <input id="pbanner" type="url" placeholder="https://...">
+        <div class="ayuda">Deja vacío para usar el banner de AKAME.</div>
+
+        <button class="principal" id="pguardar-perfil">Guardar cambios</button>
+        <div class="msg" id="pmsg-perfil"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GRUPOS -->
+  <section class="pagina" id="p-grupos">
+    <h1>Grupos</h1>
+    <p class="intro">Elige en qué grupos responde tu subbot y qué protecciones tiene en cada uno.</p>
+
+    <div class="card" id="grupos-sin-sesion">
+      <p class="texto">Primero entra a tu subbot en <b>Personalizar</b>.</p>
+      <button class="principal" id="ir-personalizar">Ir a Personalizar</button>
+    </div>
+
+    <div id="grupos-con-sesion" class="oculto">
+      <div class="card">
+        <div class="cabecera">
+          <h2>Tus grupos</h2>
+          <button class="secundario" id="pactualizar">Actualizar</button>
+        </div>
         <div class="msg" id="pmsg-grupos"></div>
       </div>
       <div id="pgrupos"></div>
@@ -248,8 +278,8 @@
         <p>El código caduca y el subbot se borra. Pide uno nuevo desde Vincular.</p>
       </details>
       <details>
-        <summary>¿Cómo cambio el prefijo o el nombre después?</summary>
-        <p>Escribe <b>.setprefix</b> o <b>.setname</b> al número de tu subbot en WhatsApp.</p>
+        <summary>¿Los cambios se aplican al momento?</summary>
+        <p>Sí. Nombre, prefijo y banner se aplican al guardar. Los grupos y las protecciones también.</p>
       </details>
     </div>
   </section>
@@ -269,6 +299,10 @@
     <svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
     Personalizar
   </button>
+  <button data-pagina="p-grupos">
+    <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5a5 5 0 0 1 6 4.5"/></svg>
+    Grupos
+  </button>
   <button data-pagina="p-ayuda">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 .5c0 1.7-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>
     Ayuda
@@ -287,6 +321,7 @@
   botones.forEach(function (b) {
     b.addEventListener('click', function () { mostrar(b.getAttribute('data-pagina')); });
   });
+  window.akameIr = mostrar;
 
   // ---- Vincular ----
   var numeroEl = document.getElementById('numero');
@@ -364,6 +399,7 @@
   });
 })();
 </script>
+
 <script>
 (function () {
   var CLAVE = 'akame_panel_token';
@@ -394,23 +430,52 @@
     });
   }
 
-  function mostrarLogin() {
-    $('panel-control').classList.add('oculto');
-    $('panel-login').classList.remove('oculto');
+  // ---- Estado de la sesión en pantalla ----
+  function pintarSesion() {
+    var dentro = !!token;
+    $('panel-login').classList.toggle('oculto', dentro);
+    $('panel-perfil').classList.toggle('oculto', !dentro);
+    $('grupos-sin-sesion').classList.toggle('oculto', dentro);
+    $('grupos-con-sesion').classList.toggle('oculto', !dentro);
   }
-  function mostrarControl() {
-    $('panel-login').classList.add('oculto');
-    $('panel-control').classList.remove('oculto');
-  }
+
   function salir() {
     token = '';
     sessionStorage.removeItem(CLAVE);
     originales = {};
     $('pgrupos').innerHTML = '';
-    mostrarLogin();
+    pintarSesion();
     avisar('pmsg', 'Sesión cerrada.');
   }
 
+  // ---- Perfil (nombre, prefijo, banner) ----
+  function pintarPerfil(p) {
+    if (!p) return;
+    $('pnombre').value = p.nombre || '';
+    $('pprefijo').value = p.prefijo || '.';
+    $('pbanner').value = p.banner || '';
+  }
+
+  $('pguardar-perfil').addEventListener('click', function () {
+    var nombre = $('pnombre').value.trim();
+    var prefijo = $('pprefijo').value.trim();
+    var banner = $('pbanner').value.trim();
+    if (!nombre || nombre.length > 30) return avisar('pmsg-perfil', 'El nombre tiene de 1 a 30 caracteres.', true);
+    if (!/^[^\p{L}\p{N}\s]{1,2}$/u.test(prefijo)) return avisar('pmsg-perfil', 'El prefijo debe ser de 1 o 2 símbolos, sin letras ni números.', true);
+    if (banner && !/^https?:\/\//i.test(banner)) return avisar('pmsg-perfil', 'El banner debe empezar con https://', true);
+
+    var b = $('pguardar-perfil');
+    b.disabled = true;
+    avisar('pmsg-perfil', 'Guardando…');
+    api('/api/panel/perfil', { method: 'POST', body: { nombre: nombre, prefijo: prefijo, banner: banner } }).then(function (x) {
+      if (x.status === 401) { salir(); return avisar('pmsg', 'Tu sesión venció. Vuelve a entrar.', true); }
+      if (!x.ok) return avisar('pmsg-perfil', x.d.error || 'No se pudo guardar.', true);
+      avisar('pmsg-perfil', '✅ Guardado. Ya se ve en el menú.');
+    }).catch(function () { avisar('pmsg-perfil', 'Error de conexión. Intenta de nuevo.', true); })
+      .then(function () { b.disabled = false; });
+  });
+
+  // ---- Grupos ----
   function leerCfg(card) {
     return {
       max: Number(card.querySelector('.cfg-max').value),
@@ -468,44 +533,17 @@
   function cargarGrupos() {
     avisar('pmsg-grupos', 'Cargando tus grupos…');
     api('/api/panel/grupos').then(function (x) {
-      if (x.status === 401) { salir(); avisar('pmsg', 'Tu sesión venció. Vuelve a entrar.', true); return; }
-      if (!x.ok) { avisar('pmsg-grupos', x.d.error || 'No se pudieron cargar los grupos.', true); return; }
+      if (x.status === 401) { salir(); return avisar('pmsg', 'Tu sesión venció. Vuelve a entrar.', true); }
+      if (!x.ok) return avisar('pmsg-grupos', x.d.error || 'No se pudieron cargar los grupos.', true);
+      pintarPerfil(x.d.perfil);
       pintarGrupos(x.d.grupos || []);
-      avisar('pmsg-grupos', x.d.grupos && x.d.grupos.length ? 'Cambia lo que quieras y pulsa Guardar.' : '');
+      avisar('pmsg-grupos', x.d.grupos && x.d.grupos.length ? 'Cambia lo que quieras y pulsa Guardar cambios.' : '');
     }).catch(function () { avisar('pmsg-grupos', 'Error de conexión. Intenta de nuevo.', true); });
   }
 
-  // ---- Entrar ----
-  $('ppedir').addEventListener('click', function () {
-    var numero = $('pnumero').value.replace(/\D/g, '');
-    if (numero.length < 8 || numero.length > 15) return avisar('pmsg', 'Escribe el número del subbot con código de país.', true);
-    var b = $('ppedir');
-    b.disabled = true;
-    api('/api/panel/pedir-codigo', { method: 'POST', body: { numero: numero } }).then(function (x) {
-      if (!x.ok) return avisar('pmsg', x.d.error || 'No se pudo enviar el código.', true);
-      $('pcodigo-bloque').classList.remove('oculto');
-      avisar('pmsg', 'Te enviamos un código por WhatsApp al número del subbot.');
-    }).catch(function () { avisar('pmsg', 'Error de conexión. Intenta de nuevo.', true); })
-      .then(function () { b.disabled = false; });
-  });
+  $('pactualizar').addEventListener('click', cargarGrupos);
+  $('ir-personalizar').addEventListener('click', function () { window.akameIr('p-personalizar'); });
 
-  $('pentrar').addEventListener('click', function () {
-    var numero = $('pnumero').value.replace(/\D/g, '');
-    var codigo = $('pcodigo').value.replace(/\D/g, '');
-    if (codigo.length !== 6) return avisar('pmsg', 'El código tiene 6 dígitos.', true);
-    api('/api/panel/entrar', { method: 'POST', body: { numero: numero, codigo: codigo } }).then(function (x) {
-      if (!x.ok) return avisar('pmsg', x.d.error || 'No se pudo entrar.', true);
-      token = x.d.token;
-      sessionStorage.setItem(CLAVE, token);
-      $('pcodigo').value = '';
-      mostrarControl();
-      cargarGrupos();
-    }).catch(function () { avisar('pmsg', 'Error de conexión. Intenta de nuevo.', true); });
-  });
-
-  $('psalir').addEventListener('click', salir);
-
-  // ---- Guardar ----
   $('pguardar').addEventListener('click', function () {
     var cambios = {};
     var invalido = '';
@@ -539,8 +577,45 @@
       .then(function () { b.disabled = false; });
   });
 
-  // Si ya había sesión en esta pestaña, sigue dentro
-  if (token) { mostrarControl(); cargarGrupos(); }
+  // ---- Entrar ----
+  $('ppedir').addEventListener('click', function () {
+    var numero = $('pnumero').value.replace(/\D/g, '');
+    if (numero.length < 8 || numero.length > 15) return avisar('pmsg', 'Escribe el número del subbot con código de país.', true);
+    var b = $('ppedir');
+    b.disabled = true;
+    api('/api/panel/pedir-codigo', { method: 'POST', body: { numero: numero } }).then(function (x) {
+      if (!x.ok) return avisar('pmsg', x.d.error || 'No se pudo enviar el código.', true);
+      $('pcodigo-bloque').classList.remove('oculto');
+      avisar('pmsg', 'Te enviamos un código por WhatsApp al número del subbot.');
+    }).catch(function () { avisar('pmsg', 'Error de conexión. Intenta de nuevo.', true); })
+      .then(function () { b.disabled = false; });
+  });
+
+  $('pentrar').addEventListener('click', function () {
+    var numero = $('pnumero').value.replace(/\D/g, '');
+    var codigo = $('pcodigo').value.replace(/\D/g, '');
+    if (codigo.length !== 6) return avisar('pmsg', 'El código tiene 6 dígitos.', true);
+    api('/api/panel/entrar', { method: 'POST', body: { numero: numero, codigo: codigo } }).then(function (x) {
+      if (!x.ok) return avisar('pmsg', x.d.error || 'No se pudo entrar.', true);
+      token = x.d.token;
+      sessionStorage.setItem(CLAVE, token);
+      $('pcodigo').value = '';
+      pintarSesion();
+      avisar('pmsg', 'Entraste. Ya puedes editar tu subbot.');
+      cargarGrupos();
+    }).catch(function () { avisar('pmsg', 'Error de conexión. Intenta de nuevo.', true); });
+  });
+
+  $('psalir').addEventListener('click', salir);
+
+  // Al abrir la pestaña Grupos, carga la lista si ya hay sesión
+  document.querySelectorAll('nav.barra button[data-pagina="p-grupos"]').forEach(function (b) {
+    b.addEventListener('click', function () { if (token) cargarGrupos(); });
+  });
+
+  pintarSesion();
+  // Si ya había sesión en esta pestaña, carga los datos
+  if (token) cargarGrupos();
 })();
 </script>
 </body>

@@ -1,5 +1,5 @@
 import { saveDB } from '#db';
-import { esSubbot, leerPerfil, leerGrupos, guardarGrupos } from './subbot-mode.ts';
+import { esSubbot, leerPerfil, leerGrupos, guardarGrupos, actualizarPerfil } from './subbot-mode.ts';
 
 // Panel web del dueño (lado del subbot).
 // El bot principal le manda pedidos por IPC y este módulo responde:
@@ -105,7 +105,37 @@ const manejar = async (m: any) => {
                 };
             });
             grupos.sort((a, b) => a.nombre.localeCompare(b.nombre));
-            return responder(req, { grupos });
+            const perfil = leerPerfil();
+            return responder(req, {
+                grupos,
+                perfil: { nombre: perfil.nombre, prefijo: perfil.prefijo, banner: perfil.banner || '' }
+            });
+        }
+
+        if (m.tipo === 'panel_perfil') {
+            const datos = m.perfil || {};
+            const cambios: Record<string, string> = {};
+            if (datos.nombre !== undefined) {
+                const nombre = String(datos.nombre).trim();
+                if (!nombre || nombre.length > 30) return responder(req, { error: 'El nombre tiene de 1 a 30 caracteres.' });
+                cambios.nombre = nombre;
+            }
+            if (datos.prefijo !== undefined) {
+                const prefijo = String(datos.prefijo).trim();
+                if (!/^[^\p{L}\p{N}\s]{1,2}$/u.test(prefijo)) {
+                    return responder(req, { error: 'El prefijo debe ser de 1 o 2 símbolos, sin letras ni números.' });
+                }
+                cambios.prefijo = prefijo;
+            }
+            if (datos.banner !== undefined) {
+                const banner = String(datos.banner).trim();
+                if (banner && !/^https?:\/\//i.test(banner)) {
+                    return responder(req, { error: 'El banner debe ser un enlace que empiece con http o https.' });
+                }
+                cambios.banner = banner;
+            }
+            actualizarPerfil(cambios);
+            return responder(req, { ok: true });
         }
 
         if (m.tipo === 'panel_aplicar') {

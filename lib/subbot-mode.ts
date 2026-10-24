@@ -50,6 +50,13 @@ const guardarPerfil = (p: Perfil) => {
     aplicarAlBot(p);
 };
 
+/** Cambia campos del perfil (nombre, prefijo, banner), lo guarda y lo aplica al momento. */
+export const actualizarPerfil = (cambios: Partial<Perfil>): Perfil => {
+    const p = { ...leerPerfil(), ...cambios };
+    guardarPerfil(p);
+    return p;
+};
+
 /** Al arrancar: aplica el perfil guardado. */
 export const aplicarPerfil = (): Perfil => {
     const p = leerPerfil();

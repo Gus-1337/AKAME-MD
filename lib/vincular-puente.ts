@@ -1,4 +1,4 @@
-import { crearSubbot, buscarSubbot, panelEnviarCodigo, panelGrupos, panelAplicar } from './subbots.ts';
+import { crearSubbot, buscarSubbot, panelEnviarCodigo, panelGrupos, panelAplicar, panelPerfil } from './subbots.ts';
 
 // Puente entre la página de vinculación (Render) y el bot principal.
 // El bot pregunta a Render cada pocos segundos si hay pedidos nuevos, crea el subbot
@@ -65,7 +65,9 @@ const atenderPanel = async (p: any) => {
         if (p.tipo === 'codigo') {
             await panelEnviarCodigo(sub.id, String(p.codigo || ''));
         } else if (p.tipo === 'grupos') {
-            datos = { grupos: await panelGrupos(sub.id) };
+            datos = await panelGrupos(sub.id);
+        } else if (p.tipo === 'perfil') {
+            await panelPerfil(sub.id, p.perfil || {});
         } else if (p.tipo === 'aplicar') {
             const r = await panelAplicar(sub.id, p.cambios || {});
             datos = { aplicados: r.aplicados ?? 0 };

@@ -364,10 +364,14 @@ export const panelEnviarCodigo = (id: string, codigo: string) =>
     pedirAlSubbot(id, { tipo: 'panel_codigo', codigo }, 20000);
 
 /** Lista de grupos del subbot con su configuración actual. */
-export const panelGrupos = async (id: string): Promise<any[]> => {
+export const panelGrupos = async (id: string): Promise<{ grupos: any[]; perfil: any }> => {
     const m = await pedirAlSubbot(id, { tipo: 'pedir_grupos' }, 25000);
-    return Array.isArray(m.grupos) ? m.grupos : [];
+    return { grupos: Array.isArray(m.grupos) ? m.grupos : [], perfil: m.perfil || null };
 };
+
+/** Cambia nombre, prefijo o banner del subbot (se aplica al momento). */
+export const panelPerfil = (id: string, perfil: Record<string, unknown>) =>
+    pedirAlSubbot(id, { tipo: 'panel_perfil', perfil }, 20000);
 
 /** Aplica cambios: { "<jid>": { responde?, antilink?, antitoxic?, antispam?, antispamCfg? } } */
 export const panelAplicar = (id: string, cambios: Record<string, unknown>) =>
