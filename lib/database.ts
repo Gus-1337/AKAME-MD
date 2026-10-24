@@ -101,9 +101,18 @@ export const loadDB = () => {
             sAuthor = excluded.sAuthor
     `);
 
+    // Migración: antitoxic y antispam se guardan por grupo (antes no tenían columna)
+    for (const sql of [
+        'ALTER TABLE chats ADD COLUMN antitoxic INTEGER DEFAULT 0',
+        'ALTER TABLE chats ADD COLUMN antispam INTEGER DEFAULT 0',
+        "ALTER TABLE chats ADD COLUMN antispam_cfg TEXT DEFAULT ''"
+    ]) {
+        try { db.exec(sql); } catch {}
+    }
+
     stmtSaveChat = db.prepare(`
-        INSERT INTO chats (id, muteds, isBanned, welcome, bye, nsfw, alerts, gacha, economy, adminonly, antilinks, characters, rolls, sWelcome, sGoodbye)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO chats (id, muteds, isBanned, welcome, bye, nsfw, alerts, gacha, economy, adminonly, antilinks, characters, rolls, sWelcome, sGoodbye, antitoxic, antispam, antispam_cfg)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             muteds = excluded.muteds,
             isBanned = excluded.isBanned,
@@ -118,7 +127,10 @@ export const loadDB = () => {
             characters = excluded.characters,
             rolls = excluded.rolls,
             sWelcome = excluded.sWelcome,
-            sGoodbye = excluded.sGoodbye
+            sGoodbye = excluded.sGoodbye,
+            antitoxic = excluded.antitoxic,
+            antispam = excluded.antispam,
+            antispam_cfg = excluded.antispam_cfg
     `);
 
     stmtSaveChatUser = db.prepare(`
@@ -159,6 +171,11 @@ export const loadDB = () => {
         chatObj.antilinks = Boolean(c.antilinks);
         chatObj.sWelcome = c.sWelcome || '';
         chatObj.sGoodbye = c.sGoodbye || '';
+        chatObj.antitoxic = Boolean(c.antitoxic);
+        chatObj.antiSpam = Boolean(c.antispam);
+        if (c.antispam_cfg) {
+            try { chatObj.antiSpamCfg = JSON.parse(c.antispam_cfg); } catch {}
+        }
         chatObj.characters = JSON.parse(c.characters || '{}');
         chatObj.rolls = JSON.parse(c.rolls || '{}');
         chatObj.users ||= {};
@@ -220,7 +237,10 @@ export const saveDB = (chatId?: string, senderId?: string) => {
                 JSON.stringify(c.characters || {}),
                 JSON.stringify(c.rolls || {}),
                 c.sWelcome || '',
-                c.sGoodbye || ''
+                c.sGoodbye || '',
+                c.antitoxic ? 1 : 0,
+                c.antiSpam ? 1 : 0,
+                c.antiSpamCfg ? JSON.stringify(c.antiSpamCfg) : ''
             );
 
             if (senderId && c.users?.[senderId]) {
@@ -287,6 +307,8 @@ export const registerData = async (sock: any, m: any) => {
         chat.antilinks ??= false;
         chat.sWelcome ??= '';
         chat.sGoodbye ??= '';
+        chat.antitoxic ??= false;
+        chat.antiSpam ??= false;
 
         chat.users[sender] ||= {};
         chat.users[sender].messageCount = (chat.users[sender].messageCount || 0) + 1;

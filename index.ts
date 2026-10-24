@@ -27,6 +27,7 @@ import { handleGroupAlerts, handleGroupParticipants } from '#alertas';
 import { avisarReinicio } from './commands/owner/restart.ts';
 import { restaurarSubbots } from './lib/subbots.ts';
 import { iniciarVincularWeb } from './lib/vincular-puente.ts';
+import { usarSockPanel } from './lib/subbot-panel.ts';
 import { guardarParaAntidelete, procesarRevocacion, procesarVerUnaVez } from './lib/antidelete.ts';
 import { revisarIngreso, recordarNombre } from './lib/antibot.ts';
 import { leerPrefijo } from './lib/prefijo.ts';
@@ -286,6 +287,7 @@ async function startBot() {
         }, 3000);
     }
 
+    usarSockPanel(sock);
     sock.ev.on('creds.update', async () => {
         await saveCreds();
     });

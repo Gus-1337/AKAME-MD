@@ -185,11 +185,11 @@ export const bienvenidaSubbot = async (sock: any, { id: grupo, participants, act
 // ---------------------------------------------------------------------------
 const GRUPOS = path.join(CARPETA_SUBBOT, 'grupos.json');
 
-const leerGrupos = (): Record<string, string> => {
+export const leerGrupos = (): Record<string, string> => {
     try { return JSON.parse(fs.readFileSync(GRUPOS, 'utf8')) || {}; } catch { return {}; }
 };
 
-const guardarGrupos = (g: Record<string, string>) => {
+export const guardarGrupos = (g: Record<string, string>) => {
     fs.writeFileSync(GRUPOS, JSON.stringify(g, null, 2));
 };
 

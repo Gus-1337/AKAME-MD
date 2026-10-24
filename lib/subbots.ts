@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -328,3 +329,46 @@ export const crearSubbot = async (numero: string, chat?: string, personal?: Perf
         proc.on('exit', () => fallar('El subbot se cerró antes de generar el código'));
     });
 };
+
+// ---------------------------------------------------------------------------
+// Panel web del dueño: el bot principal le pide cosas al subbot por IPC.
+// Cada pedido tiene un id (req) y el subbot responde con { tipo: 'panel_resp', req, ... }.
+// ---------------------------------------------------------------------------
+const pedirAlSubbot = (id: string, mensaje: Record<string, unknown>, esperaMs: number): Promise<any> => {
+    return new Promise((resolver, rechazar) => {
+        const v = vivos.get(id);
+        if (!v || !v.proc.connected) return rechazar(new Error('Tu subbot no está encendido'));
+
+        const req = crypto.randomUUID();
+        const proc = v.proc;
+        const fin = () => proc.off('message', alRecibir);
+        const alRecibir = (m: any) => {
+            if (m?.tipo !== 'panel_resp' || m.req !== req) return;
+            clearTimeout(tiempo);
+            fin();
+            if (m.error) rechazar(new Error(String(m.error)));
+            else resolver(m);
+        };
+        const tiempo = setTimeout(() => {
+            fin();
+            rechazar(new Error('Tu subbot no respondió a tiempo, intenta de nuevo'));
+        }, esperaMs);
+
+        proc.on('message', alRecibir);
+        proc.send({ ...mensaje, req });
+    });
+};
+
+/** Envía el código del panel al número del dueño (por WhatsApp, desde su subbot). */
+export const panelEnviarCodigo = (id: string, codigo: string) =>
+    pedirAlSubbot(id, { tipo: 'panel_codigo', codigo }, 20000);
+
+/** Lista de grupos del subbot con su configuración actual. */
+export const panelGrupos = async (id: string): Promise<any[]> => {
+    const m = await pedirAlSubbot(id, { tipo: 'pedir_grupos' }, 25000);
+    return Array.isArray(m.grupos) ? m.grupos : [];
+};
+
+/** Aplica cambios: { "<jid>": { responde?, antilink?, antitoxic?, antispam?, antispamCfg? } } */
+export const panelAplicar = (id: string, cambios: Record<string, unknown>) =>
+    pedirAlSubbot(id, { tipo: 'panel_aplicar', cambios }, 25000);
