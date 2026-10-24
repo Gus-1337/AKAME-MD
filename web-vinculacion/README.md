@@ -38,10 +38,12 @@ Solo arranca en el bot principal; los subbots no lo usan.
 | Ruta | Quién la usa | Qué hace |
 |---|---|---|
 | `GET /` | Navegador | Página de vinculación |
-| `POST /api/vincular` | Página | Crea un pedido `{ numero }` |
+| `POST /api/vincular` | Página | Crea un pedido `{ numero, nombre?, prefijo?, banner? }` |
 | `GET /api/estado/:id` | Página | Estado del pedido (`pendiente`, `codigo`, `conectado`, `caido`, `error`) |
 | `GET /api/bot/pendientes` | Bot (con `x-secreto`) | Pedidos sin atender |
 | `POST /api/bot/respuesta` | Bot (con `x-secreto`) | Devuelve el código o el error |
 | `POST /api/bot/estado` | Bot (con `x-secreto`) | Avisa `conectado`, `caido` o `expirado` |
+
+Personalización opcional: `nombre` (hasta 30 caracteres), `prefijo` (1–2 símbolos) y `banner` (enlace http/https). El bot vuelve a validar todo antes de guardarlo en `perfil.json`.
 
 Reglas: 1 pedido por número cada 60 s. Los pedidos se borran a los 15 min.

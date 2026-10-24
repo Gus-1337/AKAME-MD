@@ -265,7 +265,9 @@ export const restaurarSubbots = () => {
  * `chat` es donde se pidió el código: ahí se avisa cuando se conecte.
  * Lanza error si el número no es válido, ya tiene subbot o no hay cupo.
  */
-export const crearSubbot = async (numero: string, chat?: string): Promise<{ id: string; codigo: string }> => {
+export interface PerfilInicial { nombre?: string; prefijo?: string; banner?: string }
+
+export const crearSubbot = async (numero: string, chat?: string, personal?: PerfilInicial): Promise<{ id: string; codigo: string }> => {
     const num = soloDigitos(numero);
     if (num.length < 8 || num.length > 15) {
         throw new Error('Número inválido. Usa el formato con código de país, ej. 51999999999');
@@ -279,10 +281,16 @@ export const crearSubbot = async (numero: string, chat?: string): Promise<{ id: 
     const id = `sb-${Date.now().toString(36)}`;
     const carpeta = path.join(RAIZ, id);
     fs.mkdirSync(carpeta, { recursive: true });
+    // Datos que puso la persona en la página (ya validados); si no hay, valores por defecto
+    const nombre = (personal?.nombre || '').trim().slice(0, 30) || 'AKAME Subbot';
+    const prefijo = /^[^\p{L}\p{N}\s]{1,2}$/u.test(personal?.prefijo || '') ? personal!.prefijo! : '.';
+    const banner = /^https?:\/\//i.test(personal?.banner || '') ? personal!.banner! : '';
     fs.writeFileSync(path.join(carpeta, 'perfil.json'), JSON.stringify({
         numero: num,
-        nombre: 'AKAME Subbot',
-        banner: ''
+        nombre,
+        prefijo,
+        banner,
+        bienvenida: ''
     }, null, 2));
     guardarRegistro([...lista, { id, numero: num, estado: 'emparejando', creado: new Date().toISOString(), chat, codigo }]);
 

@@ -27,10 +27,10 @@ const llamar = async (metodo: 'GET' | 'POST', ruta: string, cuerpo?: unknown): P
     return r.json();
 };
 
-const atender = async (id: string, numero: string) => {
+const atender = async (id: string, numero: string, personal?: any) => {
     enProceso.add(id);
     try {
-        const { codigo } = await crearSubbot(numero);
+        const { codigo } = await crearSubbot(numero, undefined, personal);
         seguimiento.set(id, numero);
         await llamar('POST', '/api/bot/respuesta', { id, codigo });
         console.log(`[VINCULAR WEB] código enviado al pedido ${id}`);
@@ -60,7 +60,7 @@ const ciclo = async () => {
         const { pedidos } = await llamar('GET', '/api/bot/pendientes');
         avisoCaida = false;
         for (const p of pedidos || []) {
-            if (!enProceso.has(p.id)) void atender(p.id, p.numero);
+            if (!enProceso.has(p.id)) void atender(p.id, p.numero, p.perfil);
         }
         await revisarSeguimiento();
     } catch (e: any) {

@@ -44,6 +44,10 @@
   .estado { text-align: center; font-weight: 700; font-size: 15px; margin-top: 8px; }
   .ok { color: #2e7d32; }
   .oculto { display: none; }
+  .personal { margin: 14px 0 4px; background: #faf5ff; border-radius: 14px; padding: 10px 12px; }
+  .personal summary { cursor: pointer; font-weight: 700; color: #7a3fa0; }
+  .personal label { display: block; margin-top: 10px; }
+  .personal input { font-size: 15px; padding: 10px; margin: 6px 0 2px; }
 </style>
 </head>
 <body>
@@ -64,6 +68,22 @@
     <label for="numero">Tu número de WhatsApp</label>
     <input id="numero" type="tel" inputmode="numeric" placeholder="51999999999" autocomplete="tel">
     <div class="ayuda">Solo números, sin + ni espacios.</div>
+
+    <details class="personal">
+      <summary>Personaliza tu subbot (opcional)</summary>
+      <label for="nombre">Nombre de tu subbot</label>
+      <input id="nombre" type="text" maxlength="30" placeholder="Ej. KATA BOT">
+      <div class="ayuda">Hasta 30 caracteres. Sale en el menú.</div>
+
+      <label for="prefijo">Prefijo de comandos</label>
+      <input id="prefijo" type="text" maxlength="2" placeholder="." value=".">
+      <div class="ayuda">1 o 2 símbolos, sin letras ni números. Ej. ! # /</div>
+
+      <label for="banner">Banner del menú (enlace de imagen)</label>
+      <input id="banner" type="url" placeholder="https://...">
+      <div class="ayuda">Opcional. Debe empezar con https://</div>
+    </details>
+
     <button id="boton">Obtener código</button>
     <div class="msg" id="msg"></div>
   </div>
@@ -124,12 +144,15 @@
     if (numero.length < 8 || numero.length > 15) {
       return mostrarError('Escribe tu número con código de país, ej. 51999999999.');
     }
+    var nombre = document.getElementById('nombre').value.trim();
+    var prefijo = document.getElementById('prefijo').value.trim();
+    var banner = document.getElementById('banner').value.trim();
     boton.disabled = true;
     boton.textContent = 'Pidiendo código…';
     fetch('/api/vincular', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ numero: numero })
+      body: JSON.stringify({ numero: numero, nombre: nombre, prefijo: prefijo, banner: banner })
     })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (x) {

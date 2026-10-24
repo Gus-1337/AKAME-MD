@@ -80,8 +80,25 @@ const servidor = http.createServer(async (req, res) => {
             }
             if (pedidos.size >= MAX_PEDIDOS) return json(res, 503, { error: 'Hay muchos pedidos. Intenta en un minuto.' });
 
+            // Personalización opcional (se valida otra vez en el bot)
+            const nombre = String(datos?.nombre || '').trim();
+            if (nombre.length > 30) return json(res, 400, { error: 'El nombre puede tener hasta 30 caracteres.' });
+            const prefijo = String(datos?.prefijo || '').trim();
+            if (prefijo && !/^[^\p{L}\p{N}\s]{1,2}$/u.test(prefijo)) {
+                return json(res, 400, { error: 'El prefijo debe ser de 1 o 2 símbolos, sin letras ni números. Ej: !' });
+            }
+            const banner = String(datos?.banner || '').trim();
+            if (banner) {
+                let enlace;
+                try { enlace = new URL(banner); } catch { enlace = null; }
+                if (!enlace || !['http:', 'https:'].includes(enlace.protocol) || banner.length > 500) {
+                    return json(res, 400, { error: 'El banner debe ser un enlace que empiece con http o https.' });
+                }
+            }
+
             const id = crypto.randomUUID();
-            pedidos.set(id, { numero, estado: 'pendiente', codigo: '', error: '', creado: ahora, actualizado: ahora });
+            const perfil = { nombre, prefijo, banner };
+            pedidos.set(id, { numero, perfil, estado: 'pendiente', codigo: '', error: '', creado: ahora, actualizado: ahora });
             ultimoPorNumero.set(numero, ahora);
             return json(res, 200, { id });
         }
@@ -99,7 +116,7 @@ const servidor = http.createServer(async (req, res) => {
             if (req.method === 'GET' && ruta === '/api/bot/pendientes') {
                 const lista = [];
                 for (const [id, p] of pedidos) {
-                    if (p.estado === 'pendiente') lista.push({ id, numero: p.numero });
+                    if (p.estado === 'pendiente') lista.push({ id, numero: p.numero, perfil: p.perfil });
                 }
                 return json(res, 200, { pedidos: lista });
             }
