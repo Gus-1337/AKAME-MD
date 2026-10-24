@@ -14,7 +14,7 @@ const emitProgress = (msgId: string, step: string, extraData: Record<string, any
 };
 
 export default {
-    command: ['sp', 'spotify'],
+    command: ['spotify', 'sp'],
     description: 'Descarga música de Spotify',
     category: 'download',
     group: true,
