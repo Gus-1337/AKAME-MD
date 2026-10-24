@@ -162,6 +162,7 @@ const displayLoadingMessage = () => {
 // Subbots: el código de vinculación se pide una sola vez por proceso
 let codigoSubbotPedido = false;
 let intentosCodigoSubbot = 0;
+let codigoSubbotEntregado = false;
 
 async function startBot() {
     await loadDB();
@@ -320,6 +321,7 @@ async function startBot() {
                     const raw: string = await sock.requestPairingCode(leerPerfil().numero, personalizado.length === 8 ? personalizado : undefined);
                     const codigo = personalizado.length === 8 ? raw : (raw?.match(/.{1,4}/g)?.join('-') ?? raw);
                     intentosCodigoSubbot = 0;
+                    codigoSubbotEntregado = true;
                     reportar({ tipo: 'codigo', codigo });
                 } catch (err: any) {
                     codigoSubbotPedido = false;
@@ -367,6 +369,9 @@ async function startBot() {
         if (connection === 'close') {
             const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
             const isStreamError = lastDisconnect?.error?.message?.includes('Stream Errored');
+            if (esSubbot && usarCodigo && !codigoSubbotEntregado && !state.creds.registered && statusCode === DisconnectReason.loggedOut) {
+                reportar({ tipo: 'error', motivo: 'WhatsApp rechazó la vinculación (sesión cerrada). Espera un momento y pide el código otra vez.' });
+            }
             broadcast('bot_status', { status: 'disconnected', statusCode });
 
             if (statusCode === 515 || isStreamError) {

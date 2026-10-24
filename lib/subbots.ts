@@ -359,7 +359,7 @@ export const crearSubbot = async (
             }
             if (m?.tipo === 'error') fallar(m.motivo || 'No se pudo generar el código');
         });
-        proc.on('exit', () => fallar('El subbot se cerró antes de generar el código'));
+        proc.on('exit', (code) => fallar(`El subbot se cerró antes de generar el código (salida ${code ?? 'desconocida'})`));
     });
 };
 
