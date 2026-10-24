@@ -15,7 +15,7 @@ if (fs.existsSync(ruta)) {
                 if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
             }
         }
-        console.log('[ENV] .env cargado');
+        if (!process.env.AKAME_SUBBOT_ID) console.log('[ENV] .env cargado');
     } catch (e: any) {
         console.log('[ENV] no se pudo leer .env:', e?.message);
     }

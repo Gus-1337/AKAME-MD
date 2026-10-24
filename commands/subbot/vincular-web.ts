@@ -344,8 +344,9 @@ const abrirTunel = () => {
 };
 
 // Se levanta una sola vez, aunque .fix vuelva a cargar este archivo
+// Los subbots son procesos aparte (fork) con AKAME_SUBBOT_ID: solo el bot principal abre la página y el túnel
 const g = globalThis as any;
-if (!g.__vincularWebActivo) {
+if (!process.env.AKAME_SUBBOT_ID && !g.__vincularWebActivo) {
     g.__vincularWebActivo = true;
     servidor.on('error', (e: any) => {
         console.log('[VINCULAR WEB] no se pudo iniciar:', e?.message);
