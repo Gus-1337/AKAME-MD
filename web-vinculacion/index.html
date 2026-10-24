@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AKAME-MD · Vincular subbot</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 20px 14px 40px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #4a2a5a;
+    background: linear-gradient(160deg, #ffd6e8 0%, #e8d6ff 45%, #d6ecff 100%);
+  }
+  .wrap { max-width: 440px; margin: 0 auto; }
+  h1 { text-align: center; font-size: 26px; margin: 8px 0 2px; color: #7a3fa0; }
+  .sub { text-align: center; font-size: 13px; color: #8a5fa0; margin-bottom: 18px; }
+  .card {
+    background: rgba(255,255,255,.94); border-radius: 22px; padding: 20px;
+    box-shadow: 0 10px 28px rgba(140,70,160,.16); margin-bottom: 14px;
+  }
+  h2 { font-size: 16px; margin: 0 0 10px; color: #7a3fa0; }
+  ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.6; }
+  label { font-size: 13px; font-weight: 700; color: #7a3fa0; }
+  input {
+    width: 100%; padding: 13px; margin: 8px 0 6px; font-size: 17px;
+    border: 2px solid #f4b6d6; border-radius: 14px; outline: none;
+  }
+  input:focus { border-color: #9b6bff; }
+  .ayuda { font-size: 12px; color: #8a7a99; }
+  button {
+    width: 100%; padding: 14px; border: 0; border-radius: 16px; margin-top: 8px;
+    background: linear-gradient(90deg, #ff8fc0, #9b6bff); color: #fff;
+    font-size: 16px; font-weight: 800; cursor: pointer;
+  }
+  button:disabled { opacity: .6; cursor: wait; }
+  .msg { min-height: 22px; font-size: 14px; text-align: center; margin-top: 10px; }
+  .err { color: #c2185b; font-weight: 700; }
+  .codigo {
+    font-size: 34px; font-weight: 900; letter-spacing: 6px; text-align: center;
+    background: #fff0f7; border: 2px dashed #f4b6d6; border-radius: 18px;
+    padding: 16px 8px; margin: 12px 0; color: #7a2a8a; user-select: all;
+  }
+  .estado { text-align: center; font-weight: 700; font-size: 15px; margin-top: 8px; }
+  .ok { color: #2e7d32; }
+  .oculto { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AKAME-MD ✿</h1>
+  <div class="sub">Vincula tu subbot sin entrar al chat</div>
+
+  <div class="card">
+    <h2>Cómo se hace</h2>
+    <ol>
+      <li>Escribe tu número con código de país (ej. 51999999999).</li>
+      <li>Pulsa <b>Obtener código</b> y copia el código de 8 caracteres.</li>
+      <li>En WhatsApp ve a <b>Dispositivos vinculados</b> → <b>Vincular con número de teléfono</b> y pega el código.</li>
+    </ol>
+  </div>
+
+  <div class="card" id="formulario">
+    <label for="numero">Tu número de WhatsApp</label>
+    <input id="numero" type="tel" inputmode="numeric" placeholder="51999999999" autocomplete="tel">
+    <div class="ayuda">Solo números, sin + ni espacios.</div>
+    <button id="boton">Obtener código</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card oculto" id="resultado">
+    <h2>Tu código</h2>
+    <div class="codigo" id="codigo"></div>
+    <div class="ayuda" style="text-align:center">Toca el código para seleccionarlo y cópialo.</div>
+    <div class="estado" id="estado">⏳ Esperando que lo vincules…</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var numeroEl = document.getElementById('numero');
+  var boton = document.getElementById('boton');
+  var msg = document.getElementById('msg');
+  var resultado = document.getElementById('resultado');
+  var codigoEl = document.getElementById('codigo');
+  var estadoEl = document.getElementById('estado');
+  var timer = null;
+
+  function mostrarError(texto) {
+    msg.className = 'msg err';
+    msg.textContent = texto;
+  }
+
+  function consultar(id) {
+    clearInterval(timer);
+    timer = setInterval(function () {
+      fetch('/api/estado/' + id, { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.estado === 'codigo') {
+            codigoEl.textContent = d.codigo;
+            estadoEl.textContent = '⏳ Esperando que lo vincules…';
+          } else if (d.estado === 'conectado') {
+            clearInterval(timer);
+            estadoEl.className = 'estado ok';
+            estadoEl.textContent = '✅ ¡Subbot conectado!';
+          } else if (d.estado === 'caido') {
+            clearInterval(timer);
+            estadoEl.textContent = '⏸️ El subbot se cayó. Usa .reactivar en el bot principal.';
+          } else if (d.estado === 'error') {
+            clearInterval(timer);
+            estadoEl.textContent = '❌ ' + (d.error || 'No se pudo generar el código.');
+            estadoEl.style.color = '#c2185b';
+          }
+        })
+        .catch(function () { /* se reintenta solo en el siguiente ciclo */ });
+    }, 3000);
+  }
+
+  boton.addEventListener('click', function () {
+    var numero = numeroEl.value.replace(/\D/g, '');
+    msg.textContent = '';
+    msg.className = 'msg';
+    if (numero.length < 8 || numero.length > 15) {
+      return mostrarError('Escribe tu número con código de país, ej. 51999999999.');
+    }
+    boton.disabled = true;
+    boton.textContent = 'Pidiendo código…';
+    fetch('/api/vincular', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ numero: numero })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (x) {
+        if (!x.ok) throw new Error(x.d.error || 'No se pudo pedir el código.');
+        resultado.classList.remove('oculto');
+        codigoEl.textContent = '········';
+        estadoEl.className = 'estado';
+        estadoEl.style.color = '';
+        estadoEl.textContent = '⏳ Preparando tu código…';
+        consultar(x.d.id);
+      })
+      .catch(function (e) { mostrarError(e.message || 'Error de conexión. Intenta de nuevo.'); })
+      .then(function () {
+        boton.disabled = false;
+        boton.textContent = 'Obtener código';
+      });
+  });
+})();
+</script>
+</body>
+</html>

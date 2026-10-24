@@ -26,6 +26,7 @@ import printMessageLog from './lib/printlog.ts';
 import { handleGroupAlerts, handleGroupParticipants } from '#alertas';
 import { avisarReinicio } from './commands/owner/restart.ts';
 import { restaurarSubbots } from './lib/subbots.ts';
+import { iniciarVincularWeb } from './lib/vincular-puente.ts';
 import { guardarParaAntidelete, procesarRevocacion, procesarVerUnaVez } from './lib/antidelete.ts';
 import { revisarIngreso, recordarNombre } from './lib/antibot.ts';
 import { leerPrefijo } from './lib/prefijo.ts';
@@ -347,6 +348,7 @@ async function startBot() {
             } else {
                 avisarReinicio(sock);
                 restaurarSubbots();
+                iniciarVincularWeb();
             }
         }
 
