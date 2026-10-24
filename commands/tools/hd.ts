@@ -45,16 +45,17 @@ async function mejorarConApi(buffer: Buffer, mime: string): Promise<Buffer | nul
         return null;
     }
 
+    // Deline da 4x con mucho más detalle; Stellar (2x) queda de respaldo.
+    const deline = new URL('https://api.deline.web.id/tools/hd');
+    deline.searchParams.set('url', urlPublica);
+    const deBien = await descargarImagen(deline.toString());
+    if (deBien) return deBien;
+
     const stellar = new URL('https://api.stellarwa.xyz/tools/upscale');
     stellar.searchParams.set('apikey', STELLAR_KEY);
     stellar.searchParams.set('method', 'url');
     stellar.searchParams.set('url', urlPublica);
-    const deBien = await descargarImagen(stellar.toString());
-    if (deBien) return deBien;
-
-    const deline = new URL('https://api.deline.web.id/tools/hd');
-    deline.searchParams.set('url', urlPublica);
-    return await descargarImagen(deline.toString());
+    return await descargarImagen(stellar.toString());
 }
 
 /** Agranda y afila la imagen sin IA (respaldo si las APIs fallan). */
