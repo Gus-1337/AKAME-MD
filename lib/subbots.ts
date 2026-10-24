@@ -14,6 +14,7 @@ export const CUPO_DEFECTO = 20;
 const CUPO_MIN = 1;
 const CUPO_MAX = 100;
 const TIEMPO_VINCULAR_MS = 90_000;
+const TIEMPO_QR_MS = 150_000; // el QR se renueva cada ~20 s; hay tiempo para escanear
 const ESPERA_CODIGO_MS = 25_000;
 const ESPERA_ENTRE_CODIGOS_MS = 60_000;
 const MAX_REINTENTOS = 5;
@@ -142,7 +143,7 @@ const elegirCodigo = (lista: any[]): string => {
     return PREFIJO_CODIGO + libre;
 };
 
-const lanzarWorker = (id: string, modo: 'vincular' | 'restaurar'): ChildProcess => {
+const lanzarWorker = (id: string, modo: 'vincular' | 'restaurar', metodo: 'codigo' | 'qr' = 'codigo'): ChildProcess => {
     const proc = fork(ENTRADA, [], {
         execArgv: EXEC_ARGV,
         cwd: process.cwd(),
@@ -151,6 +152,7 @@ const lanzarWorker = (id: string, modo: 'vincular' | 'restaurar'): ChildProcess 
             ...process.env,
             AKAME_SUBBOT_ID: id,
             AKAME_SUBBOT_MODO: modo,
+            AKAME_SUBBOT_METODO: metodo,
             AKAME_SUBBOT_CODIGO: leerRegistro().find((s) => s.id === id)?.codigo || '',
             AKAME_DB_PATH: path.join(RAIZ, id, 'database.db')
         }
@@ -268,7 +270,13 @@ export const restaurarSubbots = () => {
  */
 export interface PerfilInicial { nombre?: string; prefijo?: string; banner?: string }
 
-export const crearSubbot = async (numero: string, chat?: string, personal?: PerfilInicial): Promise<{ id: string; codigo: string }> => {
+export const crearSubbot = async (
+    numero: string,
+    chat?: string,
+    personal?: PerfilInicial,
+    metodo: 'codigo' | 'qr' = 'codigo',
+    onQr?: (qr: string) => void
+): Promise<{ id: string; codigo: string; qr?: string }> => {
     const num = soloDigitos(numero);
     if (num.length < 8 || num.length > 15) {
         throw new Error('Número inválido. Usa el formato con código de país, ej. 51999999999');
@@ -296,7 +304,7 @@ export const crearSubbot = async (numero: string, chat?: string, personal?: Perf
     guardarRegistro([...lista, { id, numero: num, estado: 'emparejando', creado: new Date().toISOString(), chat, codigo }]);
 
     return new Promise((resolver, rechazar) => {
-        const proc = lanzarWorker(id, 'vincular');
+        const proc = lanzarWorker(id, 'vincular', metodo);
         const v = vivos.get(id)!;
         let listo = false;
 
@@ -310,6 +318,23 @@ export const crearSubbot = async (numero: string, chat?: string, personal?: Perf
         const espera = setTimeout(() => fallar('WhatsApp no respondió a tiempo, intenta de nuevo'), ESPERA_CODIGO_MS);
 
         proc.on('message', (m: any) => {
+            // QR: cada imagen nueva se avisa con onQr; la primera resuelve la petición
+            if (m?.tipo === 'qr') {
+                if (onQr) onQr(String(m.qr));
+                if (!listo) {
+                    listo = true;
+                    clearTimeout(espera);
+                    ultimoCodigo.set(num, Date.now());
+                    v.timer = setTimeout(() => {
+                        if (leerRegistro().find((s) => s.id === id)?.estado !== 'conectado') {
+                            console.log(`[SUBBOT ${id}] no vinculado a tiempo, se borra`);
+                            borrarSubbot(id);
+                        }
+                    }, TIEMPO_QR_MS);
+                    resolver({ id, codigo: '', qr: String(m.qr) });
+                }
+                return;
+            }
             if (listo) return;
             if (m?.tipo === 'codigo') {
                 listo = true;

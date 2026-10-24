@@ -73,6 +73,8 @@ const httpAgent = new Agent.Agent({
 });
 
 const methodCodeQR = process.argv.includes("--qr");
+// Subbot que se vincula con QR (lo pide el panel de la página)
+const subbotQR = Boolean(process.env.AKAME_SUBBOT_ID) && process.env.AKAME_SUBBOT_METODO === 'qr';
 const methodCode = process.argv.includes("code");
 
 function normalizePhone(input: any) {
@@ -191,7 +193,7 @@ async function startBot() {
 
     if (!state.creds.registered && esSubbot) {
         // Subbot nuevo: la vinculación la pide lib/subbots.ts, sin preguntas en consola
-        usarCodigo = SUBBOT_MODO === 'vincular';
+        usarCodigo = SUBBOT_MODO === 'vincular' && !subbotQR;
         fs.mkdirSync(sDir, { recursive: true });
         const reloadedAuth = await useMultiFileAuthState(sDir);
         state = reloadedAuth.state;
@@ -227,7 +229,7 @@ async function startBot() {
         saveCreds = reloadedAuth.saveCreds;
     }
 
-    const esQR = opcion === '1' || methodCodeQR;
+    const esQR = opcion === '1' || methodCodeQR || subbotQR;
 
     const sock = makeWASocket({
         logger: P({ level: 'silent' }) as any,
@@ -328,6 +330,14 @@ async function startBot() {
                     }
                 }
             }, 2500);
+        }
+
+        if (qr && subbotQR) {
+            // El bot principal recibe la imagen y la muestra en la página
+            try {
+                const imagen = await qrcode.toDataURL(qr, { margin: 2, width: 512 });
+                reportar({ tipo: 'qr', qr: imagen });
+            } catch {}
         }
 
         if (qr && esQR) {

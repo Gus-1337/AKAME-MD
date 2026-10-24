@@ -31,7 +31,7 @@ const leerCuerpo = (req) => new Promise((ok, no) => {
     let total = 0;
     req.on('data', (d) => {
         total += d.length;
-        if (total > 60_000) { no(new Error('demasiado grande')); req.destroy(); return; }
+        if (total > 500_000) { no(new Error('demasiado grande')); req.destroy(); return; }
         partes.push(d);
     });
     req.on('end', () => {
@@ -107,7 +107,8 @@ const servidor = http.createServer(async (req, res) => {
 
             const id = crypto.randomUUID();
             const perfil = { nombre, prefijo, banner };
-            pedidos.set(id, { numero, perfil, estado: 'pendiente', codigo: '', error: '', creado: ahora, actualizado: ahora });
+            const metodo = datos?.metodo === 'qr' ? 'qr' : 'codigo';
+            pedidos.set(id, { numero, perfil, metodo, estado: 'pendiente', codigo: '', qr: '', error: '', creado: ahora, actualizado: ahora });
             ultimoPorNumero.set(numero, ahora);
             return json(res, 200, { id });
         }
@@ -115,7 +116,7 @@ const servidor = http.createServer(async (req, res) => {
         if (req.method === 'GET' && ruta.startsWith('/api/estado/')) {
             const p = pedidos.get(ruta.slice('/api/estado/'.length));
             if (!p) return json(res, 404, { error: 'Pedido no encontrado. Pide el código de nuevo.' });
-            return json(res, 200, { estado: p.estado, codigo: p.codigo, error: p.error });
+            return json(res, 200, { estado: p.estado, codigo: p.codigo, qr: p.qr || '', error: p.error });
         }
 
         // ---- Lo usa el bot (con clave) ----
@@ -125,7 +126,7 @@ const servidor = http.createServer(async (req, res) => {
             if (req.method === 'GET' && ruta === '/api/bot/pendientes') {
                 const lista = [];
                 for (const [id, p] of pedidos) {
-                    if (p.estado === 'pendiente') lista.push({ id, numero: p.numero, perfil: p.perfil });
+                    lista.push({ id, numero: p.numero, perfil: p.perfil, metodo: p.metodo || 'codigo' });
                 }
                 return json(res, 200, { pedidos: lista });
             }
@@ -138,6 +139,20 @@ const servidor = http.createServer(async (req, res) => {
                     Object.assign(p, { estado: 'codigo', codigo: String(datos.codigo).slice(0, 20), actualizado: Date.now() });
                 } else {
                     Object.assign(p, { estado: 'error', error: String(datos.error || 'No se pudo generar el código').slice(0, 300), actualizado: Date.now() });
+                }
+                return json(res, 200, { ok: true });
+            }
+
+            if (req.method === 'POST' && ruta === '/api/bot/qr') {
+                const datos = await leerCuerpo(req).catch(() => null);
+                const p = datos && pedidos.get(String(datos.id));
+                if (!p) return json(res, 404, { error: 'pedido no existe' });
+                const imagen = String(datos.qr || '');
+                if (!imagen.startsWith('data:image/') || imagen.length > 400_000) {
+                    return json(res, 400, { error: 'QR inválido' });
+                }
+                if (p.estado === 'pendiente' || p.estado === 'qr') {
+                    Object.assign(p, { estado: 'qr', qr: imagen, actualizado: Date.now() });
                 }
                 return json(res, 200, { ok: true });
             }

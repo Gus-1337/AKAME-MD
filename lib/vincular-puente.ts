@@ -27,13 +27,21 @@ const llamar = async (metodo: 'GET' | 'POST', ruta: string, cuerpo?: unknown): P
     return r.json();
 };
 
-const atender = async (id: string, numero: string, personal?: any) => {
+const atender = async (id: string, numero: string, personal?: any, metodo: string = 'codigo') => {
     enProceso.add(id);
     try {
-        const { codigo } = await crearSubbot(numero, undefined, personal);
+        const usarQr = metodo === 'qr';
+        // En QR, cada imagen nueva se envía a la página desde el callback
+        const { codigo, qr } = await crearSubbot(numero, undefined, personal, usarQr ? 'qr' : 'codigo', (imagen: string) => {
+            llamar('POST', '/api/bot/qr', { id, qr: imagen }).catch(() => {});
+        });
         seguimiento.set(id, numero);
-        await llamar('POST', '/api/bot/respuesta', { id, codigo });
-        console.log(`[VINCULAR WEB] código enviado al pedido ${id}`);
+        if (usarQr && qr) {
+            console.log(`[VINCULAR WEB] QR listo para el pedido ${id}`);
+        } else {
+            await llamar('POST', '/api/bot/respuesta', { id, codigo });
+            console.log(`[VINCULAR WEB] código enviado al pedido ${id}`);
+        }
     } catch (e: any) {
         await llamar('POST', '/api/bot/respuesta', { id, error: e?.message || 'No se pudo generar el código' }).catch(() => {});
     } finally {
@@ -87,7 +95,7 @@ const ciclo = async () => {
         const { pedidos } = await llamar('GET', '/api/bot/pendientes');
         avisoCaida = false;
         for (const p of pedidos || []) {
-            if (!enProceso.has(p.id)) void atender(p.id, p.numero, p.perfil);
+            if (!enProceso.has(p.id)) void atender(p.id, p.numero, p.perfil, p.metodo);
         }
         await revisarSeguimiento();
 

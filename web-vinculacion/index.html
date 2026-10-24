@@ -90,6 +90,12 @@
   }
   .estado { text-align: center; font-weight: 700; font-size: 15px; margin-top: 8px; color: var(--suave); }
   .oculto { display: none !important; }
+  .segmento { display: flex; gap: 6px; background: rgba(255,255,255,.04); border: 1px solid var(--borde); border-radius: 16px; padding: 5px; margin-bottom: 14px; }
+  .seg { flex: 1; margin: 0; padding: 10px; background: transparent; color: var(--suave); border: 0; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; box-shadow: none; }
+  .seg.activa { background: linear-gradient(90deg, var(--morado), #a855f7); color: #fff; box-shadow: 0 6px 18px rgba(139,92,246,.35); }
+  .ancho { width: 100%; margin-top: 10px; padding: 12px; }
+  .qr-caja { background: #fff; border-radius: 18px; padding: 14px; width: fit-content; margin: 6px auto 12px; box-shadow: 0 10px 30px rgba(139,92,246,.35); }
+  #qr-img { display: block; width: 240px; max-width: 70vw; height: auto; }
   .cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
   .cabecera h2 { margin: 0; }
 
@@ -185,17 +191,14 @@
   <!-- VINCULAR -->
   <section class="pagina" id="p-vincular">
     <h1>Vincular</h1>
-    <p class="intro">Escribe tu número y pide el código.</p>
+    <p class="intro">Conecta un subbot nuevo con código o con QR.</p>
+
     <div class="card">
-      <h2>Cómo se hace</h2>
-      <ol>
-        <li>Escribe tu número con código de país (ej. <b>51999999999</b>).</li>
-        <li>Pulsa <b>Obtener código</b> y copia el código de 8 caracteres.</li>
-        <li>En WhatsApp ve a <b>Dispositivos vinculados</b> → <b>Vincular con número de teléfono</b> y pega el código.</li>
-      </ol>
-    </div>
-    <div class="card">
-      <h2>Tu número</h2>
+      <h2>Elige cómo vincular</h2>
+      <div class="segmento">
+        <button class="seg activa" data-metodo="codigo">Código</button>
+        <button class="seg" data-metodo="qr">QR</button>
+      </div>
       <label for="numero">Número de WhatsApp</label>
       <input id="numero" type="tel" inputmode="numeric" placeholder="51999999999" autocomplete="tel">
       <div class="ayuda">Solo números, sin + ni espacios.</div>
@@ -203,26 +206,25 @@
       <div class="msg" id="msg"></div>
     </div>
 
-    <div class="card">
-      <h2>Al vincular (opcional)</h2>
-      <label for="nombre">Nombre de tu subbot</label>
-      <input id="nombre" type="text" maxlength="30" placeholder="Ej. KATA BOT">
-      <div class="ayuda">Hasta 30 caracteres. Sale en el menú.</div>
-
-      <label for="prefijo">Prefijo de comandos</label>
-      <input id="prefijo" type="text" maxlength="2" placeholder="." value=".">
-      <div class="ayuda">1 o 2 símbolos, sin letras ni números. Ej. ! # /</div>
-
-      <label for="banner">Banner del menú (enlace de imagen)</label>
-      <input id="banner" type="url" placeholder="https://...">
-      <div class="ayuda">Opcional. Debe empezar con https://</div>
+    <div class="card oculto" id="resultado">
+      <h2 id="res-titulo">Tu código</h2>
+      <div id="bloque-codigo">
+        <div class="codigo" id="codigo"></div>
+        <button class="secundario ancho" id="copiar">Copiar código</button>
+      </div>
+      <div id="bloque-qr" class="oculto">
+        <div class="qr-caja"><img id="qr-img" alt="Código QR de vinculación"></div>
+        <div class="ayuda" style="text-align:center">Se renueva solo cada pocos segundos.</div>
+      </div>
+      <div class="estado" id="estado">⏳ Esperando que lo vincules…</div>
     </div>
 
-    <div class="card oculto" id="resultado">
-      <h2>Tu código</h2>
-      <div class="codigo" id="codigo"></div>
-      <div class="ayuda" style="text-align:center">Toca el código para seleccionarlo y cópialo.</div>
-      <div class="estado" id="estado">⏳ Esperando que lo vincules…</div>
+    <div class="card">
+      <h2>Cómo se hace</h2>
+      <ol>
+        <li><b>Con código:</b> pulsa <b>Copiar código</b>, ve a WhatsApp → <b>Dispositivos vinculados</b> → <b>Vincular con número de teléfono</b> y pégalo.</li>
+        <li><b>Con QR:</b> ve a WhatsApp → <b>Dispositivos vinculados</b> → <b>Vincular un dispositivo</b> y escanea la imagen.</li>
+      </ol>
     </div>
   </section>
 
@@ -368,12 +370,56 @@
   var resultado = document.getElementById('resultado');
   var codigoEl = document.getElementById('codigo');
   var estadoEl = document.getElementById('estado');
+  var bloqueCodigo = document.getElementById('bloque-codigo');
+  var bloqueQr = document.getElementById('bloque-qr');
+  var qrImg = document.getElementById('qr-img');
+  var copiar = document.getElementById('copiar');
+  var tituloRes = document.getElementById('res-titulo');
+  var metodo = 'codigo';
   var timer = null;
+  var qrActual = '';
 
   function mostrarError(texto) {
     msg.className = 'msg err';
     msg.textContent = texto;
   }
+
+  // Cambia entre código y QR
+  document.querySelectorAll('.seg').forEach(function (b) {
+    b.addEventListener('click', function () {
+      metodo = b.getAttribute('data-metodo');
+      document.querySelectorAll('.seg').forEach(function (x) { x.classList.toggle('activa', x === b); });
+      boton.textContent = metodo === 'qr' ? 'Obtener QR' : 'Obtener código';
+      msg.textContent = '';
+      msg.className = 'msg';
+    });
+  });
+
+  // Copiar el código
+  copiar.addEventListener('click', function () {
+    var texto = codigoEl.textContent.trim();
+    if (!texto || texto.indexOf('·') >= 0) return;
+    var hecho = function () {
+      copiar.textContent = '✅ Copiado';
+      setTimeout(function () { copiar.textContent = 'Copiar código'; }, 2000);
+    };
+    var manual = function () {
+      var rango = document.createRange();
+      rango.selectNodeContents(codigoEl);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(rango);
+      try {
+        if (document.execCommand('copy')) return hecho();
+      } catch (e) {}
+      mostrarError('Mantén presionado el código para copiarlo.');
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(texto).then(hecho, manual);
+    } else {
+      manual();
+    }
+  });
 
   function consultar(id) {
     clearInterval(timer);
@@ -381,14 +427,18 @@
       fetch('/api/estado/' + id, { cache: 'no-store' })
         .then(function (r) { return r.json(); })
         .then(function (d) {
-          if (d.estado === 'codigo') {
+          if (d.estado === 'codigo' && d.codigo) {
             codigoEl.textContent = d.codigo;
             estadoEl.className = 'estado';
             estadoEl.textContent = '⏳ Esperando que lo vincules…';
+          } else if (d.estado === 'qr' && d.qr) {
+            if (d.qr !== qrActual) { qrImg.src = d.qr; qrActual = d.qr; }
+            estadoEl.className = 'estado';
+            estadoEl.textContent = '⏳ Escanea el QR desde WhatsApp…';
           } else if (d.estado === 'conectado') {
             clearInterval(timer);
             estadoEl.className = 'estado ok';
-            estadoEl.textContent = '✅ ¡Subbot conectado!';
+            estadoEl.textContent = '✅ ¡Subbot conectado! Ahora ponle nombre en Personalizar.';
           } else if (d.estado === 'caido') {
             clearInterval(timer);
             estadoEl.className = 'estado';
@@ -400,7 +450,7 @@
           }
         })
         .catch(function () { /* se reintenta en el siguiente ciclo */ });
-    }, 3000);
+    }, 2500);
   }
 
   boton.addEventListener('click', function () {
@@ -410,29 +460,38 @@
     if (numero.length < 8 || numero.length > 15) {
       return mostrarError('Escribe tu número con código de país, ej. 51999999999.');
     }
-    var nombre = document.getElementById('nombre').value.trim();
-    var prefijo = document.getElementById('prefijo').value.trim();
-    var banner = document.getElementById('banner').value.trim();
     boton.disabled = true;
-    boton.textContent = 'Pidiendo código…';
+    boton.textContent = metodo === 'qr' ? 'Preparando QR…' : 'Pidiendo código…';
     fetch('/api/vincular', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ numero: numero, nombre: nombre, prefijo: prefijo, banner: banner })
+      body: JSON.stringify({ numero: numero, metodo: metodo })
     })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (x) {
         if (!x.ok) throw new Error(x.d.error || 'No se pudo pedir el código.');
         resultado.classList.remove('oculto');
-        codigoEl.textContent = '········';
+        qrActual = '';
+        qrImg.removeAttribute('src');
+        if (metodo === 'qr') {
+          tituloRes.textContent = 'Tu QR';
+          bloqueCodigo.classList.add('oculto');
+          bloqueQr.classList.remove('oculto');
+          estadoEl.textContent = '⏳ Preparando tu QR…';
+        } else {
+          tituloRes.textContent = 'Tu código';
+          bloqueQr.classList.add('oculto');
+          bloqueCodigo.classList.remove('oculto');
+          codigoEl.textContent = '········';
+          estadoEl.textContent = '⏳ Preparando tu código…';
+        }
         estadoEl.className = 'estado';
-        estadoEl.textContent = '⏳ Preparando tu código…';
         consultar(x.d.id);
       })
       .catch(function (e) { mostrarError(e.message || 'Error de conexión. Intenta de nuevo.'); })
       .then(function () {
         boton.disabled = false;
-        boton.textContent = 'Obtener código';
+        boton.textContent = metodo === 'qr' ? 'Obtener QR' : 'Obtener código';
       });
   });
 })();
