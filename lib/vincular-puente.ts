@@ -1,4 +1,4 @@
-import { crearSubbot, buscarSubbot } from './subbots.ts';
+import { crearSubbot, buscarSubbot, panelEnviarCodigo, panelGrupos, panelAplicar } from './subbots.ts';
 
 // Puente entre la página de vinculación (Render) y el bot principal.
 // El bot pregunta a Render cada pocos segundos si hay pedidos nuevos, crea el subbot
@@ -55,6 +55,31 @@ const revisarSeguimiento = async () => {
     }
 };
 
+// Pedidos del panel del dueño (código, grupos y cambios). Van al subbot de ese número.
+const atenderPanel = async (p: any) => {
+    enProceso.add(p.id);
+    try {
+        const sub = buscarSubbot(String(p.numero));
+        if (!sub || sub.estado !== 'conectado') throw new Error('Tu subbot no está conectado. Enciéndelo y vuelve a intentar.');
+        let datos: any = null;
+        if (p.tipo === 'codigo') {
+            await panelEnviarCodigo(sub.id, String(p.codigo || ''));
+        } else if (p.tipo === 'grupos') {
+            datos = { grupos: await panelGrupos(sub.id) };
+        } else if (p.tipo === 'aplicar') {
+            const r = await panelAplicar(sub.id, p.cambios || {});
+            datos = { aplicados: r.aplicados ?? 0 };
+        } else {
+            throw new Error('Pedido desconocido');
+        }
+        await llamar('POST', '/api/bot/panel-respuesta', { id: p.id, datos });
+    } catch (e: any) {
+        await llamar('POST', '/api/bot/panel-respuesta', { id: p.id, error: e?.message || 'Error del subbot' }).catch(() => {});
+    } finally {
+        enProceso.delete(p.id);
+    }
+};
+
 const ciclo = async () => {
     try {
         const { pedidos } = await llamar('GET', '/api/bot/pendientes');
@@ -63,6 +88,11 @@ const ciclo = async () => {
             if (!enProceso.has(p.id)) void atender(p.id, p.numero, p.perfil);
         }
         await revisarSeguimiento();
+
+        const { pedidos: delPanel } = await llamar('GET', '/api/bot/panel-pendientes');
+        for (const p of delPanel || []) {
+            if (!enProceso.has(p.id)) void atenderPanel(p);
+        }
     } catch (e: any) {
         if (!avisoCaida) {
             console.log(`[VINCULAR WEB] no pude hablar con la página (${e?.message}). Reintento en silencio.`);

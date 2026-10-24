@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
+import { rutaPanel } from './panel.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUERTO = Number(process.env.PORT || 10000);
@@ -30,7 +31,7 @@ const leerCuerpo = (req) => new Promise((ok, no) => {
     let total = 0;
     req.on('data', (d) => {
         total += d.length;
-        if (total > 10_000) { no(new Error('demasiado grande')); req.destroy(); return; }
+        if (total > 60_000) { no(new Error('demasiado grande')); req.destroy(); return; }
         partes.push(d);
     });
     req.on('end', () => {
@@ -64,6 +65,9 @@ const servidor = http.createServer(async (req, res) => {
             return res.end(HTML);
         }
         if (req.method === 'GET' && ruta === '/health') return json(res, 200, { ok: true });
+        // Panel del dueño del subbot (código, grupos y antis)
+        if (await rutaPanel(req, res, url, { json, leerCuerpo, esSecretoValido })) return;
+
         if (req.method === 'GET' && ruta === '/fondo.jpg') {
             res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' });
             return res.end(FONDO);
