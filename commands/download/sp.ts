@@ -14,7 +14,7 @@ const emitProgress = (msgId: string, step: string, extraData: Record<string, any
 };
 
 export default {
-    command: ['spotify', 'sp'],
+    command: ['spotify', 'sp', 'splay'],
     description: 'Descarga música de Spotify',
     category: 'download',
     group: true,
@@ -33,15 +33,17 @@ export default {
             emitProgress(msgId, 'search_started', { query });
 
             let url, songInfo: any;
+            let dlYa: string | undefined; // enlace de audio que ya llega con el link
             const isUrl = /open\.spotify\.com\/track\//i.test(query);
 
             if (isUrl) {
                 url = query;
-                const res = await axios.get(`${apiUrl}/dl/spotify?url=${encodeURIComponent(url)}&key=${apiKey}`, { timeout: 0 });
+                const res = await axios.get(`${apiUrl}/dl/spotify?url=${encodeURIComponent(url)}&key=${apiKey}`, { timeout: 30000 });
                 if (!res.data?.status) throw new Error('No se pudo procesar el enlace');
                 songInfo = res.data.data;
+                dlYa = res.data.data?.dl;
             } else {
-                const searchRes = await axios.get(`${apiUrl}/search/spotify?query=${encodeURIComponent(query)}&key=${apiKey}`, { timeout: 0 });
+                const searchRes = await axios.get(`${apiUrl}/search/spotify?query=${encodeURIComponent(query)}&key=${apiKey}`, { timeout: 15000 });
                 if (!searchRes.data?.status || !searchRes.data?.data?.length) {
                     await sock.sendMessage(chat, { react: { text: "❌", key: msg.key } });
                     return sock.sendMessage(chat, { text: `✿ No se encontraron resultados para **${query}**.` }, { quoted: msg });
@@ -56,6 +58,17 @@ export default {
             const duration = cleanText(songInfo.duration) || "Desconocida";
             const coverUrl = songInfo.image || songInfo.cover || (config as any).banner;
 
+            // El enlace de audio y su descarga arrancan ya, en paralelo con el envío de la portada
+            const dlPromise: Promise<string> = dlYa ? Promise.resolve(dlYa) : axios.get(`${apiUrl}/dl/spotify?url=${encodeURIComponent(url)}&key=${apiKey}`, { timeout: 30000 })
+                .then((r) => {
+                    if (!r.data?.status || !r.data?.data?.dl) throw new Error('Sin URL de descarga');
+                    return r.data.data.dl as string;
+                });
+            dlPromise.catch(() => {});
+            const audioPromise: Promise<Buffer> = dlPromise.then((u) =>
+                axios.get(u, { responseType: 'arraybuffer', timeout: 60000 }).then((r) => Buffer.from(r.data)));
+            audioPromise.catch(() => {});
+
             const caption = `*${title}*\n\n✿ *Artista* » ${artist}\n✿ *Álbum* » ${album}\n✿ *Duración* » ${duration}\n✿ *Link* » ${url}`;
 
             await sock.sendMessage(chat, { 
@@ -66,15 +79,13 @@ export default {
             emitProgress(msgId, 'fetching_audio_stream');
             await sock.sendMessage(chat, { react: { text: "⬇️", key: msg.key } });
 
-            const resAudio = await axios.get(`${apiUrl}/dl/spotify?url=${encodeURIComponent(url)}&key=${apiKey}`, { timeout: 0 });
-            if (!resAudio.data?.status || !resAudio.data?.data?.dl) throw new Error('Sin URL de descarga');
-
-            const dlUrl = resAudio.data.data.dl;
+            await dlPromise;
+            const audioBuffer = await audioPromise;
 
             emitProgress(msgId, 'sending_audio_to_whatsapp');
 
             await sock.sendMessage(chat, { 
-                audio: { url: dlUrl }, 
+                audio: audioBuffer, 
                 mimetype: "audio/mpeg",
                 fileName: `${title}.mp3`,
                 ptt: false
