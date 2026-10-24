@@ -1,3 +1,4 @@
+import './lib/env.ts';
 import makeWASocket, {
     useMultiFileAuthState,
     DisconnectReason,
