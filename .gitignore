@@ -30,3 +30,6 @@ subbots/
 database/
 *.traineddata
 database/owners.json
+
+# Binario de cloudflared (se descarga solo al arrancar)
+.cloudflared/
