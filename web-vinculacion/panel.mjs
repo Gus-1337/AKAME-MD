@@ -158,7 +158,7 @@ export const rutaPanel = async (req, res, url, deps) => {
         if (!s) { json(res, 401, { error: 'Sesión vencida. Vuelve a entrar.' }); return true; }
         const r = await pedirAlBot('grupos', { numero: s.numero });
         if (!r.ok) { json(res, 400, { error: r.error }); return true; }
-        json(res, 200, { grupos: r.datos?.grupos || [], perfil: r.datos?.perfil || null });
+        json(res, 200, { grupos: r.datos?.grupos || [], perfil: r.datos?.perfil || null, estado: r.datos?.estado || null });
         return true;
     }
 

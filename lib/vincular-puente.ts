@@ -65,7 +65,7 @@ const atenderPanel = async (p: any) => {
         if (p.tipo === 'codigo') {
             await panelEnviarCodigo(sub.id, String(p.codigo || ''));
         } else if (p.tipo === 'grupos') {
-            datos = await panelGrupos(sub.id);
+            datos = { ...(await panelGrupos(sub.id)), estado: sub.estado };
         } else if (p.tipo === 'perfil') {
             await panelPerfil(sub.id, p.perfil || {});
         } else if (p.tipo === 'aplicar') {

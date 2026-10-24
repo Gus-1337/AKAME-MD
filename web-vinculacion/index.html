@@ -106,6 +106,30 @@
   .spamcfg label { font-size: 11px; margin: 0; }
   .spamcfg input { padding: 9px; font-size: 14px; margin: 4px 0 0; }
 
+  .hero {
+    background: linear-gradient(135deg, rgba(139,92,246,.42), rgba(16,12,28,.86));
+    border: 1px solid var(--borde); border-radius: 22px; padding: 22px; margin-bottom: 14px;
+    box-shadow: 0 14px 40px rgba(0,0,0,.45);
+  }
+  .hola { font-size: 22px; font-weight: 800; line-height: 1.25; word-break: break-word; }
+  .hero-sub { font-size: 14px; color: #cfc6e8; margin-top: 6px; line-height: 1.5; }
+  .pill { display: inline-block; margin-top: 14px; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .3px; }
+  .pill.on { background: rgba(110,231,167,.15); color: #6ee7a7; border: 1px solid rgba(110,231,167,.45); }
+  .pill.off { background: rgba(255,122,168,.12); color: #ff7aa8; border: 1px solid rgba(255,122,168,.4); }
+  .pill.wait { background: rgba(250,204,21,.12); color: #facc15; border: 1px solid rgba(250,204,21,.4); }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .stat { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 16px; padding: 12px 8px; text-align: center; }
+  .stat .n { display: block; font-size: 16px; font-weight: 800; word-break: break-word; }
+  .stat .l { display: block; font-size: 10px; color: var(--suave); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .accesos { display: grid; gap: 10px; margin-bottom: 14px; }
+  .acceso {
+    display: block; width: 100%; text-align: left; margin: 0; padding: 16px 18px; cursor: pointer;
+    background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 18px; color: var(--texto);
+    font-family: inherit; box-shadow: none;
+  }
+  .acceso b { display: block; font-size: 15px; color: var(--morado2); }
+  .acceso span { display: block; font-size: 13px; color: var(--suave); margin-top: 3px; }
+
   nav.barra {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
     display: flex; justify-content: space-around; align-items: stretch;
@@ -139,19 +163,22 @@
 
   <!-- INICIO -->
   <section class="pagina activa" id="p-inicio">
-    <h1>Vincula tu subbot</h1>
-    <p class="intro">Sin entrar al chat: escribe tu número, obtén el código y vincúlalo en WhatsApp.</p>
-    <div class="card">
-      <h2>Cómo se hace</h2>
-      <ol>
-        <li>Ve a <b>Vincular</b> y escribe tu número con código de país (ej. <b>51999999999</b>).</li>
-        <li>Pulsa <b>Obtener código</b> y copia el código de 8 caracteres.</li>
-        <li>En WhatsApp ve a <b>Dispositivos vinculados</b> → <b>Vincular con número de teléfono</b> y pega el código.</li>
-      </ol>
+    <div class="hero">
+      <div class="hola" id="in-hola">Bienvenido a AKAME-MD</div>
+      <div class="hero-sub" id="in-sub">Tu panel de subbot en un solo lugar.</div>
+      <span class="pill off" id="in-estado">Sin sesión</span>
     </div>
-    <div class="card">
-      <h2>Después de vincular</h2>
-      <p class="texto">En <b>Personalizar</b> cambias el nombre, el prefijo y el banner del menú. En <b>Grupos</b> eliges dónde responde tu subbot y sus protecciones.</p>
+
+    <div class="stats oculto" id="in-stats">
+      <div class="stat"><span class="n" id="in-nombre">—</span><span class="l">Nombre</span></div>
+      <div class="stat"><span class="n" id="in-prefijo">—</span><span class="l">Prefijo</span></div>
+      <div class="stat"><span class="n" id="in-grupos">0</span><span class="l">Grupos</span></div>
+    </div>
+
+    <div class="accesos">
+      <button class="acceso" data-ir="p-personalizar"><b>Personalizar</b><span>Nombre, prefijo y banner del menú</span></button>
+      <button class="acceso" data-ir="p-grupos"><b>Grupos</b><span>Dónde responde y sus protecciones</span></button>
+      <button class="acceso" data-ir="p-vincular"><b>Vincular</b><span>Conecta un subbot nuevo</span></button>
     </div>
   </section>
 
@@ -159,6 +186,14 @@
   <section class="pagina" id="p-vincular">
     <h1>Vincular</h1>
     <p class="intro">Escribe tu número y pide el código.</p>
+    <div class="card">
+      <h2>Cómo se hace</h2>
+      <ol>
+        <li>Escribe tu número con código de país (ej. <b>51999999999</b>).</li>
+        <li>Pulsa <b>Obtener código</b> y copia el código de 8 caracteres.</li>
+        <li>En WhatsApp ve a <b>Dispositivos vinculados</b> → <b>Vincular con número de teléfono</b> y pega el código.</li>
+      </ol>
+    </div>
     <div class="card">
       <h2>Tu número</h2>
       <label for="numero">Número de WhatsApp</label>
@@ -322,6 +357,9 @@
     b.addEventListener('click', function () { mostrar(b.getAttribute('data-pagina')); });
   });
   window.akameIr = mostrar;
+  document.querySelectorAll('[data-ir]').forEach(function (b) {
+    b.addEventListener('click', function () { mostrar(b.getAttribute('data-ir')); });
+  });
 
   // ---- Vincular ----
   var numeroEl = document.getElementById('numero');
@@ -439,6 +477,51 @@
     $('grupos-con-sesion').classList.toggle('oculto', !dentro);
   }
 
+  // ---- Inicio (bienvenida y estado) ----
+  function pintarInicio(datos, aviso) {
+    var hola = $('in-hola'), sub = $('in-sub'), pill = $('in-estado'), stats = $('in-stats');
+    if (!token) {
+      hola.textContent = 'Bienvenido a AKAME-MD';
+      sub.textContent = 'Entra a tu subbot en Personalizar para ver su estado.';
+      pill.className = 'pill off';
+      pill.textContent = 'Sin sesión';
+      stats.classList.add('oculto');
+      return;
+    }
+    stats.classList.remove('oculto');
+    var perfil = (datos && datos.perfil) || {};
+    hola.textContent = perfil.nombre ? 'Hola, ' + perfil.nombre : 'Hola, tu subbot';
+    $('in-nombre').textContent = perfil.nombre || '—';
+    $('in-prefijo').textContent = perfil.prefijo || '.';
+    $('in-grupos').textContent = datos && datos.grupos ? datos.grupos.length : '0';
+    if (aviso) {
+      sub.textContent = aviso;
+      pill.className = 'pill off';
+      pill.textContent = 'Desconectado';
+      return;
+    }
+    if (!datos) {
+      sub.textContent = 'Cargando tu subbot…';
+      pill.className = 'pill wait';
+      pill.textContent = 'Cargando…';
+      return;
+    }
+    var estado = datos.estado;
+    if (estado === 'conectado') {
+      sub.textContent = 'Tu subbot está activo y listo para usarse.';
+      pill.className = 'pill on';
+      pill.textContent = 'Conectado';
+    } else if (estado === 'emparejando') {
+      sub.textContent = 'Falta vincularlo en WhatsApp.';
+      pill.className = 'pill wait';
+      pill.textContent = 'Vinculando';
+    } else {
+      sub.textContent = 'Tu subbot está apagado. Enciéndelo desde el bot principal.';
+      pill.className = 'pill off';
+      pill.textContent = 'Desconectado';
+    }
+  }
+
   function salir() {
     token = '';
     sessionStorage.removeItem(CLAVE);
@@ -446,6 +529,7 @@
     $('pgrupos').innerHTML = '';
     pintarSesion();
     avisar('pmsg', 'Sesión cerrada.');
+    pintarInicio(null);
   }
 
   // ---- Perfil (nombre, prefijo, banner) ----
@@ -534,9 +618,13 @@
     avisar('pmsg-grupos', 'Cargando tus grupos…');
     api('/api/panel/grupos').then(function (x) {
       if (x.status === 401) { salir(); return avisar('pmsg', 'Tu sesión venció. Vuelve a entrar.', true); }
-      if (!x.ok) return avisar('pmsg-grupos', x.d.error || 'No se pudieron cargar los grupos.', true);
+      if (!x.ok) {
+        pintarInicio(null, x.d.error || 'Tu subbot no está conectado.');
+        return avisar('pmsg-grupos', x.d.error || 'No se pudieron cargar los grupos.', true);
+      }
       pintarPerfil(x.d.perfil);
       pintarGrupos(x.d.grupos || []);
+      pintarInicio({ perfil: x.d.perfil, grupos: x.d.grupos || [], estado: x.d.estado });
       avisar('pmsg-grupos', x.d.grupos && x.d.grupos.length ? 'Cambia lo que quieras y pulsa Guardar cambios.' : '');
     }).catch(function () { avisar('pmsg-grupos', 'Error de conexión. Intenta de nuevo.', true); });
   }
@@ -608,12 +696,17 @@
 
   $('psalir').addEventListener('click', salir);
 
+  document.querySelectorAll('nav.barra button[data-pagina="p-inicio"]').forEach(function (b) {
+    b.addEventListener('click', function () { if (token) cargarGrupos(); else pintarInicio(null); });
+  });
+
   // Al abrir la pestaña Grupos, carga la lista si ya hay sesión
   document.querySelectorAll('nav.barra button[data-pagina="p-grupos"]').forEach(function (b) {
     b.addEventListener('click', function () { if (token) cargarGrupos(); });
   });
 
   pintarSesion();
+  pintarInicio(null);
   // Si ya había sesión en esta pestaña, carga los datos
   if (token) cargarGrupos();
 })();
