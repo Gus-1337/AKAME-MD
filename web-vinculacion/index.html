@@ -87,6 +87,23 @@
   .estado { text-align: center; font-weight: 700; font-size: 15px; margin-top: 8px; color: var(--suave); }
   .ok { color: #6ee7a7; }
   .oculto { display: none; }
+  .cabecera-panel { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .cabecera-panel h2 { margin: 0; }
+  button.secundario {
+    width: auto; margin: 0; padding: 8px 14px; font-size: 13px; border-radius: 12px;
+    background: transparent; color: var(--morado2); border: 1px solid var(--borde); box-shadow: none;
+  }
+  .grupo .gnombre { font-weight: 800; font-size: 15px; margin-bottom: 4px; word-break: break-word; }
+  .grupo select {
+    width: 100%; padding: 11px; margin: 6px 0 10px; font-size: 15px; color: var(--texto);
+    background: rgba(255,255,255,.04); border: 1px solid var(--borde); border-radius: 12px;
+  }
+  .fila { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-top: 1px solid var(--borde); font-size: 14px; }
+  .fila input[type=checkbox] { width: 20px; height: 20px; margin: 0; accent-color: var(--morado); }
+  .spamcfg { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .spamcfg label { font-size: 11px; margin: 0; }
+  .spamcfg input { padding: 9px; font-size: 14px; margin: 4px 0 0; }
+  .texto { font-size: 14px; color: var(--suave); line-height: 1.5; margin: 0 0 10px; }
 
   details { border-bottom: 1px solid var(--borde); padding: 12px 0; }
   details:last-child { border-bottom: 0; }
@@ -166,8 +183,9 @@
   <!-- PERSONALIZAR -->
   <section class="pagina" id="p-personalizar">
     <h1>Personalizar</h1>
-    <p class="intro">Opcional. Se aplica cuando se vincula tu subbot.</p>
+    <p class="intro">Ajustes de tu subbot. Los datos de vinculación se aplican al crearlo; el panel sirve cuando ya está vinculado.</p>
     <div class="card">
+      <h2>Al vincular</h2>
       <label for="nombre">Nombre de tu subbot</label>
       <input id="nombre" type="text" maxlength="30" placeholder="Ej. KATA BOT">
       <div class="ayuda">Hasta 30 caracteres. Sale en el menú.</div>
@@ -179,6 +197,36 @@
       <label for="banner">Banner del menú (enlace de imagen)</label>
       <input id="banner" type="url" placeholder="https://...">
       <div class="ayuda">Opcional. Debe empezar con https://</div>
+    </div>
+
+    <div class="card" id="panel-login">
+      <h2>Panel de tu subbot</h2>
+      <p class="texto">Entra con el número de tu subbot. Te enviamos un código por WhatsApp a ese mismo número.</p>
+      <label for="pnumero">Número del subbot</label>
+      <input id="pnumero" type="tel" inputmode="numeric" placeholder="51999999999">
+      <button class="principal" id="ppedir">Enviar código por WhatsApp</button>
+      <div id="pcodigo-bloque" class="oculto">
+        <label for="pcodigo">Código de 6 dígitos</label>
+        <input id="pcodigo" type="text" inputmode="numeric" maxlength="6" placeholder="123456">
+        <button class="principal" id="pentrar">Entrar</button>
+      </div>
+      <div class="msg" id="pmsg"></div>
+    </div>
+
+    <div id="panel-control" class="oculto">
+      <div class="card">
+        <div class="cabecera-panel">
+          <h2>Tus grupos</h2>
+          <button class="secundario" id="psalir">Salir</button>
+        </div>
+        <p class="ayuda">Elige en qué grupos responde tu subbot y qué protecciones tiene en cada uno.</p>
+        <div class="msg" id="pmsg-grupos"></div>
+      </div>
+      <div id="pgrupos"></div>
+      <div class="card">
+        <button class="principal" id="pguardar">Guardar cambios</button>
+        <div class="msg" id="pmsg2"></div>
+      </div>
     </div>
   </section>
 
@@ -314,6 +362,185 @@
         boton.textContent = 'Obtener código';
       });
   });
+})();
+</script>
+<script>
+(function () {
+  var CLAVE = 'akame_panel_token';
+  var token = sessionStorage.getItem(CLAVE) || '';
+  var originales = {};
+  var $ = function (id) { return document.getElementById(id); };
+
+  function esc(t) {
+    return String(t).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function avisar(id, texto, err) {
+    var e = $(id);
+    e.className = 'msg' + (err ? ' err' : '');
+    e.textContent = texto;
+  }
+  function api(ruta, opciones) {
+    opciones = opciones || {};
+    opciones.headers = opciones.headers || {};
+    if (token) opciones.headers['Authorization'] = 'Bearer ' + token;
+    if (opciones.body) {
+      opciones.headers['Content-Type'] = 'application/json';
+      opciones.body = JSON.stringify(opciones.body);
+    }
+    return fetch(ruta, opciones).then(function (r) {
+      return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; });
+    });
+  }
+
+  function mostrarLogin() {
+    $('panel-control').classList.add('oculto');
+    $('panel-login').classList.remove('oculto');
+  }
+  function mostrarControl() {
+    $('panel-login').classList.add('oculto');
+    $('panel-control').classList.remove('oculto');
+  }
+  function salir() {
+    token = '';
+    sessionStorage.removeItem(CLAVE);
+    originales = {};
+    $('pgrupos').innerHTML = '';
+    mostrarLogin();
+    avisar('pmsg', 'Sesión cerrada.');
+  }
+
+  function leerCfg(card) {
+    return {
+      max: Number(card.querySelector('.cfg-max').value),
+      seconds: Number(card.querySelector('.cfg-seconds').value),
+      warns: Number(card.querySelector('.cfg-warns').value)
+    };
+  }
+  function leerTarjeta(card) {
+    return {
+      responde: card.querySelector('.responde').value,
+      antilink: card.querySelector('.antilink').checked,
+      antitoxic: card.querySelector('.antitoxic').checked,
+      antispam: card.querySelector('.antispam').checked,
+      antispamCfg: leerCfg(card)
+    };
+  }
+
+  function pintarGrupos(grupos) {
+    originales = {};
+    var cont = $('pgrupos');
+    if (!grupos.length) {
+      cont.innerHTML = '<div class="card"><p class="texto">Tu subbot todavía no está en ningún grupo.</p></div>';
+      return;
+    }
+    cont.innerHTML = grupos.map(function (g) {
+      var cfg = g.antispamCfg || { max: 6, seconds: 5, warns: 2 };
+      originales[g.jid] = { responde: g.responde, antilink: g.antilink, antitoxic: g.antitoxic, antispam: g.antispam, antispamCfg: cfg };
+      return '<div class="card grupo" data-jid="' + esc(g.jid) + '">' +
+        '<div class="gnombre">' + esc(g.nombre) + '</div>' +
+        '<label>¿Responde aquí?</label>' +
+        '<select class="responde">' +
+          '<option value="activo"' + (g.responde === 'activo' ? ' selected' : '') + '>Todos</option>' +
+          '<option value="solo"' + (g.responde === 'solo' ? ' selected' : '') + '>Solo yo</option>' +
+          '<option value="apagado"' + (g.responde === 'apagado' ? ' selected' : '') + '>Nadie</option>' +
+        '</select>' +
+        '<div class="fila"><span>AntiLink</span><input type="checkbox" class="antilink"' + (g.antilink ? ' checked' : '') + '></div>' +
+        '<div class="fila"><span>AntiToxic</span><input type="checkbox" class="antitoxic"' + (g.antitoxic ? ' checked' : '') + '></div>' +
+        '<div class="fila"><span>AntiSpam</span><input type="checkbox" class="antispam"' + (g.antispam ? ' checked' : '') + '></div>' +
+        '<div class="spamcfg' + (g.antispam ? '' : ' oculto') + '">' +
+          '<div><label>Mensajes</label><input class="cfg-max" type="number" min="1" max="50" value="' + cfg.max + '"></div>' +
+          '<div><label>En segundos</label><input class="cfg-seconds" type="number" min="1" max="3600" value="' + cfg.seconds + '"></div>' +
+          '<div><label>Avisos</label><input class="cfg-warns" type="number" min="0" max="10" value="' + cfg.warns + '"></div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    cont.querySelectorAll('.grupo').forEach(function (card) {
+      var caja = card.querySelector('.antispam');
+      caja.addEventListener('change', function () {
+        card.querySelector('.spamcfg').classList.toggle('oculto', !caja.checked);
+      });
+    });
+  }
+
+  function cargarGrupos() {
+    avisar('pmsg-grupos', 'Cargando tus grupos…');
+    api('/api/panel/grupos').then(function (x) {
+      if (x.status === 401) { salir(); avisar('pmsg', 'Tu sesión venció. Vuelve a entrar.', true); return; }
+      if (!x.ok) { avisar('pmsg-grupos', x.d.error || 'No se pudieron cargar los grupos.', true); return; }
+      pintarGrupos(x.d.grupos || []);
+      avisar('pmsg-grupos', x.d.grupos && x.d.grupos.length ? 'Cambia lo que quieras y pulsa Guardar.' : '');
+    }).catch(function () { avisar('pmsg-grupos', 'Error de conexión. Intenta de nuevo.', true); });
+  }
+
+  // ---- Entrar ----
+  $('ppedir').addEventListener('click', function () {
+    var numero = $('pnumero').value.replace(/\D/g, '');
+    if (numero.length < 8 || numero.length > 15) return avisar('pmsg', 'Escribe el número del subbot con código de país.', true);
+    var b = $('ppedir');
+    b.disabled = true;
+    api('/api/panel/pedir-codigo', { method: 'POST', body: { numero: numero } }).then(function (x) {
+      if (!x.ok) return avisar('pmsg', x.d.error || 'No se pudo enviar el código.', true);
+      $('pcodigo-bloque').classList.remove('oculto');
+      avisar('pmsg', 'Te enviamos un código por WhatsApp al número del subbot.');
+    }).catch(function () { avisar('pmsg', 'Error de conexión. Intenta de nuevo.', true); })
+      .then(function () { b.disabled = false; });
+  });
+
+  $('pentrar').addEventListener('click', function () {
+    var numero = $('pnumero').value.replace(/\D/g, '');
+    var codigo = $('pcodigo').value.replace(/\D/g, '');
+    if (codigo.length !== 6) return avisar('pmsg', 'El código tiene 6 dígitos.', true);
+    api('/api/panel/entrar', { method: 'POST', body: { numero: numero, codigo: codigo } }).then(function (x) {
+      if (!x.ok) return avisar('pmsg', x.d.error || 'No se pudo entrar.', true);
+      token = x.d.token;
+      sessionStorage.setItem(CLAVE, token);
+      $('pcodigo').value = '';
+      mostrarControl();
+      cargarGrupos();
+    }).catch(function () { avisar('pmsg', 'Error de conexión. Intenta de nuevo.', true); });
+  });
+
+  $('psalir').addEventListener('click', salir);
+
+  // ---- Guardar ----
+  $('pguardar').addEventListener('click', function () {
+    var cambios = {};
+    var invalido = '';
+    document.querySelectorAll('#pgrupos .grupo').forEach(function (card) {
+      var jid = card.getAttribute('data-jid');
+      var nuevo = leerTarjeta(card);
+      var viejo = originales[jid];
+      if (!viejo) return;
+      var c = nuevo.antispamCfg;
+      if (!(c.max >= 1 && c.max <= 50 && c.seconds >= 1 && c.seconds <= 3600 && c.warns >= 0 && c.warns <= 10)) {
+        invalido = 'Revisa los números de AntiSpam (mensajes 1-50, segundos 1-3600, avisos 0-10).';
+        return;
+      }
+      var cambio = nuevo.responde !== viejo.responde || nuevo.antilink !== viejo.antilink ||
+        nuevo.antitoxic !== viejo.antitoxic || nuevo.antispam !== viejo.antispam ||
+        c.max !== viejo.antispamCfg.max || c.seconds !== viejo.antispamCfg.seconds || c.warns !== viejo.antispamCfg.warns;
+      if (cambio) cambios[jid] = nuevo;
+    });
+    if (invalido) return avisar('pmsg2', invalido, true);
+    if (!Object.keys(cambios).length) return avisar('pmsg2', 'No hay cambios que guardar.');
+
+    var b = $('pguardar');
+    b.disabled = true;
+    avisar('pmsg2', 'Guardando…');
+    api('/api/panel/aplicar', { method: 'POST', body: { cambios: cambios } }).then(function (x) {
+      if (x.status === 401) { salir(); return avisar('pmsg', 'Tu sesión venció. Vuelve a entrar.', true); }
+      if (!x.ok) return avisar('pmsg2', x.d.error || 'No se pudo guardar.', true);
+      Object.keys(cambios).forEach(function (jid) { originales[jid] = cambios[jid]; });
+      avisar('pmsg2', '✅ Guardado. Cambios en ' + (x.d.aplicados || 0) + ' grupo(s).');
+    }).catch(function () { avisar('pmsg2', 'Error de conexión. Intenta de nuevo.', true); })
+      .then(function () { b.disabled = false; });
+  });
+
+  // Si ya había sesión en esta pestaña, sigue dentro
+  if (token) { mostrarControl(); cargarGrupos(); }
 })();
 </script>
 </body>
