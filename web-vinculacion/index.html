@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>AKAME-MD · Vincular subbot</title>
 <style>
   * { box-sizing: border-box; }
@@ -11,32 +11,45 @@
     --morado2: #c084fc;
     --texto: #ece8f7;
     --suave: #9a92b3;
-    --borde: rgba(168, 128, 255, .22);
-    --tarjeta: rgba(16, 12, 28, .82);
+    --borde: rgba(168, 128, 255, .2);
+    --tarjeta: rgba(16, 12, 28, .84);
   }
+  html, body { margin: 0; }
   body {
-    margin: 0; min-height: 100vh; padding: 18px 14px 40px;
+    min-height: 100vh; padding: 0 0 96px;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     color: var(--texto); background: #0a0812;
     background-image:
-      linear-gradient(180deg, rgba(10,8,18,.55) 0%, rgba(10,8,18,.9) 60%, #0a0812 100%),
+      linear-gradient(180deg, rgba(10,8,18,.6) 0%, rgba(10,8,18,.92) 55%, #0a0812 100%),
       url('/fondo.jpg');
     background-size: cover, cover;
-    background-position: center, 70% center;
+    background-position: center, 72% center;
     background-attachment: fixed, fixed;
     background-repeat: no-repeat;
   }
-  .wrap { max-width: 460px; margin: 0 auto; }
-  .marca { display: flex; align-items: center; gap: 12px; margin: 6px 4px 18px; }
-  .marca .logo {
-    width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, var(--morado), var(--morado2)); font-size: 22px;
-    box-shadow: 0 0 22px rgba(168,85,247,.45);
+
+  /* Encabezado */
+  header {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 18px; background: rgba(10,8,18,.7);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--borde);
   }
-  .marca .nombre { font-size: 20px; font-weight: 800; letter-spacing: 1.5px; }
-  .marca .sub { font-size: 12px; color: var(--suave); letter-spacing: 2px; text-transform: uppercase; }
-  h1 { font-size: 26px; margin: 4px 4px 4px; }
-  .intro { color: var(--suave); font-size: 14px; margin: 0 4px 18px; line-height: 1.5; }
+  .logo {
+    width: 42px; height: 42px; border-radius: 13px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--morado), var(--morado2)); font-size: 20px;
+    box-shadow: 0 0 20px rgba(168,85,247,.45);
+  }
+  .marca .nombre { font-size: 17px; font-weight: 800; letter-spacing: 1.5px; }
+  .marca .sub { font-size: 11px; color: var(--suave); letter-spacing: 2px; text-transform: uppercase; }
+
+  main { max-width: 460px; margin: 0 auto; padding: 18px 14px; }
+  .pagina { display: none; }
+  .pagina.activa { display: block; }
+  h1 { font-size: 24px; margin: 6px 4px 4px; }
+  .intro { color: var(--suave); font-size: 14px; margin: 0 4px 16px; line-height: 1.5; }
+
   .card {
     background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 20px;
     padding: 18px; margin-bottom: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -45,7 +58,10 @@
   h2 { font-size: 15px; margin: 0 0 12px; color: var(--morado2); letter-spacing: .3px; }
   ol { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: var(--suave); }
   ol b { color: var(--texto); }
+  p.texto { font-size: 14px; line-height: 1.6; color: var(--suave); margin: 0 0 10px; }
+
   label { display: block; font-size: 13px; font-weight: 700; color: var(--morado2); margin-top: 12px; }
+  label:first-of-type { margin-top: 0; }
   input {
     width: 100%; padding: 13px; margin: 7px 0 4px; font-size: 16px; color: var(--texto);
     background: rgba(255,255,255,.04); border: 1px solid var(--borde); border-radius: 14px; outline: none;
@@ -53,59 +69,105 @@
   input::placeholder { color: #5f5878; }
   input:focus { border-color: var(--morado); box-shadow: 0 0 0 3px rgba(139,92,246,.25); }
   .ayuda { font-size: 12px; color: #7d7596; }
-  button {
+  button.principal {
     width: 100%; padding: 14px; border: 0; border-radius: 16px; margin-top: 14px;
     background: linear-gradient(90deg, var(--morado), #a855f7); color: #fff;
     font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 24px rgba(139,92,246,.4);
   }
-  button:disabled { opacity: .6; cursor: wait; }
-  details.personal { margin-top: 14px; background: rgba(255,255,255,.03); border: 1px solid var(--borde); border-radius: 14px; padding: 10px 14px; }
-  details.personal summary { cursor: pointer; font-weight: 700; color: var(--morado2); font-size: 14px; }
-  details.personal label { margin-top: 12px; }
+  button.principal:disabled { opacity: .6; cursor: wait; }
   .msg { min-height: 22px; font-size: 14px; text-align: center; margin-top: 10px; color: var(--suave); }
   .err { color: #ff7aa8; font-weight: 700; }
+
   .codigo {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 32px; font-weight: 800; letter-spacing: 6px; text-align: center; color: #f5f0ff;
+    font-size: 30px; font-weight: 800; letter-spacing: 6px; text-align: center; color: #f5f0ff;
     background: rgba(139,92,246,.12); border: 1px dashed rgba(192,132,252,.55); border-radius: 18px;
     padding: 18px 8px; margin: 10px 0; user-select: all; text-shadow: 0 0 14px rgba(192,132,252,.6);
   }
   .estado { text-align: center; font-weight: 700; font-size: 15px; margin-top: 8px; color: var(--suave); }
   .ok { color: #6ee7a7; }
   .oculto { display: none; }
-  .pie { text-align: center; font-size: 12px; color: #6d6588; margin-top: 18px; }
+
+  details { border-bottom: 1px solid var(--borde); padding: 12px 0; }
+  details:last-child { border-bottom: 0; }
+  summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--texto); }
+  details p { font-size: 13px; color: var(--suave); line-height: 1.6; margin: 8px 0 0; }
+
+  /* Barra inferior */
+  nav.barra {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+    display: flex; justify-content: space-around; align-items: stretch;
+    padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+    background: rgba(12,9,22,.92); border-top: 1px solid var(--borde);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  nav.barra button {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    margin: 0; padding: 8px 4px; background: transparent; border-radius: 14px;
+    color: var(--suave); font-size: 11px; font-weight: 700; cursor: pointer; box-shadow: none;
+  }
+  nav.barra button svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  nav.barra button.activa {
+    background: linear-gradient(135deg, var(--morado), #a855f7); color: #fff;
+    box-shadow: 0 6px 18px rgba(139,92,246,.4);
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
+
+<header>
+  <div class="logo">✦</div>
   <div class="marca">
-    <div class="logo">✦</div>
-    <div>
-      <div class="nombre">AKAME-MD</div>
-      <div class="sub">Vinculación de subbots</div>
+    <div class="nombre">AKAME-MD</div>
+    <div class="sub">Vinculación de subbots</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- INICIO -->
+  <section class="pagina activa" id="p-inicio">
+    <h1>Vincula tu subbot</h1>
+    <p class="intro">Sin entrar al chat: escribe tu número, obtén el código y vincúlalo en WhatsApp.</p>
+    <div class="card">
+      <h2>Cómo se hace</h2>
+      <ol>
+        <li>Ve a <b>Vincular</b> y escribe tu número con código de país (ej. <b>51999999999</b>).</li>
+        <li>Pulsa <b>Obtener código</b> y copia el código de 8 caracteres.</li>
+        <li>En WhatsApp ve a <b>Dispositivos vinculados</b> → <b>Vincular con número de teléfono</b> y pega el código.</li>
+      </ol>
     </div>
-  </div>
+    <div class="card">
+      <h2>Antes de empezar</h2>
+      <p class="texto">Si quieres cambiar el nombre, el prefijo o el banner del menú, hazlo en <b>Personalizar</b>. Son opcionales.</p>
+    </div>
+  </section>
 
-  <h1>Vincula tu subbot</h1>
-  <p class="intro">Sin entrar al chat: escribe tu número, obtén el código y vincúlalo en WhatsApp.</p>
+  <!-- VINCULAR -->
+  <section class="pagina" id="p-vincular">
+    <h1>Vincular</h1>
+    <p class="intro">Escribe tu número y pide el código.</p>
+    <div class="card">
+      <h2>Tu número</h2>
+      <label for="numero">Número de WhatsApp</label>
+      <input id="numero" type="tel" inputmode="numeric" placeholder="51999999999" autocomplete="tel">
+      <div class="ayuda">Solo números, sin + ni espacios.</div>
+      <button class="principal" id="boton">Obtener código</button>
+      <div class="msg" id="msg"></div>
+    </div>
+    <div class="card oculto" id="resultado">
+      <h2>Tu código</h2>
+      <div class="codigo" id="codigo"></div>
+      <div class="ayuda" style="text-align:center">Toca el código para seleccionarlo y cópialo.</div>
+      <div class="estado" id="estado">⏳ Esperando que lo vincules…</div>
+    </div>
+  </section>
 
-  <div class="card">
-    <h2>Cómo se hace</h2>
-    <ol>
-      <li>Escribe tu número con código de país (ej. <b>51999999999</b>).</li>
-      <li>Pulsa <b>Obtener código</b> y copia el código de 8 caracteres.</li>
-      <li>En WhatsApp ve a <b>Dispositivos vinculados</b> → <b>Vincular con número de teléfono</b> y pega el código.</li>
-    </ol>
-  </div>
-
-  <div class="card" id="formulario">
-    <h2>Tu número</h2>
-    <label for="numero">Número de WhatsApp</label>
-    <input id="numero" type="tel" inputmode="numeric" placeholder="51999999999" autocomplete="tel">
-    <div class="ayuda">Solo números, sin + ni espacios.</div>
-
-    <details class="personal">
-      <summary>Personaliza tu subbot (opcional)</summary>
+  <!-- PERSONALIZAR -->
+  <section class="pagina" id="p-personalizar">
+    <h1>Personalizar</h1>
+    <p class="intro">Opcional. Se aplica cuando se vincula tu subbot.</p>
+    <div class="card">
       <label for="nombre">Nombre de tu subbot</label>
       <input id="nombre" type="text" maxlength="30" placeholder="Ej. KATA BOT">
       <div class="ayuda">Hasta 30 caracteres. Sale en el menú.</div>
@@ -117,24 +179,68 @@
       <label for="banner">Banner del menú (enlace de imagen)</label>
       <input id="banner" type="url" placeholder="https://...">
       <div class="ayuda">Opcional. Debe empezar con https://</div>
-    </details>
+    </div>
+  </section>
 
-    <button id="boton">Obtener código</button>
-    <div class="msg" id="msg"></div>
-  </div>
+  <!-- AYUDA -->
+  <section class="pagina" id="p-ayuda">
+    <h1>Ayuda</h1>
+    <p class="intro">Respuestas rápidas a lo más común.</p>
+    <div class="card">
+      <details>
+        <summary>¿Cuánto tarda el código?</summary>
+        <p>Normalmente unos segundos. Si tarda mucho, espera un momento y vuelve a pedirlo.</p>
+      </details>
+      <details>
+        <summary>¿Por qué no me deja pedir otro código?</summary>
+        <p>Para evitar abusos, solo se puede pedir un código por número cada minuto.</p>
+      </details>
+      <details>
+        <summary>¿Qué pasa si no lo vinculo a tiempo?</summary>
+        <p>El código caduca y el subbot se borra. Pide uno nuevo desde Vincular.</p>
+      </details>
+      <details>
+        <summary>¿Cómo cambio el prefijo o el nombre después?</summary>
+        <p>Escribe <b>.setprefix</b> o <b>.setname</b> al número de tu subbot en WhatsApp.</p>
+      </details>
+    </div>
+  </section>
 
-  <div class="card oculto" id="resultado">
-    <h2>Tu código</h2>
-    <div class="codigo" id="codigo"></div>
-    <div class="ayuda" style="text-align:center">Toca el código para seleccionarlo y cópialo.</div>
-    <div class="estado" id="estado">⏳ Esperando que lo vincules…</div>
-  </div>
+</main>
 
-  <div class="pie">AKAME-MD ✦</div>
-</div>
+<nav class="barra">
+  <button class="activa" data-pagina="p-inicio">
+    <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+    Inicio
+  </button>
+  <button data-pagina="p-vincular">
+    <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+    Vincular
+  </button>
+  <button data-pagina="p-personalizar">
+    <svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+    Personalizar
+  </button>
+  <button data-pagina="p-ayuda">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 .5c0 1.7-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>
+    Ayuda
+  </button>
+</nav>
 
 <script>
 (function () {
+  // ---- Pestañas ----
+  var botones = document.querySelectorAll('nav.barra button');
+  function mostrar(id) {
+    document.querySelectorAll('.pagina').forEach(function (s) { s.classList.toggle('activa', s.id === id); });
+    botones.forEach(function (b) { b.classList.toggle('activa', b.getAttribute('data-pagina') === id); });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  botones.forEach(function (b) {
+    b.addEventListener('click', function () { mostrar(b.getAttribute('data-pagina')); });
+  });
+
+  // ---- Vincular ----
   var numeroEl = document.getElementById('numero');
   var boton = document.getElementById('boton');
   var msg = document.getElementById('msg');
