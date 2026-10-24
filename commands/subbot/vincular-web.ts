@@ -287,14 +287,37 @@ const servidor = http.createServer(async (req, res) => {
     }
 });
 
-/** Descarga cloudflared la primera vez (si no existe). */
+/** Comprueba que el archivo sea un programa de verdad (ELF) y no una página de error. */
+const esBinarioValido = (ruta: string): boolean => {
+    try {
+        if (fs.statSync(ruta).size < 5 * 1024 * 1024) return false;
+        const fd = fs.openSync(ruta, 'r');
+        const cabecera = Buffer.alloc(4);
+        fs.readSync(fd, cabecera, 0, 4, 0);
+        fs.closeSync(fd);
+        return cabecera[0] === 0x7f && cabecera.toString('ascii', 1, 4) === 'ELF';
+    } catch {
+        return false;
+    }
+};
+
+/** Descarga cloudflared si falta o si el archivo guardado está dañado. */
 const asegurarCloudflared = async (): Promise<boolean> => {
-    if (fs.existsSync(BIN_CLOUDFLARED)) return true;
+    if (fs.existsSync(BIN_CLOUDFLARED)) {
+        if (esBinarioValido(BIN_CLOUDFLARED)) return true;
+        console.log('[VINCULAR WEB] cloudflared guardado no es válido, se vuelve a descargar');
+        fs.rmSync(BIN_CLOUDFLARED, { force: true });
+    }
     try {
         fs.mkdirSync(CARPETA_BIN, { recursive: true });
         console.log('[VINCULAR WEB] descargando cloudflared…');
         const res = await axios.get(URL_DESCARGA, { responseType: 'arraybuffer', timeout: 180000, maxRedirects: 5 });
         fs.writeFileSync(BIN_CLOUDFLARED, Buffer.from(res.data));
+        if (!esBinarioValido(BIN_CLOUDFLARED)) {
+            fs.rmSync(BIN_CLOUDFLARED, { force: true });
+            console.log('[VINCULAR WEB] la descarga de cloudflared no es un programa válido');
+            return false;
+        }
         fs.chmodSync(BIN_CLOUDFLARED, 0o755);
         return true;
     } catch (e: any) {
