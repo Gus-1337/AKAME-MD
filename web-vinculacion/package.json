@@ -1,0 +1,13 @@
+{
+  "name": "akame-vincular-render",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Página de vinculación de subbots (Render) que reenvía al bot",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -15,6 +15,9 @@ const CARPETA_BIN = path.resolve(process.cwd(), '.cloudflared');
 const BIN_CLOUDFLARED = path.join(CARPETA_BIN, 'cloudflared');
 const URL_DESCARGA = 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64';
 const REGEX_LINK = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/i;
+// Si la página vive en Render, el bot le avisa su link de túnel (ver web-vinculacion/README.md)
+const REGISTRO_URL = process.env.VINCULAR_REGISTRO_URL || '';
+const REGISTRO_SECRETO = process.env.VINCULAR_SECRETO || '';
 
 const PAGINA = `<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
@@ -137,7 +140,7 @@ function cargarLink() {
     var txt = document.getElementById('link-txt');
     var btn = document.getElementById('btn-copiar');
     if (d.url) {
-      txt.textContent = d.url;
+      txt.textContent = location.origin;
       btn.disabled = false;
       badge.textContent = '✅ Activo';
       badge.className = 'badge';
@@ -301,6 +304,16 @@ const asegurarCloudflared = async (): Promise<boolean> => {
 };
 
 let tunel: ChildProcess | null = null;
+
+/** Le dice a la página de Render el link de túnel actual del bot. */
+const avisarRender = async () => {
+    if (!REGISTRO_URL || !REGISTRO_SECRETO || !linkPublico) return;
+    try {
+        await axios.post(REGISTRO_URL, { url: linkPublico }, { headers: { 'x-secreto': REGISTRO_SECRETO }, timeout: 15000 });
+    } catch (e: any) {
+        console.log('[VINCULAR WEB] no se pudo avisar a Render:', e?.message);
+    }
+};
 let reintentos = 0;
 
 /** Abre el túnel público de Cloudflare (Quick Tunnel) y guarda el link. Se reintenta si se cae. */
@@ -314,6 +327,7 @@ const abrirTunel = () => {
             linkPublico = m[0];
             reintentos = 0;
             console.log(`[VINCULAR WEB] link público: ${linkPublico}`);
+            avisarRender();
         }
     };
     tunel.stdout?.on('data', mirar);
@@ -340,6 +354,8 @@ if (!g.__vincularWebActivo) {
     servidor.listen(PUERTO, '0.0.0.0', () => {
         console.log(`[VINCULAR WEB] activa en el puerto ${PUERTO}`);
         asegurarCloudflared().then((ok) => { if (ok) abrirTunel(); });
+        // Renueva el aviso a Render cada 3 minutos (si Render se reinició, vuelve a tener el link)
+        setInterval(avisarRender, 3 * 60 * 1000);
     });
 }
 
