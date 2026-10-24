@@ -95,6 +95,7 @@
   .seg.activa { background: linear-gradient(90deg, var(--morado), #a855f7); color: #fff; box-shadow: 0 6px 18px rgba(139,92,246,.35); }
   .ancho { width: 100%; margin-top: 10px; padding: 12px; }
   .qr-caja { background: #fff; border-radius: 18px; padding: 14px; width: fit-content; margin: 6px auto 12px; box-shadow: 0 10px 30px rgba(139,92,246,.35); }
+  .qr-espera { color: #555; font-weight: 700; padding: 60px 24px; text-align: center; }
   #qr-img { display: block; width: 240px; max-width: 70vw; height: auto; }
   .cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
   .cabecera h2 { margin: 0; }
@@ -213,7 +214,7 @@
         <button class="secundario ancho" id="copiar">Copiar código</button>
       </div>
       <div id="bloque-qr" class="oculto">
-        <div class="qr-caja"><img id="qr-img" alt="Código QR de vinculación"></div>
+        <div class="qr-caja"><img id="qr-img" alt="Código QR de vinculación" class="oculto"><div id="qr-espera" class="qr-espera">Generando QR…</div></div>
         <div class="ayuda" style="text-align:center">Se renueva solo cada pocos segundos.</div>
       </div>
       <div class="estado" id="estado">⏳ Esperando que lo vincules…</div>
@@ -432,7 +433,7 @@
             estadoEl.className = 'estado';
             estadoEl.textContent = '⏳ Esperando que lo vincules…';
           } else if (d.estado === 'qr' && d.qr) {
-            if (d.qr !== qrActual) { qrImg.src = d.qr; qrActual = d.qr; }
+            if (d.qr !== qrActual) { qrImg.src = d.qr; qrActual = d.qr; qrImg.classList.remove('oculto'); document.getElementById('qr-espera').classList.add('oculto'); }
             estadoEl.className = 'estado';
             estadoEl.textContent = '⏳ Escanea el QR desde WhatsApp…';
           } else if (d.estado === 'conectado') {
@@ -473,6 +474,8 @@
         resultado.classList.remove('oculto');
         qrActual = '';
         qrImg.removeAttribute('src');
+        qrImg.classList.add('oculto');
+        document.getElementById('qr-espera').classList.remove('oculto');
         if (metodo === 'qr') {
           tituloRes.textContent = 'Tu QR';
           bloqueCodigo.classList.add('oculto');

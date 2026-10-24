@@ -282,8 +282,16 @@ export const crearSubbot = async (
         throw new Error('Número inválido. Usa el formato con código de país, ej. 51999999999');
     }
 
-    const lista = leerRegistro();
-    if (lista.some((s) => s.numero === num)) throw new Error('Ese número ya tiene un subbot');
+    let lista = leerRegistro();
+    const previo = lista.find((s) => s.numero === num);
+    if (previo) {
+        // Si ya quedó vinculado, no se toca. Si nunca llegó a vincularse (intento viejo), se limpia y se sigue.
+        if (previo.estado === 'conectado' || sesionVinculada(previo.id)) {
+            throw new Error('Ese número ya tiene un subbot vinculado. Usa .reactivar o bórralo desde WhatsApp');
+        }
+        borrarSubbot(previo.id);
+        lista = leerRegistro();
+    }
     if (lista.length >= getCupo()) throw new Error(`No hay cupo disponible (${getCupo()} subbots)`);
 
     const codigo = elegirCodigo(lista);
