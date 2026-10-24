@@ -154,6 +154,37 @@
     background: linear-gradient(135deg, var(--morado), #a855f7); color: #fff;
     box-shadow: 0 6px 18px rgba(139,92,246,.4);
   }
+
+  /* ---- Inicio rediseñado ---- */
+  .hero { position: relative; overflow: hidden; padding: 26px 22px 24px;
+    background: linear-gradient(150deg, rgba(139,92,246,.5), rgba(30,14,52,.92) 60%, rgba(10,8,18,.95));
+    border: 1px solid rgba(192,132,252,.3); border-radius: 26px; margin-bottom: 16px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.08); }
+  .hero::after { content: ""; position: absolute; right: -40px; top: -40px; width: 180px; height: 180px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(192,132,252,.45), transparent 70%); pointer-events: none; }
+  .hero-marca { font-size: 11px; font-weight: 800; letter-spacing: 3px; color: var(--morado2); text-transform: uppercase; margin-bottom: 10px; }
+  .hola { font-size: 26px; font-weight: 900; line-height: 1.2; word-break: break-word; text-shadow: 0 2px 16px rgba(139,92,246,.5); }
+  .hero-sub { font-size: 14px; color: #d6cdee; margin-top: 8px; line-height: 1.5; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .4px; }
+  .punto { width: 8px; height: 8px; border-radius: 50%; background: currentColor; display: inline-block; }
+  .pill.on .punto { box-shadow: 0 0 0 0 rgba(110,231,167,.7); animation: latido 1.8s infinite; }
+  @keyframes latido { 0% { box-shadow: 0 0 0 0 rgba(110,231,167,.7); } 70% { box-shadow: 0 0 0 9px rgba(110,231,167,0); } 100% { box-shadow: 0 0 0 0 rgba(110,231,167,0); } }
+  .stats { gap: 10px; }
+  .stat { padding: 14px 6px 12px; border-radius: 18px; }
+  .stat .ico { display: flex; justify-content: center; margin-bottom: 8px; }
+  .stat .n { font-size: 15px; }
+  .ico { width: 38px; height: 38px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(139,92,246,.35), rgba(192,132,252,.12)); color: var(--morado2); flex-shrink: 0; }
+  .ico svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .seccion-titulo { font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--suave); margin: 6px 6px 10px; }
+  .acceso { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 20px; transition: transform .15s, border-color .15s; }
+  .acceso:active { transform: scale(.98); }
+  .acceso:hover { border-color: rgba(192,132,252,.5); }
+  .acceso .txt { flex: 1; min-width: 0; }
+  .acceso .txt span { margin-top: 2px; }
+  .acceso .ico { display: inline-flex; margin-top: 0; }
+  .acceso .flecha { font-size: 26px; color: var(--morado2); line-height: 1; }
+  .pie-tema { text-align: center; color: #7d7596; font-size: 12px; letter-spacing: 2px; margin: 18px 0 4px; }
 </style>
 </head>
 <body>
@@ -171,22 +202,47 @@
   <!-- INICIO -->
   <section class="pagina activa" id="p-inicio">
     <div class="hero">
+      <div class="hero-marca">✦ AKAME-MD</div>
       <div class="hola" id="in-hola">Bienvenido a AKAME-MD</div>
       <div class="hero-sub" id="in-sub">Tu panel de subbot en un solo lugar.</div>
-      <span class="pill off" id="in-estado">Sin sesión</span>
+      <span class="pill off" id="in-estado"><i class="punto"></i>Sin sesión</span>
     </div>
 
     <div class="stats oculto" id="in-stats">
-      <div class="stat"><span class="n" id="in-nombre">—</span><span class="l">Nombre</span></div>
-      <div class="stat"><span class="n" id="in-prefijo">—</span><span class="l">Prefijo</span></div>
-      <div class="stat"><span class="n" id="in-grupos">0</span><span class="l">Grupos</span></div>
+      <div class="stat">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+        <span class="n" id="in-nombre">—</span><span class="l">Nombre</span>
+      </div>
+      <div class="stat">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="currentColor"/><circle cx="15" cy="17" r="2" fill="currentColor"/></svg></span>
+        <span class="n" id="in-prefijo">—</span><span class="l">Prefijo</span>
+      </div>
+      <div class="stat">
+        <span class="ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1M21 20c0-2.7-1.6-5-4-5.7"/></svg></span>
+        <span class="n" id="in-grupos">0</span><span class="l">Grupos</span>
+      </div>
     </div>
 
+    <div class="seccion-titulo">Accesos rápidos</div>
     <div class="accesos">
-      <button class="acceso" data-ir="p-personalizar"><b>Personalizar</b><span>Nombre, prefijo y banner del menú</span></button>
-      <button class="acceso" data-ir="p-grupos"><b>Grupos</b><span>Dónde responde y sus protecciones</span></button>
-      <button class="acceso" data-ir="p-vincular"><b>Vincular</b><span>Conecta un subbot nuevo</span></button>
+      <button class="acceso" data-ir="p-personalizar">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span>
+        <span class="txt"><b>Personalizar</b><span>Nombre, prefijo y banner del menú</span></span>
+        <span class="flecha">›</span>
+      </button>
+      <button class="acceso" data-ir="p-grupos">
+        <span class="ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1M21 20c0-2.7-1.6-5-4-5.7"/></svg></span>
+        <span class="txt"><b>Grupos</b><span>Dónde responde y sus protecciones</span></span>
+        <span class="flecha">›</span>
+      </button>
+      <button class="acceso" data-ir="p-ayuda">
+        <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7"/><circle cx="12" cy="17" r="0.6" fill="currentColor"/></svg></span>
+        <span class="txt"><b>Ayuda</b><span>Preguntas frecuentes y comandos</span></span>
+        <span class="flecha">›</span>
+      </button>
     </div>
+
+    <div class="pie-tema">✧ ✦ ❖ &nbsp;AKAME-MD&nbsp; ❖ ✦ ✧</div>
   </section>
 
   <!-- VINCULAR -->
@@ -546,7 +602,7 @@
       hola.textContent = 'Bienvenido a AKAME-MD';
       sub.textContent = 'Entra a tu subbot en Personalizar para ver su estado.';
       pill.className = 'pill off';
-      pill.textContent = 'Sin sesión';
+      pill.innerHTML = '<i class=\"punto\"></i>' + 'Sin sesión';
       stats.classList.add('oculto');
       return;
     }
@@ -559,28 +615,28 @@
     if (aviso) {
       sub.textContent = aviso;
       pill.className = 'pill off';
-      pill.textContent = 'Desconectado';
+      pill.innerHTML = '<i class=\"punto\"></i>' + 'Desconectado';
       return;
     }
     if (!datos) {
       sub.textContent = 'Cargando tu subbot…';
       pill.className = 'pill wait';
-      pill.textContent = 'Cargando…';
+      pill.innerHTML = '<i class=\"punto\"></i>' + 'Cargando…';
       return;
     }
     var estado = datos.estado;
     if (estado === 'conectado') {
       sub.textContent = 'Tu subbot está activo y listo para usarse.';
       pill.className = 'pill on';
-      pill.textContent = 'Conectado';
+      pill.innerHTML = '<i class=\"punto\"></i>' + 'Conectado';
     } else if (estado === 'emparejando') {
       sub.textContent = 'Falta vincularlo en WhatsApp.';
       pill.className = 'pill wait';
-      pill.textContent = 'Vinculando';
+      pill.innerHTML = '<i class=\"punto\"></i>' + 'Vinculando';
     } else {
       sub.textContent = 'Tu subbot está apagado. Enciéndelo desde el bot principal.';
       pill.className = 'pill off';
-      pill.textContent = 'Desconectado';
+      pill.innerHTML = '<i class=\"punto\"></i>' + 'Desconectado';
     }
   }
 
